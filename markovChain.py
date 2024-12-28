@@ -6,11 +6,14 @@ import requests
 from bs4 import BeautifulSoup
 import time
 
+# Class for generating Markov chain based text
 class MarkovChain:
+    # Initialize with specified order
     def __init__(self, order=2):
         self.order = order
         self.model = defaultdict(list)
 
+    # Train the model with input data
     def train(self, data):
         for item in data:
             for i in range(len(item) - self.order):
@@ -18,6 +21,7 @@ class MarkovChain:
                 next_char = item[i+self.order]
                 self.model[state].append(next_char)
 
+    # Generate text of specified length            
     def generate(self, length):
         current = random.choice(list(self.model.keys()))
         result = current
@@ -31,9 +35,11 @@ class MarkovChain:
 
 #Web scraper functions and will pull something out of the URLs provided.
 class WebScraper:
+    # Initialize with list of URLs
     def __init__(self, urls):
         self.urls = urls
 
+    # Scrape text content from web pages
     def scrape_pages(self):
         results = []
         for i, url in enumerate(self.urls, 1):
@@ -49,6 +55,7 @@ class WebScraper:
                 print(f"Error scraping {url}: {e}")
         return results
 
+    # Generate CSV file with scraped data
     def generate_csv(self, filename):
         data = self.scrape_pages()
         with open(filename, 'w', newline='', encoding='utf-8') as csvfile:
@@ -57,7 +64,9 @@ class WebScraper:
             csv_writer.writerows(data)
         print(f"CSV file '{filename}' has been generated.")
 
+# Class for generating credentials based on web text and wordlist
 class CredentialGenerator:
+    # Initialize with web text CSV and wordlist file
     def __init__(self, web_text_csv, wordlist_file):
         self.web_text_csv = web_text_csv
         self.wordlist_file = wordlist_file
@@ -66,6 +75,7 @@ class CredentialGenerator:
         self.username_model = MarkovChain(order=2)
         self.password_model = MarkovChain(order=3)
 
+    # Load web text and wordlists
     def load_data(self):
         # Load web text from CSV
         with open(self.web_text_csv, 'r', newline='', encoding='utf-8') as csvfile:
@@ -79,9 +89,11 @@ class CredentialGenerator:
         with open(self.wordlist_file, 'r', encoding='utf-8') as f:
             self.wordlists = [line.strip() for line in f if line.strip()]
 
+    # Preprocess text data
     def preprocess_text(self, text):
         return re.findall(r'\w+', text.lower())
 
+    # Train Markov models for username and password
     def train_models(self):
         self.load_data()
         username_data = self.preprocess_text(self.web_text) + self.wordlists
@@ -90,16 +102,19 @@ class CredentialGenerator:
         self.username_model.train(username_data)
         self.password_model.train(password_data)
 
+    # Generate a random username
     def generate_username(self):
         base = self.username_model.generate(random.randint(5, 8))
         return f"{base}{random.randint(1, 999)}"
 
+    # Generate a random password
     def generate_password(self):
         base = self.password_model.generate(random.randint(10, 14))
         enhanced = base.capitalize()
         enhanced = f"{enhanced}{random.choice('!@#$%^&*')}{random.randint(0, 9)}"
         return enhanced
 
+    # Generate specified number of credentials
     def generate_credentials(self, count=10):
         credentials = []
         for _ in range(count):
