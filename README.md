@@ -12,9 +12,14 @@ To run TRACE, ensure you have the following dependencies installed:
   - `numpy`
   - `requests`
 
+```bash
+pip install -r requirements.txt
+```
+
 ## How to Run
 Prepare the input files:
 - A wordlist.txt file containing a list of words for generating credentials.
+
 Run the MDP:
 ```bash
 python md3.py
