@@ -6,6 +6,7 @@ from typing import Dict, List, Tuple, Set
 import csv
 import os
 
+# Load web text from a CSV file
 def load_web_text(csv_path: str) -> str:
     if not os.path.exists(csv_path):
         raise FileNotFoundError(f"CSV file not found: {csv_path}")
@@ -22,6 +23,7 @@ def load_web_text(csv_path: str) -> str:
     except csv.Error as e:
         raise ValueError(f"Error reading CSV file: {e}")
 
+# Load wordlist from a file
 def load_wordlist(file_path: str) -> List[str]:
     if not os.path.exists(file_path):
         raise FileNotFoundError(f"Wordlist file not found: {file_path}")
@@ -32,6 +34,7 @@ def load_wordlist(file_path: str) -> List[str]:
     except Exception as e:
         raise ValueError(f"Error reading wordlist file: {e}")
 
+# Class for managing the Markov Decision Process for generating credentials
 class CredentialMDP:
     def __init__(self, order: int = 2, gamma: float = 0.9):
         self.order = order
@@ -43,6 +46,7 @@ class CredentialMDP:
         self.learning_rate = 0.1
         self.initial_states: List[str] = []
 
+    # Calculate the strength of a password
     def calculate_password_strength(self, password: str) -> float:
         score = 0.0
         if len(password) >= 12:
@@ -57,6 +61,7 @@ class CredentialMDP:
             score += 0.1
         return score
 
+    # Calculate the quality of a username
     def calculate_username_quality(self, username: str) -> float:
         score = 0.0
         if len(username) >= 6:
@@ -69,6 +74,7 @@ class CredentialMDP:
             score += 0.1
         return score
 
+    # Get the reward for a state-action pair
     def get_reward(self, state: str, action: str, next_char: str) -> float:
         if 'username' in state:
             current = state[9:] + next_char
@@ -77,9 +83,11 @@ class CredentialMDP:
             current = state[9:] + next_char
             return self.calculate_password_strength(current) / len(current)
 
+    # Get possible actions for a state
     def get_possible_actions(self, state: str) -> List[str]:
         return list(self.state_transitions[state].keys())
 
+    # Choose an action based on epsilon-greedy strategy
     def choose_action(self, state: str) -> Tuple[str, str]:
         possible_actions = self.get_possible_actions(state)
         if not possible_actions:
@@ -105,6 +113,7 @@ class CredentialMDP:
 
         return action, next_char
 
+    # Update Q-value based on the Bellman equation
     def update_q_value(self, state: str, action: str, next_char: str, next_state: str, reward: float):
         next_action_values = []
         for next_action in self.get_possible_actions(next_state):
@@ -116,6 +125,7 @@ class CredentialMDP:
         new_q = current_q + self.learning_rate * (reward + self.gamma * max_next_q - current_q)
         self.q_values[state][(action, next_char)] = new_q
 
+# Class for generating credentials using Markov Decision Process
 class CredentialGeneratorMDP:
     def __init__(self, csv_path: str, wordlist_path: str):
         try:
@@ -131,10 +141,12 @@ class CredentialGeneratorMDP:
         self.min_username_length = 5
         self.min_password_length = 10
 
+    # Preprocess text data
     def preprocess_text(self, text: str) -> List[str]:
         words = re.findall(r'\w+', text.lower())
         return [word for word in words if len(word) >= 4]
 
+    # Build state transitions for username and password generation
     def build_state_transitions(self):
         username_data = set(self.preprocess_text(self.web_text) + self.wordlists)
         password_data = set(word for word in username_data if len(word) >= 8)
@@ -157,6 +169,7 @@ class CredentialGeneratorMDP:
                 if i == 0:
                     self.password_mdp.initial_states.append(state)
 
+    # Generate a username and password pair
     def generate_credential(self) -> Tuple[str, str]:
         # Generate username
         if not self.username_mdp.initial_states:
@@ -198,11 +211,13 @@ class CredentialGeneratorMDP:
         password = self.enhance_password(password)
         return username, password
 
+    # Enhance the generated password
     def enhance_password(self, password: str) -> str:
         enhanced = password.capitalize()
         enhanced = f"{enhanced}{random.choice('!@#$%^&*')}{random.randint(0, 9)}"
         return enhanced
 
+    # Generate multiple credentials
     def generate_credentials(self, count: int = 10) -> List[Tuple[str, str]]:
         self.build_state_transitions()
         credentials = []
@@ -211,6 +226,7 @@ class CredentialGeneratorMDP:
             credentials.append((username, password))
         return credentials
 
+# Main function to run the credential generation process
 def main():
     # File paths
     csv_path = "web_text.csv"
