@@ -5,7 +5,41 @@ import numpy as np
 from typing import Dict, List, Tuple, Set
 import csv
 import os
+import time
+import requests
+from bs4 import BeautifulSoup
 
+#Web scraper functions and will pull something out of the URLs provided.
+class WebScraper:
+    # Initialize with list of URLs
+    def __init__(self, urls):
+        self.urls = urls
+
+    # Scrape text content from web pages
+    def scrape_pages(self):
+        results = []
+        for i, url in enumerate(self.urls, 1):
+            try:
+                response = requests.get(url, timeout=10)
+                response.raise_for_status()
+                soup = BeautifulSoup(response.text, 'html.parser')
+                # Extract text from p, h1, h2, h3, and span tags
+                text = ' '.join([tag.get_text() for tag in soup.find_all(['p', 'h1', 'h2', 'h3', 'span'])])
+                results.append((i, text, url))
+                time.sleep(1)  # Be polite to servers
+            except Exception as e:
+                print(f"Error scraping {url}: {e}")
+        return results
+
+    # Generate CSV file with scraped data
+    def generate_csv(self, filename):
+        data = self.scrape_pages()
+        with open(filename, 'w', newline='', encoding='utf-8') as csvfile:
+            csv_writer = csv.writer(csvfile)
+            csv_writer.writerow(['id', 'content', 'url'])  # Header
+            csv_writer.writerows(data)
+        print(f"CSV file '{filename}' has been generated.")
+        
 # Load web text from a CSV file
 def load_web_text(csv_path: str) -> str:
     if not os.path.exists(csv_path):
@@ -228,9 +262,23 @@ class CredentialGeneratorMDP:
 
 # Main function to run the credential generation process
 def main():
+
+    urls = [
+    #"http://192.168.1.123/admin/index.php", #Seb's Pi-Hole
+    "http://127.0.0.1/server/login.php", #James server
+    #"http://127.0.0.1/server/index.php", #James server
+    "https://en.wikipedia.org/wiki/System_administrator",
+    #"https://www.redhat.com/en/topics/linux/what-is-a-system-administrator",
+    #"https://www.airshows.pa.hq.af.mil/gaframework/Presentation/security.cfm"
+    ]
+    
     # File paths
     csv_path = "web_text.csv"
     wordlist_path = "wordlist.txt"
+
+    scraper = WebScraper(urls)
+    scraper.generate_csv(csv_path)
+    
     try:
         generator = CredentialGeneratorMDP(csv_path, wordlist_path)
         credentials = generator.generate_credentials(15)
