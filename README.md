@@ -28,7 +28,7 @@ python mdp3.py
 ## MDP 
 The script processes the CSV and wordlist to build state transitions and generates credentials based on MDPs, enhancing the quality of usernames and passwords. It uses reinforcement learning and Q-learning to refine credential generation based on quality and strength criteria.
 
-## How it Works
+### How it Works
 1. Input Preparation
 - The script requires a dataset (site_list.cvs) and a wordlist (wordlist.txt) for training and generating credentials.
 2. State Transition
