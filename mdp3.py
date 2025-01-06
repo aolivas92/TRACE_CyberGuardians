@@ -9,6 +9,23 @@ import time
 import requests
 from bs4 import BeautifulSoup
 
+#Load URLs from a CSV file with columns 'id' and 'website'.
+def load_urls_from_csv(csv_path: str) -> List[str]:
+    if not os.path.exists(csv_path):
+        raise FileNotFoundError(f"CSV file not found: {csv_path}")
+    try:
+        urls = []
+        with open(csv_path, 'r', encoding='utf-8') as file:
+            reader = csv.DictReader(file)
+            if not {'id', 'website'}.issubset(set(reader.fieldnames or [])):
+                raise ValueError("CSV must contain columns: id, website")
+            for row in reader:
+                if row['website']:
+                    urls.append(row['website'].strip())
+        return urls
+    except csv.Error as e:
+        raise ValueError(f"Error reading CSV file: {e}")
+
 #Web scraper functions and will pull something out of the URLs provided.
 class WebScraper:
     # Initialize with list of URLs
@@ -262,19 +279,13 @@ class CredentialGeneratorMDP:
 
 # Main function to run the credential generation process
 def main():
-
-    urls = [
-    #"http://192.168.1.123/admin/index.php", #Seb's Pi-Hole
-    "http://127.0.0.1/server/login.php", #James server
-    #"http://127.0.0.1/server/index.php", #James server
-    "https://en.wikipedia.org/wiki/System_administrator",
-    #"https://www.redhat.com/en/topics/linux/what-is-a-system-administrator",
-    #"https://www.airshows.pa.hq.af.mil/gaframework/Presentation/security.cfm"
-    ]
-    
     # File paths
+    site_list_csv_path = "site_list.csv"
     csv_path = "web_text.csv"
     wordlist_path = "wordlist.txt"
+
+    # Load URLs from the CSV file
+    urls = load_urls_from_csv(site_list_csv_path)
 
     scraper = WebScraper(urls)
     scraper.generate_csv(csv_path)
