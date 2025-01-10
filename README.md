@@ -18,14 +18,16 @@ pip install -r requirements.txt
 
 ## How To Run
 1.	Prepare Input Files:
--	wordlist.txt: Contains sample words for training.
--	site_list.csv: Has an id and website.
+-	wordlist.txt: Contains sample words for training. *(In your implementation: this shoudl be user specified via a "select file" funcitonality that lets them point to a wordlist within the user's file structure)*
+-	site_list.csv: Has an id and website. *(In your implementation: this will need to be the discovered directories via the **spider** functionality of TRACE. this should be automatically gathered but the user should be able to specify which host:port's site_list to utilize)*
 2.	Run the Script:
 -	Save the script and run the following command:
 ```bash
 python mdp3.py
 ```
-## MDP 
+
+
+## Markov Decision Process (MDP) 
 The script processes the CSV and wordlist to build state transitions and generates credentials based on MDPs, enhancing the quality of usernames and passwords. It uses reinforcement learning and Q-learning to refine credential generation based on quality and strength criteria.
 
 ### How it Works
@@ -48,7 +50,7 @@ The script processes the CSV and wordlist to build state transitions and generat
 - Adds a capitalized character, a special character, and a random digit to strengthen password further
 6. Generated Output
 -	Generated Usernames and Passwords: The script generates a list of usernames and passwords based on the MDP learning process.
--	The improved credentials are printed to the console.
+-	The improved credentials are printed to the console. *(In your Implementation: these will be printed within the GUI and stored as a CSV file on each generation)*
 Example: 
 ```bash
 Username: skipe487, Password: Computerst%
