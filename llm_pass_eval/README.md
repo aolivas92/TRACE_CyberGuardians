@@ -15,7 +15,7 @@ This code evaluates the strength of your passwords using a language model-based 
 1. Log in to the Google Cloud Console - https://console.cloud.google.com/apis
 2. Create a new project using the top navigation bar.
 3. In the Google Cloud Console, navigate to APIs & Services > library and enable the Gemini API.
-4. Go to APIs & Services > Credentials in the left-hand menu. Click Create Credentials and select API Key. Your new API key will appear in a dialog box. Copy it!
+4. Go to APIs & Services > Credentials in the left-hand menu. Click Create Credentials and select API Key. Your new API key will appear in a dialog box. Do not add any application restrictions. Copy your API Key!
 5. Put your API key into the section that says "YOUR OWN API KEY"
 
 
