@@ -6,4 +6,5 @@ This code evaluates the strength of your passwords using a language model-based 
 
 ## How To Use
 
-1. 
+1. Review the code carefully to identify all dependencies. Look for the import statements, as they list the libraries and modules the code relies on. Use these imports to determine which packages need to be installed in your Python environment to ensure the code runs smoothly.
+2. 
