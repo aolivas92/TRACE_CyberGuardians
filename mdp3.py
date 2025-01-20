@@ -9,6 +9,34 @@ import time
 import requests
 from bs4 import BeautifulSoup
 
+#Natural Language Processing routine that cleans CSV text 
+def nlp_subroutine(csv_path: str):
+    stopwords = {"the", "and", "or"} #Words to clean from CSV file
+    if not os.path.exists(csv_path):
+        raise FileNotFoundError(f"CSV file not found: {csv_path}")
+    cleaned_rows = []
+    with open(csv_path, "r", encoding="utf-8") as infile:
+        reader = csv.DictReader(infile)
+        fieldnames = reader.fieldnames
+        if not fieldnames or not {"id", "content", "url"}.issubset(fieldnames):
+            raise ValueError("CSV must contain columns: id, content, url")
+        for row in reader:
+            text = row["content"] if row["content"] else ""
+            words = re.findall(r"\w+", text, flags=re.IGNORECASE)
+            filtered_words = [
+                word for word in words
+                if word.lower() not in stopwords
+            ]
+            cleaned_text = " ".join(filtered_words)
+            row["content"] = cleaned_text
+            cleaned_rows.append(row)
+    #Overwrite original CSV with cleaned text
+    with open(csv_path, "w", newline="", encoding="utf-8") as outfile:
+        writer = csv.DictWriter(outfile, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(cleaned_rows)
+    print(f"Cleaned CSV '{csv_path}' file has been generated.")
+
 #Load URLs from a CSV file with columns 'id' and 'website'.
 def load_urls_from_csv(csv_path: str) -> List[str]:
     if not os.path.exists(csv_path):
@@ -289,6 +317,9 @@ def main():
 
     scraper = WebScraper(urls)
     scraper.generate_csv(csv_path)
+
+    #Use NLP routine to clean CSV file
+    nlp_subroutine(csv_path)
     
     try:
         generator = CredentialGeneratorMDP(csv_path, wordlist_path)
