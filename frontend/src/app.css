@@ -1,0 +1,120 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* General colors */
+    --background: 0 0% 95%; /* Light mode background */
+    --foreground: 0 0% 5%; /* Light mode text */
+
+    --primary: 220 15% 35%; /* Light mode primary */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 20% 25%;
+    --secondary-foreground: 0 0% 100%;
+
+    --accent: 190 45% 50%;
+    --accent-foreground: 0 0% 100%;
+
+    --muted: 0 0% 80%;
+    --muted-foreground: 0 0% 30%;
+
+    --error: 0 80% 50%;
+    --error-foreground: 0 0% 100%;
+
+    --success: 150 70% 40%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 40 70% 50%;
+    --warning-foreground: 0 0% 100%;
+
+    --card: var(--background);
+    --card-foreground: var(--foreground);
+
+    --background1: 0 0% 88%;
+    --background1-foreground: var(--foreground);
+
+    --background2: 0 0% 82%;
+    --background2-foreground: var(--foreground);
+
+    --background3: 0 0% 75%;
+    --background3-foreground: var(--foreground);
+
+    --border: var(--background3);
+    --input: 0 0% 5%;
+
+    /* Sidebar colors */
+    --sidebar-background: var(--background);
+    --sidebar-foreground: var(--foreground);
+
+    --sidebar-primary: var(--primary);
+    --sidebar-primary-foreground: var(--primary-foreground);
+
+    --sidebar-accent: var(--accent);
+    --sidebar-accent-foreground: var(--accent-foreground);
+
+    --sidebar-border: var(--border);
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    /* General colors */
+    --background: 0 0% 10%; /* Dark mode background */
+    --foreground: 0 0% 95%; /* Dark mode text */
+
+    --primary: 220 20% 65%; /* Dark mode primary */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 25% 50%;
+    --secondary-foreground: 0 0% 100%;
+
+    --accent: 190 45% 55%;
+    --accent-foreground: 0 0% 100%;
+
+    --muted: 0 0% 20%;
+    --muted-foreground: 0 0% 60%;
+
+    --error: 0 80% 55%;
+    --error-foreground: 0 0% 100%;
+
+    --success: 150 70% 50%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 40 75% 60%;
+    --warning-foreground: 0 0% 100%;
+
+    --card: var(--background);
+    --card-foreground: var(--foreground);
+
+    --background1: 0 0% 14%;
+    --background1-foreground: var(--foreground);
+
+    --background2: 0 0% 23%;
+    --background2-foreground: var(--foreground);
+
+    --background3: 0 0% 33%;
+    --background3-foreground: var(--foreground);
+
+    --border: var(--background3);
+    --input: 0 0% 95%;
+
+    /* Sidebar colors */
+    --sidebar-background: var(--background);
+    --sidebar-foreground: var(--foreground);
+
+    --sidebar-primary: var(--primary);
+    --sidebar-primary-foreground: var(--primary-foreground);
+
+    --sidebar-accent: var(--accent);
+    --sidebar-accent-foreground: var(--accent-foreground);
+
+    --sidebar-border: var(--border);
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+  }
+}
