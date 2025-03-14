@@ -1,4 +1,3 @@
-import { fontFamily } from "tailwindcss/defaultTheme";
 import tailwindcssAnimate from "tailwindcss-animate";
 
 /** @type {import('tailwindcss').Config} */
@@ -71,7 +70,7 @@ const config = {
         },
       },
       fontFamily: {
-        sans: [...fontFamily.sans]
+        sans: ['Inter', 'sans-serif'],
       }
     }
   },

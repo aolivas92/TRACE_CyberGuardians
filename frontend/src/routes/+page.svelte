@@ -1,6 +1,27 @@
 <script>
-  import { Button } from '$lib/components/ui/button/index.js';
+  import { Button } from "$lib/components/ui/button/index.js";  
+  import { toggleMode } from "mode-watcher";
+
 </script>
 
-<h1>This is the start of it all :0</h1>
-<Button class="" variant="outline">Button</Button>
+<div class="container">
+  <div class="title">Theme switch</div>
+  <Button onclick={toggleMode} variant="default" class="" size="default" type="button">Button</Button>
+</div>
+
+<style>
+  .container {
+    display: flex;
+    flex-direction: column;
+    align-items: center; 
+    justify-content: center;
+    height: 100vh;
+    gap: 1rem;
+  }
+
+  .title {
+    font-size: 2rem;
+    font-weight: 600;
+    text-align: center;
+  }
+</style>
