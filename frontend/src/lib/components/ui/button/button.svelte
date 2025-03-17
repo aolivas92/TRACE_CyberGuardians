@@ -11,12 +11,14 @@
 				secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
 				ghost: "hover:bg-accent hover:text-accent-foreground",
 				link: "text-primary underline-offset-4 hover:underline",
+				circle: "bg-background2 text-background2-foreground hover:bg-accent hover:text-accent-foreground rounded-full drop-shadow-md data-[active=true]:bg-accent data-[active=true]:bg-accent data-[active=true]:text-accent-foreground"
 			},
 			size: {
 				default: "h-10 px-4 py-2 rounded-lg",
 				sm: "h-9 px-3 rounded-lg",
 				lg: "h-11 px-8 rounded-lg",
 				icon: "h-10 w-10",
+				circle: "h-11 w-11",
 			},
 		},
 		defaultVariants: {

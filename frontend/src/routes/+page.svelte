@@ -1,4 +1,4 @@
-<script>
+<!-- <script>
   import { Button } from "$lib/components/ui/button/index.js";  
   import { toggleMode } from "mode-watcher";
 
@@ -24,4 +24,12 @@
     font-weight: 600;
     text-align: center;
   }
-</style>
+</style> -->
+
+
+<script>
+  // import { goto } from "$app/navigation";
+
+  // Redirect to dashboard on page load
+  // goto("/dashboard");
+</script>
