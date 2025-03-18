@@ -81,11 +81,11 @@
 		flex-direction: row;
 		align-items: center;
 		justify-content: space-between;
-		padding: 1.5rem 2.5rem 1.5rem 2.5rem;
+		padding: 1rem 2.5rem 1rem 2.5rem;
 	}
 
 	.tool-name {
-		font-size: 1.2rem;
+		font-size: 1.1rem;
 		font-style: normal;
 		font-weight: 500;
 	}
@@ -97,7 +97,7 @@
 	}
 
 	.tool-status {
-		font-size: 1.1rem;
+		font-size: 1rem;
 		font-style: normal;
 		font-weight: 400;
 		color: var(--foreground);

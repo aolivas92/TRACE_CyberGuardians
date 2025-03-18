@@ -82,6 +82,9 @@ const config = {
       },
       fontFamily: {
         sans: ["Inter", "sans-serif"]
+      },
+      borderWidth: {
+        '1.5': "1.5px"
       }
     }
   },
