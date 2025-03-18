@@ -2,7 +2,7 @@ import tailwindcssAnimate from "tailwindcss-animate";
 
 /** @type {import('tailwindcss').Config} */
 const config = {
-  darkMode: ["class"],
+  darkMode: ["class"], // ✅ Supports dark mode via class
   content: ["./src/**/*.{html,js,svelte,ts}"],
   safelist: ["dark"],
   theme: {
@@ -15,62 +15,73 @@ const config = {
     },
     extend: {
       colors: {
-        border: "hsl(var(--border) / <alpha-value>)",
-        input: "hsl(var(--input) / <alpha-value>)",
-        ring: "hsl(var(--ring) / <alpha-value>)",
-        background: "hsl(var(--background) / <alpha-value>)",
-        foreground: "hsl(var(--foreground) / <alpha-value>)",
+        border: "var(--border)",
+        input: "var(--input)",
+        background: "var(--background)",
+        foreground: "var(--foreground)",
         primary: {
-          DEFAULT: "hsl(var(--primary) / <alpha-value>)",
-          foreground: "hsl(var(--primary-foreground) / <alpha-value>)"
+          DEFAULT: "var(--primary)",
+          foreground: "var(--primary-foreground)"
         },
         secondary: {
-          DEFAULT: "hsl(var(--secondary) / <alpha-value>)",
-          foreground: "hsl(var(--secondary-foreground) / <alpha-value>)"
-        },
-        destructive: {
-          DEFAULT: "hsl(var(--error) / <alpha-value>)",
-          foreground: "hsl(var(--error-foreground) / <alpha-value>)"
-        },
-        muted: {
-          DEFAULT: "hsl(var(--muted) / <alpha-value>)",
-          foreground: "hsl(var(--muted-foreground) / <alpha-value>)"
+          DEFAULT: "var(--secondary)",
+          foreground: "var(--secondary-foreground)"
         },
         accent: {
-          DEFAULT: "hsl(var(--accent) / <alpha-value>)",
-          foreground: "hsl(var(--accent-foreground) / <alpha-value>)"
+          DEFAULT: "var(--accent)",
+          foreground: "var(--accent-foreground)"
         },
-        warning: {
-          DEFAULT: "hsl(var(--warning) / <alpha-value>)",
-          foreground: "hsl(var(--warning-foreground) / <alpha-value>)"
+        accent1: {
+          DEFAULT: "var(--accent1)",
+          foreground: "var(--accent1-foreground)"
+        },
+        accent2: {
+          DEFAULT: "var(--accent2)",
+          foreground: "var(--accent2-foreground)"
+        },
+        accent3: {
+          DEFAULT: "var(--accent3)",
+          foreground: "var(--accent3-foreground)"
+        },
+        muted: {
+          DEFAULT: "var(--muted)",
+          foreground: "var(--muted-foreground)"
+        },
+        error: {
+          DEFAULT: "var(--error)",
+          foreground: "var(--error-foreground)"
         },
         success: {
-          DEFAULT: "hsl(var(--success) / <alpha-value>)",
-          foreground: "hsl(var(--success-foreground) / <alpha-value>)"
+          DEFAULT: "var(--success)",
+          foreground: "var(--success-foreground)"
+        },
+        warning: {
+          DEFAULT: "var(--warning)",
+          foreground: "var(--warning-foreground)"
         },
         popover: {
-          DEFAULT: "hsl(var(--popover) / <alpha-value>)",
-          foreground: "hsl(var(--popover-foreground) / <alpha-value>)"
+          DEFAULT: "var(--popover)",
+          foreground: "var(--popover-foreground)"
         },
         card: {
-          DEFAULT: "hsl(var(--card) / <alpha-value>)",
-          foreground: "hsl(var(--card-foreground) / <alpha-value>)"
+          DEFAULT: "var(--card)",
+          foreground: "var(--card-foreground)"
         },
         background1: {
-          DEFAULT: "hsl(var(--background1) / <alpha-value>)",
-          foreground: "hsl(var(--background1-foreground) / <alpha-value>)"
+          DEFAULT: "var(--background1)",
+          foreground: "var(--background1-foreground)"
         },
         background2: {
-          DEFAULT: "hsl(var(--background2) / <alpha-value>)",
-          foreground: "hsl(var(--background2-foreground) / <alpha-value>)"
+          DEFAULT: "var(--background2)",
+          foreground: "var(--background2-foreground)"
         },
         background3: {
-          DEFAULT: "hsl(var(--background3) / <alpha-value>)",
-          foreground: "hsl(var(--background3-foreground) / <alpha-value>)"
-        },
+          DEFAULT: "var(--background3)",
+          foreground: "var(--background3-foreground)"
+        }
       },
       fontFamily: {
-        sans: ['Inter', 'sans-serif'],
+        sans: ["Inter", "sans-serif"]
       }
     }
   },
