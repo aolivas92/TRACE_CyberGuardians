@@ -1,3 +1,6 @@
+from nlp.word_importance_scorer import WordImportanceScorer, ImportanceType
+
+
 class NLP:
     """
     Handles text preprocessing and analysis for AI credential generation.
@@ -27,9 +30,47 @@ class NLP:
         any private responsibilities outside of its methods.
     """
 
-    def __init__(self, MIN_WORD_SIZE: int = 3):
+    def __init__(
+        self,
+        MIN_WORD_SIZE: int = 3,
+        MIN_IMPORTANCE_RATING: float = 0.1,
+        importance_type: ImportanceType = ImportanceType.TF_IDF,
+    ):
         self.MIN_WORD_SIZE = MIN_WORD_SIZE
-        pass
+        self.MIN_IMPORTANCE_RATING = MIN_IMPORTANCE_RATING
+        self.article_dictionary = {"a", "an", "the"}
+        self.compound_word_dictionary = {
+            "i'm": ["I", "am"],
+            "you're": ["you", "are"],
+            "it's": ["it", "is"],
+            "don't": ["do", "not"],
+            "can't": ["can", "not"],
+            "isn't": ["is", "not"],
+            "won't": ["will", "not"],
+            "didn't": ["did", "not"],
+            "we're": ["we", "are"],
+            "they're": ["they", "are"],
+            "I'll": ["I", "will"],
+            "you'll": ["you", "will"],
+            "he'll": ["he", "will"],
+            "she'll": ["she", "will"],
+            "we'll": ["we", "will"],
+            "they'll": ["they", "will"],
+            "I've": ["I", "have"],
+            "you've": ["you", "have"],
+            "we've": ["we", "have"],
+            "they've": ["they", "have"],
+            "he's": ["he", "is"],
+            "she's": ["she", "is"],
+            "that's": ["that", "is"],
+            "what's": ["what", "is"],
+            "let's": ["let", "us"],
+            "there's": ["there", "is"],
+            "who's": ["who", "is"],
+            "how's": ["how", "is"],
+        }
+        self.importance_type = importance_type
+        self.importance_scorer = WordImportanceScorer()
 
     def normalize(self, text_to_normalize: list[str]) -> None:
         """
@@ -63,11 +104,24 @@ class NLP:
             >>> texts
             ['hello world', 'its a test123']
         """
-        pass
+        if not isinstance(text_to_normalize, list) or not all(
+            isinstance(s, str) for s in text_to_normalize
+        ):
+            raise TypeError("Input must be a list of strings.")
+        text_to_normalize[:] = [word.lower() for word in text_to_normalize]
+
+        for i, text in enumerate(text_to_normalize):
+            normalized = " ".join(text.split())
+
+            final_text = ""
+            for char in normalized:
+                if char.isalnum() or char.isspace():
+                    final_text += char
+            text_to_normalize[i] = final_text
 
     def trim_short_words(self, text: list[str]) -> None:
         """
-        Removes words shorter than a minimum size from the given text list.
+        Removes words shorter than a minimum size from the given text list, and a low importance rating.
 
         This method modifies the input list in place, removing any strings that are
         shorter than the minimum word size threshold defined by the class.
@@ -91,7 +145,20 @@ class NLP:
         Raises:
             ValueError: If the input is None or empty.
         """
-        pass
+        if text is None or not text:
+            raise ValueError(
+                "Input text list must be a valid value (not None or empty)."
+            )
+        importance_ratings = self.importance_scorer.get_importance_scores(
+            text, self.importance_type
+        )
+
+        text[:] = [
+            word
+            for word in text
+            if len(word) >= self.MIN_WORD_SIZE
+            and importance_ratings[word] >= self.MIN_IMPORTANCE_RATING
+        ]
 
     def break_compound_words(self, text: list[str]) -> None:
         """
@@ -119,7 +186,19 @@ class NLP:
         Raises:
             ValueError: If the input is None or empty.
         """
-        pass
+        if text is None or not text:  # Check for preconditions
+            raise ValueError(
+                "Input text list must be a valid value (not None or empty)."
+            )
+        uncompounded_text = []
+        text[:] = [word.lower() for word in text]  # May be redundant
+        for word in text:
+            if word in self.compound_word_dictionary:
+                uncompounded_text.extend(self.compound_word_dictionary[word])
+            else:
+                uncompounded_text.append(word.replace("'", ""))
+
+        text[:] = uncompounded_text
 
     def remove_delimeters(self, text: list[str]) -> None:
         """
@@ -148,4 +227,9 @@ class NLP:
         Raises:
             ValueError: If the input is None or empty.
         """
-        pass
+        if text is None or not text:  # Check for preconditions
+            raise ValueError(
+                "Input text list must be a valid value (not None or empty)."
+            )
+
+        text[:] = [word for word in text if word.lower() not in self.article_dictionary]
