@@ -1,4 +1,7 @@
-<h1 class="text-2xl font-bold">Crawler Configuration</h1>
-<p>Here you can configure the crawler before running it.</p>
+<script>
+  let url = "";
+</script>
 
-<a href="/crawler/run" class="bg-blue-500 text-white p-2 rounded">Start Scan</a>
+<h1>Configure Crawler</h1>
+<input bind:value={url} placeholder="Enter target URL" />
+<button on:click={() => console.log("Start crawler for", url)}>Start</button>
