@@ -1,4 +1,10 @@
-<h1 class="text-2xl font-bold">Crawler Results</h1>
-<p>Here are the results of your scan.</p>
+<script>
+  export let data;
+</script>
 
-<a href="/dashboard" class="bg-gray-500 text-white p-2 rounded">Back to Dashboard</a>
+<h1>Crawler Results</h1>
+<ul>
+  {#each data.results as result}
+    <li>{result.url} - {result.status}</li>
+  {/each}
+</ul>

@@ -16,12 +16,12 @@
 <style>
   .app-container {
     display: flex;
-    height: 100vh;
+    max-height: 100vh;
+    background-color: var(--background);
   }
 
   .content {
     flex-grow: 1;
     overflow-y: auto;
-		padding-left: 80px;
   }
 </style>
