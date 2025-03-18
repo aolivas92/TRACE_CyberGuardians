@@ -16,15 +16,15 @@
 				<div class="tool-name">{tool.name}</div>
 				<div class="tool-actions">
 					<div class="tool-status">Status: {tool.status}</div>
-					<Button 
+					<Button
 						variant="secondary"
 						size="lg"
-						data-active={tool.status === "Started"}
-						class={tool.status === "Started" ? "px-10" : ""} 
+						data-active={tool.status === 'Started'}
+						class={tool.status === 'Started' ? 'px-10' : ''}
 						onclick={() => goto(tool.route)}
 					>
-						{tool.status === "Not Started" ? "Set Up" : "View"}
-					</Button>		
+						{tool.status === 'Not Started' ? 'Set Up' : 'View'}
+					</Button>
 				</div>
 			</div>
 		{/each}
@@ -81,7 +81,7 @@
 		flex-direction: row;
 		align-items: center;
 		justify-content: space-between;
-    padding: 1.5rem 2.5rem 1.5rem 2.5rem;
+		padding: 1.5rem 2.5rem 1.5rem 2.5rem;
 	}
 
 	.tool-name {
