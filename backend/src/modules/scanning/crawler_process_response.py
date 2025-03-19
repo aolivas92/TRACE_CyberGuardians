@@ -18,16 +18,6 @@ class CrawlerResponseProcessor:
 
         _validate_data(cleaned_data: dict) -> bool:
             Validates cleaned data before returning it.
-
-    Preconditions:
-        - The response object must have headers and either a .json() or .text attribute.
-        - logger, parser, cleaner, and validator must be initialized properly.
-
-    Postconditions:
-        - Returns a cleaned and validated data dictionary or None if validation fails.
-
-    Raises:
-        - Internal exceptions are caught and logged during process_response.
     """
 
     def __init__(self, logger, parser, cleaner, validator):
@@ -47,6 +37,7 @@ class CrawlerResponseProcessor:
         Postconditions:
             - Dependencies are assigned to internal attributes.
         """
+        pass
 
     def process_response(self, response: object) -> dict | None:
         """
