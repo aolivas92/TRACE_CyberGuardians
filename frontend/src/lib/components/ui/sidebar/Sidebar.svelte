@@ -48,7 +48,7 @@
 			type="button"
 			title="Toggle Theme"
 		>
-			{#if mode === 'dark'}
+			{#if $mode === 'dark'}
 				<img
 					src="/icons/traceDarkIcon.svg"
 					alt="Dark Mode Icon"
