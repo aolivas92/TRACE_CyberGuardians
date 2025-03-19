@@ -20,9 +20,29 @@
 		formData[id] = value;
 	}
 
-	function handleSubmit() {
-		console.log("Submitted Data:", formData);
-	}
+  async function handleSubmit() {
+    console.log("Submitting Data:", formData);
+
+    try {
+      const response = await fetch("/crawler/config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData)
+      });
+
+      const result = await response.json();
+      console.log("Response:", result);
+
+      if (response.ok) {
+        alert("Crawler started successfully!");
+      } else {
+        alert(`Error: ${result.message}`);
+      }
+    } catch (error) {
+      console.error("Error sending data:", error);
+      alert("Failed to send data.");
+    }
+  }
 </script>
 
 <div class="crawler-config">
@@ -43,7 +63,7 @@
       </div>
     {/each}
 		<div class="pt-5">
-			<Button variant="defaultSec" size="default" type="button" title="Submit" class="w-96">
+			<Button onclick={handleSubmit} variant="defaultSec" size="default" type="button" title="Submit" class="w-96">
 				Submit
 			</Button>
 		</div>

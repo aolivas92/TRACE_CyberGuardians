@@ -2,38 +2,40 @@ from fastapi import FastAPI
 from strawberry.fastapi import GraphQLRouter
 import strawberry
 
-# mok database
+# Mock database for storing crawled pages
 mock_crawled_pages = [
     {"url": "https://example.com", "title": "Example", "links": ["https://example.com/about"]}
 ]
 
+# GraphQL Schema Definitions
 @strawberry.type
 class CrawlerResult:
     url: str
     title: str
     links: list[str]
 
-# Query Resolver to Fetch Crawled Data
 @strawberry.type
 class Query:
     @strawberry.field
     def get_crawled_pages(self) -> list[CrawlerResult]:
-        return [CrawlerResult(**page) for page in mock_crawled_pages]  # Returns mock data
+        return [CrawlerResult(**page) for page in mock_crawled_pages]
 
-# Mutation Resolver to Add Crawled Data
 @strawberry.type
 class Mutation:
     @strawberry.mutation
     def add_page(self, url: str, title: str, links: list[str]) -> bool:
-        mock_crawled_pages.append({"url": url, "title": title, "links": links})  # Stores in mock DB
+        mock_crawled_pages.append({"url": url, "title": title, "links": links})
         return True
 
-# Create GraphQL Schema & Router
+# Setup GraphQL Schema
 schema = strawberry.Schema(query=Query, mutation=Mutation)
 graphql_app = GraphQLRouter(schema)
 
-# Setup FastAPI
+# Create FastAPI App
 app = FastAPI()
 app.include_router(graphql_app, prefix="/graphql")
 
-# Start FastAPI Server (Run `uvicorn main:app --reload`)
+@app.post("/api/crawler")
+async def receive_crawler_data(data: dict):
+    print("Received data:", data)
+    return {"message": "Crawler started!", "received": data}
