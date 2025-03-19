@@ -40,6 +40,7 @@
 		"vite": "^6.0.0"
 	},
 	"dependencies": {
+		"@tanstack/table-core": "^8.21.2",
 		"lucide-svelte": "^0.479.0",
 		"mode-watcher": "^0.5.1"
 	}

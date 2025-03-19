@@ -2,8 +2,9 @@
     import { Button } from '$lib/components/ui/button/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { Label } from "$lib/components/ui/label/index.js";
+	import { goto } from '$app/navigation';
 	import StepIndicator from "$lib/components/ui/progressStep/ProgressStep.svelte";
-
+	
 	let inputFields = [
     { id: "target-url", label: "Target URL", type: "text", placeholder: "https://juice-shop.herokuapp.com" },
     { id: "depth", label: "Crawl Depth", type: "number", placeholder: "2" },
@@ -23,41 +24,43 @@
 	}
 
   async function handleSubmit() {
-	console.log("Form Data:", formData);
-      
-	if (!formData["target-url"]) {
-	statusMessage = "Target URL is required";
-	return;
-	}
+  console.log("Form Data:", formData);
 
-	isSubmitting = true;
-	statusMessage = "Sending data...";
-
-	
-    try {
-      const response = await fetch("/crawler/config", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData)
-      });
-
-	  console.log("Response status:", response.status);
-
-      const result = await response.json();
-      console.log("Response:", result);
-
-      if (response.ok) {
-		statusMessage = "Crawler started successfully!";
-      } else {
-		statusMessage = `Error: ${result.message || "Unkown error"}`;
-      }
-    } catch (error) {
-		statusMessage = "Failed to send data. Check console for"
-      console.error("Error sending data:", error);
-    } finally {
-		isSubmitting = false;
-	}
+  if (!formData["target-url"]) {
+    statusMessage = "Target URL is required";
+    return false; // Indicating failure
   }
+
+  isSubmitting = true;
+  statusMessage = "Sending data...";
+
+  try {
+    const response = await fetch("/crawler/config", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(formData),
+    });
+
+    console.log("Response status:", response.status);
+
+    const result = await response.json();
+    console.log("Response:", result);
+
+    if (response.ok) {
+      statusMessage = "Crawler started successfully!";
+      return true; // Indicating success
+    } else {
+      statusMessage = `Error: ${result.message || "Unknown error"}`;
+      return false; // Indicating failure
+    }
+  } catch (error) {
+    statusMessage = "Failed to send data. Check console for details.";
+    console.error("Error sending data:", error);
+    return false; // Indicating failure
+  } finally {
+    isSubmitting = false;
+  }
+}
 </script>
 
 <div class="crawler-config">
@@ -78,11 +81,23 @@
         />
       </div>
     {/each}
-		<div class="pt-5">
-			<Button onclick={handleSubmit} variant="defaultSec" size="default" type="button" title="Submit" class="w-96">
-				Submit
-			</Button>
-		</div>
+    <div class="pt-5">
+      <Button 
+        onclick={async () => {
+          const success = await handleSubmit();
+          if (success) {
+            goto('/crawler/run');
+          }
+        }} 
+        variant="defaultSec" 
+        size="default" 
+        type="button" 
+        title="Submit" 
+        class="w-96"
+      >
+        Submit
+      </Button>
+    </div>
 	{#if statusMessage}
 	<div class="status-message {statusMessage.includes('Error') ? 'error' : 'success'}">
 		{statusMessage}
@@ -97,6 +112,7 @@
 		margin-left: 4.5rem;
 		height: 100vh;
 		flex-direction: column;
+		justify-content: space-around;
 	}
 	.title-section {
 		display: flex;

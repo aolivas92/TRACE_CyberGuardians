@@ -33,12 +33,15 @@
 
     --error: #DB283B;
     --error-foreground: var(--foreground);
+    --error-hover: #E95A5C;
 
     --success: #20A453;
     --success-foreground: var(--foreground);
+    --success-hover: #4FC872;
 
     --warning: #DB8630;
     --warning-foreground: var(--foreground);
+    --warning-hover: #E9AC60;
 
     --card: #F2F2F2;
     --card-foreground: var(--foreground);
@@ -84,12 +87,15 @@
 
     --error: #E95A5C;
     --error-foreground: var(--foreground);
+    --error-hover: #DB283B;
 
     --success: #4FC872;
     --success-foreground: var(--foreground);
+    --success-hover: #20A453;
 
     --warning: #E9AC60;
     --warning-foreground: var(--foreground);
+    --warning-hover: #DB8630;
 
     --card: #0D0D0D;
     --card-foreground: var(--foreground);

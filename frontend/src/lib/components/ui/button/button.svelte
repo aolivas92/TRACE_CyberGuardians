@@ -7,6 +7,7 @@
 			variant: {
 				default: "bg-accent text-background hover:bg-accent3",
 				defaultSec: "bg-accent2 text-foreground hover:bg-accent3",
+				destructive: "bg-error text-background hover:bg-error-hover",
 				outline: "border-input bg-background hover:bg-accent hover:text-accent-foreground border",
 				secondary: "bg-background2 text-foreground hover:bg-background3 hover:text-background2-foreground data-[active=true]:bg-accent data-[active=true]:text-background",
 				ghost: "text-primary",
