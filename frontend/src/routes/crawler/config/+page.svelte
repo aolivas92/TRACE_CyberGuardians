@@ -1,5 +1,5 @@
 <script>
-  import { Button } from '$lib/components/ui/button/index.js';
+    import { Button } from '$lib/components/ui/button/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { Label } from "$lib/components/ui/label/index.js";
 	import { goto } from '$app/navigation';
@@ -16,14 +16,51 @@
 
 	let formData = {};
 	let currentStep = "config"; 
+	let isSubmitting = false;
+	let statusMessage = "";
 
 	function handleInputChange(id, value) {
 		formData[id] = value;
 	}
 
-	function handleSubmit() {
-		console.log("Submitted Data:", formData);
-	}
+  async function handleSubmit() {
+  console.log("Form Data:", formData);
+
+  if (!formData["target-url"]) {
+    statusMessage = "Target URL is required";
+    return false; // Indicating failure
+  }
+
+  isSubmitting = true;
+  statusMessage = "Sending data...";
+
+  try {
+    const response = await fetch("/crawler/config", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(formData),
+    });
+
+    console.log("Response status:", response.status);
+
+    const result = await response.json();
+    console.log("Response:", result);
+
+    if (response.ok) {
+      statusMessage = "Crawler started successfully!";
+      return true; // Indicating success
+    } else {
+      statusMessage = `Error: ${result.message || "Unknown error"}`;
+      return false; // Indicating failure
+    }
+  } catch (error) {
+    statusMessage = "Failed to send data. Check console for details.";
+    console.error("Error sending data:", error);
+    return false; // Indicating failure
+  } finally {
+    isSubmitting = false;
+  }
+}
 </script>
 
 <div class="crawler-config">
@@ -39,15 +76,33 @@
           id={field.id} 
           type={field.type} 
           placeholder={field.placeholder} 
-          on:input={(e) => handleInputChange(field.id, e.target.value)}
+		  value={formData[field.id] || ''}
+          oninput={(e) => handleInputChange(field.id, e.target.value)}
         />
       </div>
     {/each}
-		<div class="pt-5">
-			<Button onclick={() => goto('/crawler/run')} variant="defaultSec" size="default" type="button" title="Submit" class="w-96">
-				Submit
-			</Button>
-		</div>
+    <div class="pt-5">
+      <Button 
+        onclick={async () => {
+          const success = await handleSubmit();
+          if (success) {
+            goto('/crawler/run');
+          }
+        }} 
+        variant="defaultSec" 
+        size="default" 
+        type="button" 
+        title="Submit" 
+        class="w-96"
+      >
+        Submit
+      </Button>
+    </div>
+	{#if statusMessage}
+	<div class="status-message {statusMessage.includes('Error') ? 'error' : 'success'}">
+		{statusMessage}
+	</div>
+	{/if}
   </div>
 </div>
 
