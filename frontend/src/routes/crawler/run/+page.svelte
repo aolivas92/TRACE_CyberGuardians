@@ -34,14 +34,14 @@
 		<div class="title">Crawler Running</div>
 		<StepIndicator status={currentStep} />
 	</div>
-	<div class="progress-bar-container">
-		<div class="progress-info">
-			<div class="text-sm font-medium">Progress</div>
-			<div class="text-2xl font-bold">{value}% scanned</div>
-		</div>
-		<Progress {value} max={100} class="w-[100%]" />
-	</div>
 	<div class="table">
+		<div class="progress-bar-container">
+			<div class="progress-info">
+				<div class="text-sm font-medium">Progress</div>
+				<div class="text-2xl font-bold">{value}% scanned</div>
+			</div>
+			<Progress {value} max={100} class="w-[100%]" />
+		</div>
 		<Table data={data.tableData} />
 	</div>
 	<div class="button-section">
@@ -80,7 +80,6 @@
 		margin-left: 4.5rem;
 		height: 100vh;
 		flex-direction: column;
-		justify-content: space-around;
 	}
 	.title-section {
 		display: flex;
@@ -102,6 +101,7 @@
 		flex-direction: column;
 		justify-content: center;
 		align-items: center;
+		height: 100%;
 	}
 	.button-section {
 		display: flex;

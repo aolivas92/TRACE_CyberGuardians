@@ -4,7 +4,7 @@
 	import { Label } from "$lib/components/ui/label/index.js";
 	import { goto } from '$app/navigation';
 	import StepIndicator from "$lib/components/ui/progressStep/ProgressStep.svelte";
-
+	
 	let inputFields = [
     { id: "target-url", label: "Target URL", type: "text", placeholder: "https://juice-shop.herokuapp.com" },
     { id: "depth", label: "Crawl Depth", type: "number", placeholder: "2" },
@@ -44,7 +44,7 @@
       </div>
     {/each}
 		<div class="pt-5">
-			<Button onclick={() => goto('/crawler/run')} variant="default" size="default" type="button" title="Submit" class="w-96">
+			<Button onclick={() => goto('/crawler/run')} variant="defaultSec" size="default" type="button" title="Submit" class="w-96">
 				Submit
 			</Button>
 		</div>
