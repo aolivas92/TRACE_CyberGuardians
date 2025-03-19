@@ -1,11 +1,11 @@
 class WebScraper:
     """
-    this class is responsible for extracting the data from a HTML
+    This class is responsible for extracting the data from a HTML
     file and structuring it to be used by NLP Processor class
     and the ML algorithm class
 
 
-    Attributes: string for the CSV filename
+    Attributes: String for the CSV filename
 
     Methods/functions:
     Extract_data(self, url: str)->List[str]:
