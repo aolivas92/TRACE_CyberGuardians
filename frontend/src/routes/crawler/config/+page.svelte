@@ -2,6 +2,7 @@
   import { Button } from '$lib/components/ui/button/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { Label } from "$lib/components/ui/label/index.js";
+	import { goto } from '$app/navigation';
 	import StepIndicator from "$lib/components/ui/progressStep/ProgressStep.svelte";
 
 	let inputFields = [
@@ -43,7 +44,7 @@
       </div>
     {/each}
 		<div class="pt-5">
-			<Button variant="defaultSec" size="default" type="button" title="Submit" class="w-96">
+			<Button onclick={() => goto('/crawler/run')} variant="default" size="default" type="button" title="Submit" class="w-96">
 				Submit
 			</Button>
 		</div>
@@ -56,6 +57,7 @@
 		margin-left: 4.5rem;
 		height: 100vh;
 		flex-direction: column;
+		justify-content: space-around;
 	}
 	.title-section {
 		display: flex;

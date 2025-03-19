@@ -49,15 +49,18 @@ const config = {
         },
         error: {
           DEFAULT: "var(--error)",
-          foreground: "var(--error-foreground)"
+          foreground: "var(--error-foreground)",
+          hover: "var(--error-hover)"
         },
         success: {
           DEFAULT: "var(--success)",
-          foreground: "var(--success-foreground)"
+          foreground: "var(--success-foreground)",
+          hover: "var(--success-hover)"
         },
         warning: {
           DEFAULT: "var(--warning)",
-          foreground: "var(--warning-foreground)"
+          foreground: "var(--warning-foreground)",
+          hover: "var(--warning-hover)"
         },
         popover: {
           DEFAULT: "var(--popover)",
