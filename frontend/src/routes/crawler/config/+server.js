@@ -11,7 +11,6 @@ console.log("POST handler in +server.js triggered");
         depth: formData["depth"] ? Number(formData["depth"]) : undefined,
         max_pages: formData["max-pages"] ? Number(formData["max-pages"]) : undefined,
         user_agent: formData["user-agent"],
-        allow_path: formData["allow-path"],
         delay: formData["delay"] ? Number(formData["delay"]) : undefined,
         proxy: formData["proxy"] ? Number(formData["proxy"]) : undefined
         };
