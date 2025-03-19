@@ -1,4 +1,19 @@
 class NLP:
+    """
+    Handles text preprocessing and analysis for AI credential generation.
+
+    This class provides methods for processing natural language text data to prepare
+    it for AI credential generation systems. It includes functionality for text
+    normalization, tokenization, and various text transformations.
+
+    Attributes:
+        No public attributes.
+
+    Notes:
+        This class doesn't inherit from any superclass and doesn't define
+        any private responsibilities outside of its methods.
+    """
+
     def subroutine(self, csv_path: str) -> None:
         """
         Processes a CSV file by removing specified stopwords from the 'content' column.
