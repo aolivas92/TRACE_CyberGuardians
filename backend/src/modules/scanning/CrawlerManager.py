@@ -8,7 +8,14 @@ class CrawlerManager:
         wordlist (list): Stores the wordlist used for brute force attacks.
 
     Methods:
-
+        def configure_crawler(self, target_url: str, depth: int, limit: int, user_agent: str, delay: int, proxy: str) -> None:
+        def start_crawl(self) -> None:
+        def process_response(self, response: dict) -> None:
+        def brute_force_directories(self, target_url: str, wordlist: list) -> None:
+        def integrate_ml_algorithm(self, input_data) -> None:
+        def save_results(self) -> None:
+        def reset_crawler(self) -> None:
+        
     Notes:
     """
     
@@ -25,9 +32,9 @@ class CrawlerManager:
             proxy (str): Proxy server to use (if any).
 
         Returns:
-
-        Raises:
+            None
         """
+        pass
         
 
     def start_crawl(self) -> None:
@@ -35,12 +42,15 @@ class CrawlerManager:
         Simulates web crawling process by generating directory paths and connections.
 
         Args:
+            None
 
         Returns:
+        None
 
         Raises:
             ValueError: If the crawler is not configured before starting.
         """
+        pass
 
     def process_response(self, response: dict) -> None:
         """
@@ -50,10 +60,12 @@ class CrawlerManager:
             response (dict): The response data to process.
 
         Returns:
+            None
 
         Raises:
             ValueError: If the response is not a dictionary.
         """
+        pass
 
     def brute_force_directories(self, target_url: str, wordlist: list) -> None:
         """
@@ -64,10 +76,12 @@ class CrawlerManager:
             wordlist (list): The list of directory names to test.
 
         Returns:
+            None
 
         Raises:
             ValueError: If no wordlist is provided.
         """
+        pass
 
     def integrate_ml_algorithm(self, input_data) -> None:
         """
@@ -77,28 +91,30 @@ class CrawlerManager:
             input_data: Data used as input for the ML based generation.
 
         Returns:
-
-        Raises:
+            None
         """
+        pass
         
     def save_results(self) -> None:
         """
         Saves crawler results to JSON file in database folder.
 
         Args:
+            None
             
         Returns:
-
-        Raises:
+            None
         """
+        pass
 
     def reset_crawler(self) -> None:
         """
         Resets crawler data, clearing stored results and configuration.
 
         Args:
+            None
             
         Returns:
-
-        Raises:
+            None
         """
+        pass
