@@ -28,7 +28,7 @@ class CrawlerResponseProcessor:
 
             if validated_data:
                 self._logger.info("Successfully processed response")
-                return validated_data
+                return cleaned_data
             else:
                 self._logger.warning("Data validation failed.")
                 return None
