@@ -4,13 +4,10 @@ class CrawlerResponseProcessor:
     cleans it, validates it, and returns structured data.
 
     Methods:
-        process_response(response: object) -> dict | None:
+        process_response(self, raw_content: str) -> dict | None:
             Processes the response through extraction, parsing, cleaning, and validation.
 
-        _extract_content(response: object) -> str | dict:
-            Extracts raw content from the HTTP response.
-
-        _parse_content(raw_content: str | dict) -> dict:
+        _parse_content(raw_content: str) -> dict:
             Parses the extracted content into structured data.
 
         _clean_data(parsed_data: dict) -> dict:
@@ -21,77 +18,40 @@ class CrawlerResponseProcessor:
     """
 
     def __init__(self, logger, parser, cleaner, validator):
-        """
-        Args:
-            logger (object): Logger object for debugging and info logs.
-            parser (object): Parser object to handle data extraction.
-            cleaner (object): Cleaner object to sanitize parsed data.
-            validator (object): Validator object to ensure data validity.
-
-        Returns:
-            None
-
-        Preconditions:
-            - logger, parser, cleaner, and validator must be valid and non-null.
-
-        Postconditions:
-            - Dependencies are assigned to internal attributes.
-        """
         pass
 
-    def process_response(self, response: object) -> dict | None:
+    def process_response(self, raw_content: str) -> dict | None:
         """
         Processes the web crawler response through extraction, parsing, cleaning, and validation.
 
         Args:
-            response (object): HTTP response object (e.g., from requests or aiohttp).
+            raw_content (str): HTTP string.
 
         Returns:
             dict | None: Cleaned and validated data dictionary or None if validation fails.
 
         Preconditions:
-            - response must contain headers and either .json() or .text content.
+            - raw_content must be a non-empty string.
 
         Postconditions:
             - Returns structured data if successful.
 
         Raises:
-            - Catches and logs all internal exceptions.
+            - InvalidResponse: if inputed response is empty.
         """
-    def _extract_content(self, response: object) -> str | dict:
+        pass
+
+    def _parse_content(self, raw_content: str) -> dict:
         """
-        Extracts content from the response.
+        Parses raw content into structured data.
 
         Args:
-            response (object): HTTP response object.
-
-        Returns:
-            str | dict: Raw content (JSON or text).
-
-        Preconditions:
-            - response.headers must include 'Content-Type'.
-
-        Postconditions:
-            - Extracted raw content is returned.
-        """
-
-    def _parse_content(self, raw_content: str | dict) -> dict:
-        """
-        Parses raw response content into structured data.
-
-        Args:
-            raw_content (str | dict): Raw HTML or JSON content.
+            raw_content (str): Raw HTML or JSON content.
 
         Returns:
             dict: Parsed structured data.
-
-        Preconditions:
-            - raw_content is not None.
-
-        Postconditions:
-            - Parsed data is returned.
         """
-
+        pass
     def _clean_data(self, parsed_data: dict) -> dict:
         """
         Cleans and normalizes parsed data.
@@ -101,14 +61,8 @@ class CrawlerResponseProcessor:
 
         Returns:
             dict: Cleaned data.
-
-        Preconditions:
-            - parsed_data must be a dictionary.
-
-        Postconditions:
-            - Data is cleaned and returned.
         """
-
+        pass
     def _validate_data(self, cleaned_data: dict) -> bool:
         """
         Validates cleaned data.
@@ -118,10 +72,5 @@ class CrawlerResponseProcessor:
 
         Returns:
             bool: True if valid, False otherwise.
-
-        Preconditions:
-            - cleaned_data must be a dictionary.
-
-        Postconditions:
-            - Returns True if data passes validation, else False.
         """
+        pass
