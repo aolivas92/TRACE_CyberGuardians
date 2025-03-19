@@ -34,7 +34,7 @@ class WebScraper:
       extract all words associated with logos, labels and class titles
 
       Args:
-        self: The class instance itself
+        Self: The class instance itself
         url:
       Returns:
         List[str]: A list of urls found in the url given
@@ -46,8 +46,8 @@ class WebScraper:
       done in batches
 
       Args:
-        self: The class instance itself
-        url: The url in the form of a string
+        Self: The class instance itself
+        Url: The url in the form of a string
       Returns:
         Tuple[str, List[str]]: A tuple that consists of the url and the
         urls found in the url as a list of strings
@@ -62,8 +62,8 @@ class WebScraper:
       scraping 
 
       Args: 
-        self: The class instance itself
-        url: The url in the form of a string
+        Self: The class instance itself
+        URL: The url in the form of a string
       Returns:
         Tuple[str, List[str]]: A tuple that consists of the url and the
         urls found in the url as a list of strings
@@ -77,19 +77,19 @@ class WebScraper:
        web scraper after fomratting it into a CSV file format
 
        Args:
-         self: The class instance itself
+         Self: The class instance itself
        Returns:
-         str: The filename of the CSV file
+         Str: The filename of the CSV file
        """
   def _create_CSV(self, data: Tuple[str, List[str], filename: str])->None:
       """ 
       To pass the results derived from the data extraction, it
       will be put into a CSV file fomrat to be easy to read by other classes  
       Args:
-        self: The class instance itself
-        data: A tuple consisting of the url and the urls found in the url
+        Self: The class instance itself
+        Data: A tuple consisting of the url and the urls found in the url
         put in as a list of strings
-        filename: The name the CSV will be given once creation is completed
+        Filename: The name the CSV will be given once creation is completed
       Returns:
         None: It updates the attribute to refer to the new CSV by the 
         filename given
