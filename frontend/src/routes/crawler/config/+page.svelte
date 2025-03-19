@@ -1,5 +1,5 @@
 <script>
-  import { Button } from '$lib/components/ui/button/index.js';
+    import { Button } from '$lib/components/ui/button/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { Label } from "$lib/components/ui/label/index.js";
 	import StepIndicator from "$lib/components/ui/progressStep/ProgressStep.svelte";
@@ -15,14 +15,25 @@
 
 	let formData = {};
 	let currentStep = "config"; 
+	let isSubmitting = false;
+	let statusMessage = "";
 
 	function handleInputChange(id, value) {
 		formData[id] = value;
 	}
 
   async function handleSubmit() {
-    console.log("Submitting Data:", formData);
+	console.log("Form Data:", formData);
+      
+	if (!formData["target-url"]) {
+	statusMessage = "Target URL is required";
+	return;
+	}
 
+	isSubmitting = true;
+	statusMessage = "Sending data...";
+
+	
     try {
       const response = await fetch("/crawler/config", {
         method: "POST",
@@ -30,18 +41,22 @@
         body: JSON.stringify(formData)
       });
 
+	  console.log("Response status:", response.status);
+
       const result = await response.json();
       console.log("Response:", result);
 
       if (response.ok) {
-        alert("Crawler started successfully!");
+		statusMessage = "Crawler started successfully!";
       } else {
-        alert(`Error: ${result.message}`);
+		statusMessage = `Error: ${result.message || "Unkown error"}`;
       }
     } catch (error) {
+		statusMessage = "Failed to send data. Check console for"
       console.error("Error sending data:", error);
-      alert("Failed to send data.");
-    }
+    } finally {
+		isSubmitting = false;
+	}
   }
 </script>
 
@@ -58,7 +73,8 @@
           id={field.id} 
           type={field.type} 
           placeholder={field.placeholder} 
-          on:input={(e) => handleInputChange(field.id, e.target.value)}
+		  value={formData[field.id] || ''}
+          oninput={(e) => handleInputChange(field.id, e.target.value)}
         />
       </div>
     {/each}
@@ -67,6 +83,11 @@
 				Submit
 			</Button>
 		</div>
+	{#if statusMessage}
+	<div class="status-message {statusMessage.includes('Error') ? 'error' : 'success'}">
+		{statusMessage}
+	</div>
+	{/if}
   </div>
 </div>
 
