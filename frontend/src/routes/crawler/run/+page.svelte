@@ -5,35 +5,46 @@
 	import { onMount } from 'svelte';
 	import StepIndicator from '$lib/components/ui/progressStep/ProgressStep.svelte';
 	import Table from '$lib/components/ui/table/Table.svelte';
-  import Alert from '$lib/components/ui/alert/Alert.svelte';
+	import Alert from '$lib/components/ui/alert/Alert.svelte';
 
-	const { data } = $props();
-	let value = $state(35); // value of the progress bar must change
+	//TODO: GET request to fetch data for the currentStep
+  const { data } = $props();
+	let value = $state(15);
 	let currentStep = $state('running');
-  let showStopDialog = $state(false);
+	let showStopDialog = $state(false);
 
+	// Manage state
 	onMount(() => {
-		setTimeout(() => {
-			currentStep = 'running';
-		}, 1000);
+		const interval = setInterval(() => {
+			if (value < 100) {
+				const randomIncrement = [3, 5, 10][Math.floor(Math.random() * 3)];
+				value = Math.min(value + randomIncrement, 100);
+			} else {
+				clearInterval(interval);
+				currentStep = 'results';
+			}
+		}, 500);
 	});
 
-   function handleStopCancel() {
-    showStopDialog = false;
-  }
+	function handleStopCancel() {
+		showStopDialog = false;
+	}
 
-  function handleStopConfirm() {
-    showStopDialog = false;
-    console.log('Crawler stopped');
-    goto('/crawler/config');
-  }
+	function handleStopConfirm() {
+		showStopDialog = false;
+		console.log('Crawler stopped');
+		goto('/crawler/config');
+	}
 </script>
 
 <div class="crawler-run">
 	<div class="title-section">
-		<div class="title">Crawler Running</div>
+		<div class="title">
+			{currentStep === 'running' ? 'Crawler Scanning' : 'Crawler Results'}
+		</div>
 		<StepIndicator status={currentStep} />
 	</div>
+
 	<div class="table">
 		<div class="progress-bar-container">
 			<div class="progress-info">
@@ -42,36 +53,46 @@
 			</div>
 			<Progress {value} max={100} class="w-[100%]" />
 		</div>
-		<Table data={data.tableData} />
+		<Table data={data.tableData} columns={data.tableColumns} currentStep={currentStep}/>
 	</div>
+
+	<!-- Button Section: Change buttons based on scan status -->
 	<div class="button-section">
 		<div class="button-group">
-			<Button
-				onclick={() => goto('/crawler/config')}
-				variant="default"
-				size="default"
-				class="delete-button">Restart</Button
-			>
-			<Button
-				onclick={() => goto('/crawler/run')}
-				variant="default"
-				size="default"
-				class="cancel-button">Pause</Button
-			>
-			<Button onclick={() => showStopDialog = true} variant="destructive" size="default" class="cancel-button">Stop</Button>
+			{#if currentStep === 'running'}
+				<Button onclick={() => goto('/crawler/config')} variant="default" size="default" class="restart-button">
+					Restart
+				</Button>
+				<Button onclick={() => goto('/crawler/run')} variant="default" size="default" class="pause-button">
+					Pause
+				</Button>
+				<Button onclick={() => (showStopDialog = true)} variant="destructive" size="default" class="stop-button">
+					Stop
+				</Button>
+			{:else}
+				<!-- Change buttons when results are ready -->
+				<Button onclick={() => goto('/crawler/config')} variant="default" size="default" class="restart-button">
+					Restart
+				</Button>
+				<!-- TODO: Redirect this to the Results page-->
+				<Button onclick={() => goto('/crawler/config')} variant="default" size="default" class="view-all-results">
+					View All Results
+				</Button>
+			{/if}
 		</div>
 		<div class="single-button">
-			<Button variant="default" size="default" class="save-button">Terminal</Button>
+			<Button variant="secondary" size="default" class="terminal-button">Terminal</Button>
 		</div>
 	</div>
 
-  <Alert
-  isOpen={showStopDialog}
-  title="Are you absolutely sure?"
-  message="This action cannot be undone. This will permanently stop the crawler and save current progress."
-  onCancel={handleStopCancel}
-  onContinue={handleStopConfirm}
-  />
+	<!-- Stop Confirmation Dialog -->
+	<Alert
+		isOpen={showStopDialog}
+		title="Are you absolutely sure?"
+		message="This action cannot be undone. This will permanently stop the crawler and save current progress."
+		onCancel={handleStopCancel}
+		onContinue={handleStopConfirm}
+	/>
 </div>
 
 <style>
@@ -127,7 +148,7 @@
 		margin: 0 auto;
 		padding-left: 3rem;
 		padding-right: 3rem;
-    padding-top: 1rem;
+		padding-top: 1rem;
 	}
 	.progress-info {
 		display: flex;

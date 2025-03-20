@@ -1,8 +1,8 @@
 <script>
   // Props for the component
   export let isOpen = false;
-  export let title = "Are you absolutely sure?";
-  export let message = "This action cannot be undone. This will permanently delete your account and remove your data from our servers.";
+  export let title = " ";
+  export let message = " ";
   export let onCancel = () => {
     isOpen = false;
   };
@@ -34,7 +34,7 @@
     on:keydown={(event) => event.key === 'Enter' && handleBackdropClick(event)}
   >
     <div 
-      class="bg-background border rounded-lg shadow-lg w-full max-w-md mx-4 overflow-hidden"
+      class="bg-background rounded-lg shadow-lg w-full max-w-md mx-4 overflow-hidden"
       role="alertdialog"
       aria-modal="true"
       aria-labelledby="alert-title"
