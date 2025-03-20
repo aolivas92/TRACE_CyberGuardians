@@ -1,120 +1,128 @@
+import re
+import os
+import json
+import time
+import random
+import requests
+
+# Crawler Manager
+
 class CrawlerManager:
-    """
-    Manages web crawling, directory brute force attacks, and ML based wordlist generation.
-
-    Attributes:
-        results (dict): Stores the results of crawling and brute force attacks.
-        config (dict): Stores the configuration parameters for the crawler.
-        wordlist (list): Stores the wordlist used for brute force attacks.
-
-    Methods:
-        def configure_crawler(self, target_url: str, depth: int, limit: int, user_agent: str, delay: int, proxy: str) -> None:
-        def start_crawl(self) -> None:
-        def process_response(self, response: dict) -> None:
-        def brute_force_directories(self, target_url: str, wordlist: list) -> None:
-        def integrate_ml_algorithm(self, input_data) -> None:
-        def save_results(self) -> None:
-        def reset_crawler(self) -> None:
-        
-    Notes:
-    """
+    def __init__(self):
+        self.results = {}
+        self.config = {}
+        self.wordlist = []
     
     def configure_crawler(self, target_url: str, depth: int, limit: int, user_agent: str, delay: int, proxy: str) -> None:
-        """
-        Configures web crawler with specified parameters.
-
-        Args:
-            target_url (str): The URL to crawl.
-            depth (int): Maximum depth of crawling.
-            limit (int): Maximum number of pages to crawl.
-            user_agent (str): User-Agent string for HTTP requests.
-            delay (int): Delay between requests in seconds.
-            proxy (str): Proxy server to use (if any).
-
-        Returns:
-            None
-        """
-        pass
+        self.config = {"target_url": target_url,
+                       "depth": depth,
+                       "limit": limit,
+                       "user_agent": user_agent,
+                       "delay": delay,
+                       "proxy": proxy}
         
-
     def start_crawl(self) -> None:
-        """
-        Simulates web crawling process by generating directory paths and connections.
-
-        Args:
-            None
-
-        Returns:
-        None
-
-        Raises:
-            ValueError: If the crawler is not configured before starting.
-        """
-        pass
+        if not self.config:
+            raise ValueError("Crawler not configured")
+        
+        print("Simulated crawl")
+        directories = ["/", "/home", "/var", "/usr", "/etc"]
+        connections = [(random.choice(directories), f"{random.choice(directories)}/subdir_{i}") for i in range(5)]
+        self.results["directories"] = directories
+        self.results["connections"] = connections
+        
+        time.sleep(2)
 
     def process_response(self, response: dict) -> None:
-        """
-        Processes and stores responses from crawled URLs.
+        if not isinstance(response, dict):
+            raise ValueError("Response should be a dictionary")
+        self.results["processed_response"] = response
 
-        Args:
-            response (dict): The response data to process.
-
-        Returns:
-            None
-
-        Raises:
-            ValueError: If the response is not a dictionary.
-        """
-        pass
-
-    def brute_force_directories(self, target_url: str, wordlist: list) -> None:
-        """
-        Simulates brute force directory fuzzing using wordlist.
-
-        Args:
-            target_url (str): The base URL for directory brute forcing.
-            wordlist (list): The list of directory names to test.
-
-        Returns:
-            None
-
-        Raises:
-            ValueError: If no wordlist is provided.
-        """
-        pass
-
-    def integrate_ml_algorithm(self, input_data) -> None:
-        """
-        ML algorithm for intelligent wordlist generation.
-
-        Args:
-            input_data: Data used as input for the ML based generation.
-
-        Returns:
-            None
-        """
-        pass
-        
-    def save_results(self) -> None:
-        """
-        Saves crawler results to JSON file in database folder.
-
-        Args:
-            None
-            
-        Returns:
-            None
-        """
-        pass
+    def save_results(self, fastapi_url: str) -> None:
+        try:
+            response = requests.post(fastapi_url, json=self.results)
+            if response.status_code == 200:
+                print("Results sent to FastAPI successfully.")
+            else:
+                print(f"Failed - Status: {response.status_code}")
+        except Exception as e:
+            print(f"Error: {e}")
 
     def reset_crawler(self) -> None:
-        """
-        Resets crawler data, clearing stored results and configuration.
+        self.results = {}
+        self.config = {}
+        print("Crawler reset")
 
-        Args:
-            None
-            
-        Returns:
-            None
-        """
-        pass
+# Response Processor
+
+class Logger:
+    def info(self, msg): print(f"INFO: {msg}")
+    def warning(self, msg): print(f"WARNING: {msg}")
+    def error(self, msg): print(f"ERROR: {msg}")
+    def debug(self, msg): print(f"DEBUG: {msg}")
+
+class Parser:
+    def parse(self, raw_content):
+        urls = re.findall(r'https?://[^\s"\'>]+', str(raw_content))
+        return {"urls": urls}
+    
+class Cleaner: 
+    def clean(self, parsed_data):
+        parsed_data["cleaned"] = True
+        return parsed_data
+
+class Validator:
+    def is_valid(self, cleaned_data):
+        return True if cleaned_data else False
+
+class CrawlerResponseProcessor:
+    def __init__(self, logger, parser, cleaner, validator):
+        self.logger = logger()
+        self.parser = parser()
+        self.cleaner = cleaner()
+        self.validator = validator()
+
+    def process_response(self, raw_content: str) -> dict | None:
+        if not raw_content:
+            self.logger.error("InvalidResponse: raw_content is empty.")
+            raise ValueError("InvalidResponse: raw_content is empty.")
+    
+        self.logger.info("Processing raw crawler response.")
+        parsed_data = self._parse_content(raw_content)
+        cleaned_data = self._clean_data(parsed_data)
+        if self._validate_data(cleaned_data):
+            self.logger.info("Processed response successfully.")
+            return cleaned_data
+        else:
+            self.logger.warning("Validation failed for processed response.")
+            return None
+        
+    def _parse_content(self, raw_content: str) -> dict:
+        self.logger.debug("Analyzing raw HTML for useful data.")
+        return self.parser.parse(raw_content)
+
+    def _clean_data(self, parsed_data: dict) -> dict:
+        self.logger.debug("Normalizing and cleaning parsed data.")
+        return self.cleaner.clean(parsed_data)
+    
+    def _validate_data(self, cleaned_data: dict) -> bool:
+        self.logger.debug("Validating the cleaned data.")
+        return self.validator.is_valid(cleaned_data)
+
+# Integration
+
+crawler_manager = CrawlerManager()
+crawler_manager.configure_crawler(target_url="http://crawler.com", depth=2, limit=100, user_agent="Mozilla/5.0", delay=1, proxy="")
+
+crawler_manager.start_crawl()
+raw_content = "Here are some URLs: http://crawler1.com http://crawler2.com"
+
+response_processor = CrawlerResponseProcessor(Logger, Parser, Cleaner, Validator)
+processed_data = response_processor.process_response(raw_content)
+
+if processed_data:
+    print(f"Processed Data: {processed_data}")
+    crawler_manager.process_response(processed_data)
+    crawler_manager.save_results("http://crawlerapi.com")
+
+crawler_manager.reset_crawler()
