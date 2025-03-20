@@ -8,7 +8,7 @@
 	import Alert from '$lib/components/ui/alert/Alert.svelte';
 
 	//TODO: GET request to fetch data for the currentStep
-  const { data } = $props();
+	const { data } = $props();
 	let value = $state(15);
 	let currentStep = $state('running');
 	let showStopDialog = $state(false);
@@ -53,29 +53,54 @@
 			</div>
 			<Progress {value} max={100} class="w-[100%]" />
 		</div>
-		<Table data={data.tableData} columns={data.tableColumns} currentStep={currentStep}/>
+		<Table data={data.tableData} columns={data.tableColumns} {currentStep} />
 	</div>
 
 	<!-- Button Section: Change buttons based on scan status -->
 	<div class="button-section">
 		<div class="button-group">
 			{#if currentStep === 'running'}
-				<Button onclick={() => goto('/crawler/config')} variant="default" size="default" class="restart-button">
+				<Button
+					onclick={() => goto('/crawler/config')}
+					variant="default"
+					size="default"
+					class="restart-button"
+				>
 					Restart
 				</Button>
-				<Button onclick={() => goto('/crawler/run')} variant="default" size="default" class="pause-button">
+				<Button
+					onclick={() => goto('/crawler/run')}
+					variant="default"
+					size="default"
+					class="pause-button"
+				>
 					Pause
 				</Button>
-				<Button onclick={() => (showStopDialog = true)} variant="destructive" size="default" class="stop-button">
+				<Button
+					onclick={() => (showStopDialog = true)}
+					variant="destructive"
+					size="default"
+					class="stop-button"
+				>
 					Stop
 				</Button>
 			{:else}
 				<!-- Change buttons when results are ready -->
-				<Button onclick={() => goto('/crawler/config')} variant="default" size="default" class="restart-button">
+				<Button
+					onclick={() => goto('/crawler/config')}
+					variant="default"
+					size="default"
+					class="restart-button"
+				>
 					Restart
 				</Button>
 				<!-- TODO: Redirect this to the Results page-->
-				<Button onclick={() => goto('/crawler/config')} variant="default" size="default" class="view-all-results">
+				<Button
+					onclick={() => goto('/crawler/config')}
+					variant="default"
+					size="default"
+					class="view-all-results"
+				>
 					View All Results
 				</Button>
 			{/if}
