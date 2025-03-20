@@ -20,7 +20,7 @@ class NLP:
             stop_words (Set[str], optional): A set of words to be removed from the text.
                                             Defaults to {"the", "and", "or"} if not provided.
         """
-        self.stop_words = stop_words or {"the", "or", "and"}
+        self.stop_words = stop_words or {"the", "or", "and", "a", "an"}
 
     def subroutine(self, csv_path: str) -> None:
         """
