@@ -6,7 +6,7 @@ import csv
 from typing import Dict, List, Tuple, Set
 import re
 
-from credential_mdp import CredentialMDP
+from .credential_mdp import CredentialMDP
 
 class Credential_Generator:
     """
@@ -87,7 +87,7 @@ class Credential_Generator:
         )
 
         # Basice strength score to replace embeddings.
-        score = self.password_mdp.calculate_password_strenth(password)
+        score = self.password_mdp.calculate_password_strength(password)
 
         query = (
             f"{good_practices_info}\n\n"  
@@ -104,10 +104,10 @@ class Credential_Generator:
 
         system_message = 'You are a password security expert. Evaluate passwords carefully and provide concise feedback.'
 
-        message = {
+        message = [
             {'role': 'system', 'content': system_message},
             {'role': 'user', 'content': query},
-        }
+        ]
 
         try:
             response = ollama.chat(model="gemma3:latest", messages=message)
@@ -138,7 +138,7 @@ class Credential_Generator:
         if not username:
             raise ValueError("Username cannot be empty")
         
-        return self.username_mdp.calcuate_username_quality(username)
+        return self.username_mdp.calculate_username_quality(username)
 
     def get_ai_hyperparameters(self) -> list[str]:
         """
@@ -223,7 +223,7 @@ class Credential_Generator:
             List[str]: List of words.
         """
         words = re.findall(r'\w+', text.lower())
-        return [word for word in words if len(word) >= 4]
+        return [word for word in words if len(word) >= 4]  # Filter out words shorter than 4 chars
 
     def _build_state_transitions(self):
         """
@@ -264,16 +264,16 @@ class Credential_Generator:
             state = random.choice(self.username_mdp.initial_states)
 
         username = state[9:]
-        while len(username , self.min_username_length):
+        while len(username) < self.min_username_length:
             action, next_char = self.username_mdp.choose_action(state)
             if not action or not next_char:
                 break
             username += next_char
             next_state = f"username_{username[-self.username_mdp.order:]}"
             reward = self.username_mdp.get_reward(state, action, next_char)
-            self.username_mdp.update_q_values(state, action, next_char, next_state, reward)
+            self.username_mdp.update_q_value(state, action, next_char, next_state, reward)
             state = next_state
-        
+
         username = f"{username}{random.randint(1, 999)}"
         self.username_mdp.used_usernames.add(username)
 
