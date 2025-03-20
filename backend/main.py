@@ -7,6 +7,10 @@ import strawberry
 import logging
 import uvicorn
 
+# TODO: import the ml and the crawler services
+from src.modules.scanning.CrawlerManager import CrawlerManager
+from src.modules.ai.credential_generator import Credential_Generator
+
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -22,7 +26,6 @@ class CrawlerConfig(BaseModel):
     depth: Optional[int] = 2
     max_pages: Optional[int] = 50
     user_agent: Optional[str] = None
-    allow_path: Optional[str] = None
     delay: Optional[int] = 1000
     proxy: Optional[int] = None
 
@@ -38,6 +41,39 @@ class CrawlerConfig(BaseModel):
         for key, value in data.items():
             logger.info(f"Field: {key}, Value: {value}, Type: {type(value)}")
         return data
+    
+# Pydantic model for ml algorithm configuration
+class MLAlgorithmConfig(BaseModel):
+    # TODO: add the different variables that will be passed.
+    target_url: str
+
+    # Handles formatting data from fronted.
+    class Config:
+        alias_generator = lambda field_name: field_name.replace('_', '-')
+        populate_by_name = True
+        
+    # TODO: Add the section to handle formatting the data that is given from the frontend.
+    # This method logs the received data
+    @classmethod
+    def debug_request(cls, data: dict):
+        logger.info(f"Raw request data: {data}")
+        for key, value in data.items():
+            logger.info(f"Field: {key}, Value: {value}, Type: {type(value)}")
+        return data
+
+#Response model for crawler job status
+class CrawlerJobResponse(BaseModel):
+    job_id: str
+    message: str
+    status: str
+    # TODO: Could add the percentage and other information to be passed.
+
+#Response model for ml algorithm job status.
+class MLAlgorithmJobResponse(BaseModel):
+    job_id: str
+    message: str
+    status: str
+    # TODO: Could add the percentage and other information to be passed.
 
 # GraphQL Schema Definitions
 @strawberry.type
@@ -77,12 +113,27 @@ app.add_middleware(
 
 app.include_router(graphql_app, prefix="/graphql")
 
+# Crawler endpoints.
 @app.post("/api/crawler")
 async def receive_crawler_data(config: CrawlerConfig):
     logger.info(f"Received crawler configuration: {config}")
     
-    # Here you would typically start the crawler with the given configuration
-    # For now, we'll just mock a successful response
+    # Pass the configuration to the crawler service
+    # TODO: once implemented start a job with the crawler.
+    
+    return {
+        "message": "Crawler started successfully!",
+        "config": config.dict(),
+        "job_id": "12345"  # Mock job ID
+    }
+
+# Crawler endpoints.
+@app.post("/api/ml_algorithm")
+async def receive_crawler_data(config: CrawlerConfig):
+    logger.info(f"Received crawler configuration: {config}")
+    
+    # Pass the configuration to the crawler service
+    # TODO: once implemented start a job with the crawler.
     
     return {
         "message": "Crawler started successfully!",
