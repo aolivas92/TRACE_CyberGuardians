@@ -8,8 +8,8 @@ import logging
 import uvicorn
 
 # TODO: import the ml and the crawler services
-from src.modules.scanning.CrawlerManager import CrawlerManager
-from src.modules.ai.credential_generator import Credential_Generator
+# from src.modules.scanning.CrawlerManager import CrawlerManager
+# from src.modules.ai.credential_generator import Credential_Generator
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
