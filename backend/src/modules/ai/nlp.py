@@ -74,8 +74,6 @@ class NLP:
 
         print(f"Cleaned CSV '{csv_path}' has been generated.")
 
-        pass
-
     def _read_csv(self, csv_path: str) -> Dict[str, Any]:
         """
         Read and validate a CSV file.
