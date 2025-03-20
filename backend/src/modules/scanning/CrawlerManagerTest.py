@@ -28,6 +28,7 @@ class TestCrawlerManager(unittest.TestCase):
     
     @patch("builtins.open", new_callable=MagicMock)
     @patch("os.makedirs")
+    
     def test_save_results(self, mock_makedirs, mock_open):
         self.crawler.results = {"test": "data"}
         self.crawler.save_results()
