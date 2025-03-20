@@ -41,7 +41,8 @@ const config = {
         },
         accent3: {
           DEFAULT: "var(--accent3)",
-          foreground: "var(--accent3-foreground)"
+          foreground: "var(--accent3-foreground)",
+          hover: "var(--accent3-hover)"
         },
         muted: {
           DEFAULT: "var(--muted)",
@@ -50,7 +51,8 @@ const config = {
         error: {
           DEFAULT: "var(--error)",
           foreground: "var(--error-foreground)",
-          hover: "var(--error-hover)"
+          hover: "var(--error-hover)",
+          outline: "var(--error-outline)"
         },
         success: {
           DEFAULT: "var(--success)",
