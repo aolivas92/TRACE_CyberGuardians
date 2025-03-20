@@ -1,0 +1,6 @@
+id,content,url
+1,"Admin login panel detected on example.com","http://example.com/login"
+2,"Usernames found in company directory: jdoe, asmith, mcarter","http://example.com/staff"
+3,"Leaked password hints: 'company123', 'securePass!23'","http://example.com/hints"
+4,"Commonly used passwords: 'Password123', 'Welcome1', 'Qwerty!@#'","http://example.com/weak-passes"
+5,"Possible login pages found: /admin, /portal, /secure-login","http://example.com/pages"
