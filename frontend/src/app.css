@@ -27,6 +27,7 @@
 
     --accent3: #9BC2CB;
     --accent3-foreground: var(--foreground);
+    --accent3-hover: #9bc2cb78;
 
     --muted: #E1E1E1;
     --muted-foreground: var(--foreground);
@@ -34,6 +35,7 @@
     --error: #DB283B;
     --error-foreground: var(--foreground);
     --error-hover: #E95A5C;
+    --error-outline: #db283a74;
 
     --success: #20A453;
     --success-foreground: var(--foreground);
@@ -81,6 +83,7 @@
 
     --accent3: #AACBD2;
     --accent3-foreground: var(--foreground);
+    --accent3-hover: #aacbd278;
 
     --muted: #242424;
     --muted-foreground: var(--foreground);
@@ -88,6 +91,7 @@
     --error: #E95A5C;
     --error-foreground: var(--foreground);
     --error-hover: #DB283B;
+    --error-outline: #e95a5c7b;
 
     --success: #4FC872;
     --success-foreground: var(--foreground);

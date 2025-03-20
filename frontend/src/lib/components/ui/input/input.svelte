@@ -2,49 +2,52 @@
 	import { cn } from "$lib/utils.js";
 
 	let {
-			ref = $bindable(null),
-			value = $bindable(),
-			type,
-			files = $bindable(),
-			class: className,
-			...restProps
+		ref = $bindable(null),
+		value = $bindable(),
+		type,
+		files = $bindable(),
+		class: className,
+		error = false,
+		errorText = "",
+		...restProps
 	} = $props();
 </script>
 
 {#if type === "file"}
-	<input
+	<div class="w-full">
+		<input
 			bind:this={ref}
 			class={cn(
-					"border-input bg-background ring-offset-background placeholder:text-background3 focus-visible:ring-accent3 flex h-10 w-full rounded-md border-1.5 px-3 py-2 text-base file:border-0 file:bg-transparent file:text-md file:font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-md",
-					className
+				"no-spinner border-input border-background3 bg-background ring-offset-background placeholder:text-background3 focus-visible:ring-accent3-hover flex h-10 w-full rounded-md border-1.5 px-3 py-2 text-base file:border-0 file:bg-transparent file:text-md file:font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50 md:text-md",
+				error && "border-error focus-visible:ring-error-outline",
+				className
 			)}
 			type="file"
 			bind:files
 			bind:value
 			{...restProps}
-	/>
-{:else if type === "number"}
-	<input
-			bind:this={ref}
-			class={cn(
-					"appearance-none no-spinner border-input bg-background ring-offset-background placeholder:text-background3 focus-visible:ring-accent3 flex h-10 w-full rounded-md border-1.5 px-3 py-2 text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-md",
-					className
-			)}
-			type="number"
-			bind:value
-			{...restProps}
-	/>
+		/>
+		{#if error}
+			<p class="text-sm text-error mt-1">{errorText}</p>
+		{/if}
+	</div>
 {:else}
-	<input
+	<div class="w-full">
+		<input
 			bind:this={ref}
 			class={cn(
-					"border-input bg-background ring-offset-background placeholder:text-background3 focus-visible:ring-accent3 flex h-10 w-full rounded-md border-1.5 px-3 py-2 text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-md",
-					className
+				"no-spinner border-input border-background3 bg-background ring-offset-background placeholder:text-background3 focus-visible:ring-accent3-hover flex h-10 w-full rounded-md border-1.5 px-3 py-2 text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50 md:text-md",
+				error && "border-error focus-visible:ring-error-outline",
+				className
 			)}
 			{type}
 			bind:value
 			{...restProps}
-	/>
+		/>
+		{#if error}
+			<p class="text-sm text-error mt-1">{errorText}</p>
+		{/if}
+	</div>
 {/if}
 
 <style>
