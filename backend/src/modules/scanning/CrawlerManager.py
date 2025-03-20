@@ -1,9 +1,9 @@
-import re
 import os
 import json
 import time
 import random
 import requests
+import re
 
 # Crawler Manager
 
@@ -56,10 +56,17 @@ class CrawlerManager:
 # Response Processor
 
 class Logger:
-    def info(self, msg): print(f"INFO: {msg}")
-    def warning(self, msg): print(f"WARNING: {msg}")
-    def error(self, msg): print(f"ERROR: {msg}")
-    def debug(self, msg): print(f"DEBUG: {msg}")
+    def info(self, msg): 
+        print(f"INFO: {msg}")
+    
+    def warning(self, msg): 
+        print(f"WARNING: {msg}")
+    
+    def error(self, msg): 
+        print(f"ERROR: {msg}")
+    
+    def debug(self, msg): 
+        print(f"DEBUG: {msg}")
 
 class Parser:
     def parse(self, raw_content):
@@ -77,10 +84,10 @@ class Validator:
 
 class CrawlerResponseProcessor:
     def __init__(self, logger, parser, cleaner, validator):
-        self.logger = logger()
-        self.parser = parser()
-        self.cleaner = cleaner()
-        self.validator = validator()
+        self.logger = logger
+        self.parser = parser
+        self.cleaner = cleaner
+        self.validator = validator
 
     def process_response(self, raw_content: str) -> dict | None:
         if not raw_content:
@@ -110,19 +117,18 @@ class CrawlerResponseProcessor:
         return self.validator.is_valid(cleaned_data)
 
 # Integration
-
 crawler_manager = CrawlerManager()
 crawler_manager.configure_crawler(target_url="http://crawler.com", depth=2, limit=100, user_agent="Mozilla/5.0", delay=1, proxy="")
-
 crawler_manager.start_crawl()
 raw_content = "Here are some URLs: http://crawler1.com http://crawler2.com"
-
-response_processor = CrawlerResponseProcessor(Logger, Parser, Cleaner, Validator)
+logger = Logger()
+parser = Parser()
+cleaner = Cleaner()
+validator = Validator()
+response_processor = CrawlerResponseProcessor(logger, parser, cleaner, validator)
 processed_data = response_processor.process_response(raw_content)
-
 if processed_data:
     print(f"Processed Data: {processed_data}")
     crawler_manager.process_response(processed_data)
     crawler_manager.save_results("http://crawlerapi.com")
-
 crawler_manager.reset_crawler()
