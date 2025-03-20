@@ -1,9 +1,9 @@
+import re
 import os
 import json
 import time
 import random
 import requests
-import re
 
 # Crawler Manager
 
