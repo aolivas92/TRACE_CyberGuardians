@@ -1,3 +1,8 @@
+import os
+import json
+import time
+import random
+
 class CrawlerManager:
     """
     Manages web crawling, directory brute force attacks, and ML based wordlist generation.
@@ -18,6 +23,11 @@ class CrawlerManager:
         
     Notes:
     """
+
+    def __init__(self):
+        self.results = {}
+        self.config = {}
+        self.wordlist = []
     
     def configure_crawler(self, target_url: str, depth: int, limit: int, user_agent: str, delay: int, proxy: str) -> None:
         """
@@ -34,7 +44,12 @@ class CrawlerManager:
         Returns:
             None
         """
-        pass
+        self.config = {"target_url": target_url,
+                       "depth": depth,
+                       "limit": limit,
+                       "user_agent": user_agent,
+                       "delay": delay,
+                       "proxy": proxy}
         
 
     def start_crawl(self) -> None:
@@ -50,7 +65,14 @@ class CrawlerManager:
         Raises:
             ValueError: If the crawler is not configured before starting.
         """
-        pass
+        if not self.config:
+            raise ValueError("Crawler not configured")
+        print("Simulated crawl")
+        directories = ["/", "/home", "/var", "/usr", "/etc"]
+        connections = [(random.choice(directories), f"{random.choice(directories)}/subdir_{i}") for i in range(5)]
+        self.results["directories"] = directories
+        self.results["connections"] = connections
+        time.sleep(2)
 
     def process_response(self, response: dict) -> None:
         """
@@ -65,7 +87,9 @@ class CrawlerManager:
         Raises:
             ValueError: If the response is not a dictionary.
         """
-        pass
+        if not isinstance(response, dict):
+            raise ValueError("Dictionary")
+        self.results["processed_response"] = response
 
     def brute_force_directories(self, target_url: str, wordlist: list) -> None:
         """
@@ -81,7 +105,10 @@ class CrawlerManager:
         Raises:
             ValueError: If no wordlist is provided.
         """
-        pass
+        if not wordlist:
+            raise ValueError("No wordlist")
+        discovered_paths = [f"{target_url}/{word}" for word in wordlist[:5]]
+        self.results["brute_force_results"] = discovered_paths
 
     def integrate_ml_algorithm(self, input_data) -> None:
         """
@@ -93,7 +120,9 @@ class CrawlerManager:
         Returns:
             None
         """
-        pass
+        # dummy
+        generated_words = [f"ml_gen_{i}" for i in range(3)]
+        self.results["ml_generated_words"] = generated_words
         
     def save_results(self) -> None:
         """
@@ -105,7 +134,11 @@ class CrawlerManager:
         Returns:
             None
         """
-        pass
+        output_path = os.path.join("database", "crawler_results.json")
+        os.makedirs("database", exist_ok=True)
+        with open(output_path, "w") as f:
+            json.dump(self.results, f, indent=4)
+        print(f"Results: {output_path}")
 
     def reset_crawler(self) -> None:
         """
@@ -117,4 +150,6 @@ class CrawlerManager:
         Returns:
             None
         """
-        pass
+        self.results = {}
+        self.config = {}
+        print("Crawler reset")
