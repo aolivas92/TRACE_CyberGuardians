@@ -17,7 +17,7 @@
 		{ icon: Hammer, tooltip: 'Tools', route: '/dashboard' },
 		{ icon: Network, tooltip: 'Network' },
 		{ icon: FileCheck, tooltip: 'Results' },
-		{ icon: Brain, tooltip: 'AI Model' }
+		{ icon: Brain, tooltip: 'AI Model', route: '/credGenAI/config' },
 	];
 
 	onMount(() => {
