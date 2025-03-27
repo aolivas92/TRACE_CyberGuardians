@@ -1,84 +1,94 @@
 <script>
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
-	import { Label } from "$lib/components/ui/label/index.js";
+	import { Label } from '$lib/components/ui/label/index.js';
 	import { goto } from '$app/navigation';
-	import StepIndicator from "$lib/components/ui/progressStep/ProgressStep.svelte";
+	import * as Tooltip from '$lib/components/ui/tooltip';
+	import StepIndicator from '$lib/components/ui/progressStep/ProgressStep.svelte';
 
 	let inputFields = [
-		{ id: "target-url", label: "Target URL", type: "text", placeholder: "https://juice-shop.herokuapp.com" },
-		{ id: "depth", label: "Crawl Depth", type: "number", placeholder: "2" },
-		{ id: "max-pages", label: "Max Pages", type: "number", placeholder: "50" },
-		{ id: "user-agent", label: "User Agent", type: "text", placeholder: "https://juice-shop.herokuapp.com/drink/*" },
-		{ id: "delay", label: "Request Delay", type: "number", placeholder: "1000" },
-		{ id: "proxy", label: "Proxy", type: "number", placeholder: "8080" }
+		{
+			id: 'target-url',
+			label: 'Target URL',
+			type: 'text',
+			placeholder: 'https://juice-shop.herokuapp.com',
+			required: true
+		},
+		{ id: 'depth', label: 'Crawl Depth', type: 'number', placeholder: '2' },
+		{ id: 'max-pages', label: 'Max Pages', type: 'number', placeholder: '50' },
+		{
+			id: 'user-agent',
+			label: 'User Agent',
+			type: 'text',
+			placeholder: 'https://juice-shop.herokuapp.com/drink/*'
+		},
+		{ id: 'delay', label: 'Request Delay', type: 'number', placeholder: '1000' },
+		{ id: 'proxy', label: 'Proxy', type: 'number', placeholder: '8080' }
 	];
 
 	let formData = {};
-	let currentStep = "config";
+	let currentStep = 'config';
 	let isSubmitting = false;
-	let statusMessage = "";
+	let statusMessage = '';
 	let targetUrlError = false;
-	let targetUrlErrorText = "";
+	let targetUrlErrorText = '';
 
 	function handleInputChange(id, value) {
 		formData[id] = value;
-		// Validate the target URL on input change
-		if (id === "target-url") {
+		if (id === 'target-url') {
 			validateTargetUrl();
 		}
 	}
 
 	function validateTargetUrl() {
-		const url = formData["target-url"];
-		if (!url || url.trim() === "") {
+		const url = formData['target-url'];
+		if (!url || url.trim() === '') {
 			targetUrlError = true;
-			targetUrlErrorText = "Target URL is required.";
+			targetUrlErrorText = 'Target URL is required.';
 		} else if (!/^https?:\/\/[^\s/$.?#].[^\s]*$/.test(url)) {
 			targetUrlError = true;
-			targetUrlErrorText = "Please enter a valid URL.";
+			targetUrlErrorText = 'Please enter a valid URL.';
 		} else {
 			targetUrlError = false;
-			targetUrlErrorText = "";
+			targetUrlErrorText = '';
 		}
 	}
 
 	async function handleSubmit() {
-		console.log("Form Data:", formData);
+		console.log('Form Data:', formData);
 
-		// Validate before submission
 		validateTargetUrl();
 		if (targetUrlError) {
-			statusMessage = "Please correct errors before submitting.";
+			statusMessage = 'Please correct errors before submitting.';
 			return false;
 		}
 
 		isSubmitting = true;
-		statusMessage = "Sending data...";
+		statusMessage = 'Sending data...';
 
 		try {
-			const response = await fetch("/crawler/config", {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify(formData),
+			const response = await fetch('/crawler/config', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(formData)
 			});
 
-			console.log("Response status:", response.status);
+			console.log('Response status:', response.status);
 
 			const result = await response.json();
-			console.log("Response:", result);
+			console.log('Response:', result);
 
 			if (response.ok) {
-				statusMessage = "Crawler started successfully!";
-				return true; // Indicating success
+				statusMessage = 'Crawler started successfully!';
+				return true;
 			} else {
-				statusMessage = `Error: ${result.message || "Unknown error"}`;
-				return false; // Indicating failure
+				statusMessage = `Error: ${result.message || 'Unknown error'}`;
+				return false;
 			}
 		} catch (error) {
-			statusMessage = "Failed to send data. Check console for details.";
-			console.error("Error sending data:", error);
-			return false; // Indicating failure
+			statusMessage = 'Failed to send data. Check console for details.';
+			console.error('Error sending data:', error);
+			return false;
 		} finally {
 			isSubmitting = false;
 		}
@@ -88,23 +98,37 @@
 <div class="crawler-config">
 	<div class="title-section">
 		<div class="title">Crawler Configuration</div>
+
 		<StepIndicator status={currentStep} />
 	</div>
 	<div class="input-container">
 		{#each inputFields as field}
 			<div class="input-field">
-				<Label for={field.id}>{field.label}</Label>
-				{#if field.id === "target-url"}
-					<Input
-						id={field.id}
-						type={field.type}
-						placeholder={field.placeholder}
-						bind:value={formData[field.id]}
-						oninput={(e) => handleInputChange(field.id, e.target.value)}
-						onblur={validateTargetUrl}
-						error={targetUrlError}
-						errorText={targetUrlErrorText}
-					/>
+				<Label for={field.id}>
+					{field.label}
+					{#if field.required}
+						<span class="text-red-500">*</span>
+					{/if}
+				</Label>
+				{#if field.id === 'target-url'}
+					<div class="flex flex-row">
+						<Input
+							id={field.id}
+							type={field.type}
+							placeholder={field.placeholder}
+							bind:value={formData[field.id]}
+							oninput={(e) => handleInputChange(field.id, e.target.value)}
+							onblur={validateTargetUrl}
+							error={targetUrlError}
+							errorText={targetUrlErrorText}
+						/>
+						<Tooltip.Root>
+							<Tooltip.Trigger>i</Tooltip.Trigger>
+							<Tooltip.Content>
+								<p>Only Target URL is required. The rest will use default values if left blank.</p>
+							</Tooltip.Content>
+						</Tooltip.Root>
+					</div>
 				{:else}
 					<Input
 						id={field.id}
