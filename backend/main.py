@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional
 from strawberry.fastapi import GraphQLRouter
+from fastapi.responses import JSONResponse
 import strawberry
 import logging
 import uvicorn
@@ -117,15 +118,18 @@ app.include_router(graphql_app, prefix="/graphql")
 @app.post("/api/crawler")
 async def receive_crawler_data(config: CrawlerConfig):
     logger.info(f"Received crawler configuration: {config}")
-    
     # Pass the configuration to the crawler service
     # TODO: once implemented start a job with the crawler.
     
-    return {
-        "message": "Crawler started successfully!",
-        "config": config.dict(),
-        "job_id": "12345"  # Mock job ID
-    }
+    return JSONResponse(
+        content={
+            "message": "Crawler started successfully!",
+            "config": config.dict(),
+            "job_id": "12345"
+        },
+        status_code=200
+    )
+
 
 # Crawler endpoints.
 @app.post("/api/ml_algorithm")

@@ -38,21 +38,26 @@
 		size,
 		ref = $bindable(null),
 		href = undefined,
-		type,
+		type = 'submit',
 		children,
 		...restProps
 	} = $props();
 </script>
 
 {#if href}
-	<a bind:this={ref} class={cn(buttonVariants({ variant, size }), className)} {href} {...restProps}>
+	<a
+		bind:this={ref}
+		class={cn(buttonVariants({ variant, size }), className)}
+		href={href}
+		{...restProps}
+	>
 		{@render children?.()}
 	</a>
 {:else}
 	<button
+		type={type}
 		bind:this={ref}
 		class={cn(buttonVariants({ variant, size }), className)}
-		{type}
 		{...restProps}
 	>
 		{@render children?.()}
