@@ -75,7 +75,7 @@
 			<Input
 				id="wordlist"
 				type="file"
-				onChange={handleFileChange}
+				oninput={handleFileChange}
 				class="w-full border rounded px-3 py-2"
 			/>
 			{#if wordlistError}
@@ -93,7 +93,7 @@
 						<Switch
 							id={toggle.id}
 							bind:checked={toggle.checked}
-							onChange={() => toggleSwitch('username', index)}
+							oninput={() => toggleSwitch('username', index)}
 						/>
 					</div>
 				{/each}
@@ -108,7 +108,7 @@
 						<Switch
 							id={toggle.id}
 							bind:checked={toggle.checked}
-							onChange={() => toggleSwitch('password', index)}
+							oninput={() => toggleSwitch('password', index)}
 						/>
 					</div>
 				{/each}

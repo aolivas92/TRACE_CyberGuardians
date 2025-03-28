@@ -24,8 +24,10 @@
 
 <div class="generator-run">
 	<div class="title-section">
-		<div class="title">AI Generator</div>
-		
+		<div class="title">
+			{currentStep === 'running' ? 'AI Generator Running' : 'AI Generator Results'}
+		</div>
+		<StepIndicator status={currentStep} />
 	</div>
 
 	<div class="metrics">
@@ -40,7 +42,7 @@
 		<!-- Left side -->
 		<div class="button-left">
 			<Button
-			onClick={() => {
+			onclick={() => {
 				console.log("🔁 Re-Generate button clicked");
 				goto('/credGenAI/config');
 			}}
@@ -51,7 +53,7 @@
 	
 		<!-- Right side -->
 		<div class="button-right">
-			<Button onClick={handleSaveWordList} variant="secondary">Save Word List</Button>
+			<Button onclick={handleSaveWordList} variant="secondary">Save Word List</Button>
 		</div>
 	</div>
 </div>
