@@ -4,10 +4,15 @@
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
 	import { Button } from '$lib/components/ui/button/index.js';
+	import { goto } from '$app/navigation';
 
 	let currentStep = 'config';
+	let selectedFile = null;
+	let wordlistError = false;
+	let wordlistErrorText = "";
+	let isSubmitting = false;
+	let statusMessage = "";
 
-	// Define toggle options for Username & Password
 	let usernameToggles = [
 		{ id: 'username-characters', label: 'Characters', checked: false },
 		{ id: 'username-numbers', label: 'Numbers', checked: true },
@@ -20,13 +25,41 @@
 		{ id: 'password-symbols', label: 'Symbols', checked: false }
 	];
 
-	// Function to toggle switch state
 	function toggleSwitch(category, index) {
 		if (category === 'username') {
 			usernameToggles[index].checked = !usernameToggles[index].checked;
 		} else if (category === 'password') {
 			passwordToggles[index].checked = !passwordToggles[index].checked;
 		}
+	}
+
+	function handleFileChange(event) {
+		selectedFile = event.target.files[0];
+		validateWordlist();
+	}
+
+	function validateWordlist() {
+		if (!selectedFile) {
+			wordlistError = true;
+			wordlistErrorText = "Wordlist file is required.";
+		} else {
+			wordlistError = false;
+			wordlistErrorText = "";
+		}
+	}
+
+	async function handleSubmit() {
+		validateWordlist();
+		if (wordlistError) {
+		statusMessage = "Please upload a wordlist file before submitting.";
+		return false;
+		}
+
+		// Simulate success without actually sending anything
+		statusMessage = "Pretending to upload wordlist...";
+		await new Promise((resolve) => setTimeout(resolve, 500)); // fake delay
+
+		return true;
 	}
 </script>
 
@@ -39,8 +72,17 @@
 	<div class="input-container">
 		<div class="input-section">
 			<Label for="wordlist">Wordlist</Label>
-			<Input id="wordlist" type="file" />
+			<Input
+				id="wordlist"
+				type="file"
+				onChange={handleFileChange}
+				class="w-full border rounded px-3 py-2"
+			/>
+			{#if wordlistError}
+				<p class="text-red-600 text-sm mt-1">{wordlistErrorText}</p>
+			{/if}
 		</div>
+
 		<div class="toggle-container">
 			<!-- Username Toggle Section -->
 			<div class="toggle-section">
@@ -51,7 +93,7 @@
 						<Switch
 							id={toggle.id}
 							bind:checked={toggle.checked}
-							on:change={() => toggleSwitch('username', index)}
+							onChange={() => toggleSwitch('username', index)}
 						/>
 					</div>
 				{/each}
@@ -66,15 +108,30 @@
 						<Switch
 							id={toggle.id}
 							bind:checked={toggle.checked}
-							onchange={() => toggleSwitch('password', index)}
+							onChange={() => toggleSwitch('password', index)}
 						/>
 					</div>
 				{/each}
 			</div>
 		</div>
-		<Button variant="default" size="default" type="button" title="Submit" class="w-96">
-			Submit
-		</Button>
+
+		<div class="button-container">
+			<Button
+				onclick={async () => {
+					const success = await handleSubmit();
+					if (success) {
+						goto('/credGenAI/run');
+					}
+				}}
+				variant="default"
+				size="default"
+				type="button"
+				title="Submit"
+				class="w-96"
+			>
+				Submit
+			</Button>
+		</div>
 	</div>
 </div>
 
@@ -145,5 +202,8 @@
 		flex-direction: column;
 		padding-bottom: 2rem;
 		gap: 0.5rem;
+	}
+	.button-container {
+		margin-top: 1rem;
 	}
 </style>
