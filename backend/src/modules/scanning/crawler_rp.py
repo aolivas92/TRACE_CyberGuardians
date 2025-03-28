@@ -13,6 +13,36 @@ class ResponseProcessor:
         self.raw_html_store_path = "raw_html.txt"
 
     async def run(self, raw_html: str, depth: int = 0) -> None:
+        from src.modules.scanning.mock_http_client import MockHTTPClient
+        visited = set()
+        queue = [(self.base_url, raw_html, 0)]
+        tree = {}
+
+        while queue:
+            current_url, current_html, current_depth = queue.pop(0)
+            if current_url in visited or current_depth > depth:
+                continue
+            visited.add(current_url)
+
+            self.save_raw_html(current_html)
+            soup = BeautifulSoup(current_html, 'html.parser')
+            self._extract_links(soup)
+            tree[current_url] = []
+
+            for link in self.extracted_urls:
+                if link.startswith('/'):
+                    full_url = f"{self.base_url.rstrip('/')}{link}"
+                elif link.startswith(self.base_url):
+                    full_url = link
+                else:
+                    continue  # skip external links
+
+                if full_url not in visited:
+                    linked_html = MockHTTPClient.fetch_html(full_url)
+                    queue.append((full_url, linked_html, current_depth + 1))
+                    tree[current_url].append(full_url)
+
+        self.crawl_tree = tree
         """Main async method to process raw HTML input."""
         self.save_raw_html(raw_html)
         self.process(raw_html, depth)

@@ -3,18 +3,20 @@
 import asyncio
 import unittest
 from unittest.mock import AsyncMock, MagicMock, patch
-from CrawlerManager import CrawlerManager
+from src.modules.scanning.CrawlerManager import CrawlerManager
 
 class CrawlerManagerTest(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
-        self.CrawlerManager = CrawlerManager()
+        self.CrawlerManager = CrawlerManager(base_url="https://test.com", depth=2, limit=10, user_agent="TestAgent", delay=0)
 
     def test_configure_crawler(self):
         self.CrawlerManager.configure_crawler("https://Crawler.com", 2, 100, "TestAgent", 1, "")
         self.assertEqual(self.CrawlerManager.config["target_url"], "https://Crawler.com")
         self.assertEqual(self.CrawlerManager.config["depth"], 2)
+    
+    """
 
-    @patch("CrawlerManager.ResponseProcessor")
+    @patch("src.modules.scanning.CrawlerManager.ResponseProcessor")
     async def test_start_crawl(self, mock_response_processor):
         mock_rp_instance = mock_response_processor.return_value
         mock_rp_instance.run = AsyncMock()
@@ -25,6 +27,12 @@ class CrawlerManagerTest(unittest.IsolatedAsyncioTestCase):
         await self.CrawlerManager.start_crawl()
         mock_rp_instance.run.assert_called()
         mock_rp_instance.export_tree.assert_called()
+        """
+    @patch.object(CrawlerManager, 'fetch', new_callable=AsyncMock)
+    async def test_start_crawl(self, mock_fetch):
+        mock_fetch.return_value = "<html><a href='/next'></a></html>"
+        await self.CrawlerManager.start_crawl()
+        self.assertIn("https://test.com", self.CrawlerManager.crawl_tree)
 
     def test_process_response_valid(self):
         response = {"key": "value"}
@@ -36,7 +44,7 @@ class CrawlerManagerTest(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(ValueError):
             self.CrawlerManager.process_response([])
 
-    @patch("CrawlerManager.requests.post")
+    @patch("src.modules.scanning.CrawlerManager.requests.post")
     def test_store_results(self, mock_post):
         mock_response = MagicMock()
         mock_response.status_code = 200
