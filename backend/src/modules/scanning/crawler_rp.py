@@ -9,7 +9,7 @@ class ResponseProcessor:
         self.base_url = base_url
         self.base_domain = urlparse(base_url).netloc
         self.extracted_urls: List[str] = []
-        self.domain_structure: Dict[str, List[str]] = []
+        self.domain_structure: Dict[str, List[str]] = {}
         self.raw_html_store_path = "raw_html.txt"
 
     async def run(self, raw_html: str, depth: int = 0) -> None:
