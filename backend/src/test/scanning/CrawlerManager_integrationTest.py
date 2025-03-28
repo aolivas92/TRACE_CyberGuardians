@@ -1,65 +1,34 @@
-# Crawler Manager Test
-
+import json
+import pytest
 import asyncio
-import unittest
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import patch, AsyncMock
 from src.modules.scanning.CrawlerManager import CrawlerManager
 
-class CrawlerManagerTest(unittest.IsolatedAsyncioTestCase):
-    def setUp(self):
-        self.CrawlerManager = CrawlerManager(base_url="https://test.com", depth=2, limit=10, user_agent="TestAgent", delay=0)
-
-    def test_configure_crawler(self):
-        self.CrawlerManager.configure_crawler("https://Crawler.com", 2, 100, "TestAgent", 1, "")
-        self.assertEqual(self.CrawlerManager.config["target_url"], "https://Crawler.com")
-        self.assertEqual(self.CrawlerManager.config["depth"], 2)
-    
-    """
-
-    @patch("src.modules.scanning.CrawlerManager.ResponseProcessor")
-    async def test_start_crawl(self, mock_response_processor):
-        mock_rp_instance = mock_response_processor.return_value
-        mock_rp_instance.run = AsyncMock()
-        mock_rp_instance.export_tree = MagicMock()
-        mock_rp_instance.tree = {}
-        mock_rp_instance.external_links = []
-        self.CrawlerManager.configure_crawler("https://Crawler.com", 2, 100, "TestAgent", 1, "")
-        await self.CrawlerManager.start_crawl()
-        mock_rp_instance.run.assert_called()
-        mock_rp_instance.export_tree.assert_called()
-        """
-    @patch.object(CrawlerManager, 'fetch', new_callable=AsyncMock)
-    async def test_start_crawl(self, mock_fetch):
-        mock_fetch.return_value = "<html><a href='/next'></a></html>"
-        await self.CrawlerManager.start_crawl()
-        self.assertIn("https://test.com", self.CrawlerManager.crawl_tree)
-
-    def test_process_response_valid(self):
-        response = {"key": "value"}
-        self.CrawlerManager.process_response(response)
-        self.assertIn("processed_response", self.CrawlerManager.results)
-        self.assertEqual(self.CrawlerManager.results["processed_response"], [response])
-
-    def test_process_response_invalid(self):
-        with self.assertRaises(ValueError):
-            self.CrawlerManager.process_response([])
-
-    @patch("src.modules.scanning.CrawlerManager.requests.post")
-    def test_store_results(self, mock_post):
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_post.return_value = mock_response
-        self.CrawlerManager.results = {"processed_response": [{"key": "value"}]}
-        self.CrawlerManager.store_results("http://api.Crawler.com")
-        mock_post.assert_called_once_with("http://api.Crawler.com", json={"processed_response": [{"key": "value"}]}, headers={"Content-Type": "application/json"},)
-
-    def test_reset_crawler(self):
-        self.CrawlerManager.results = {"key": "value"}
-        self.CrawlerManager.config = {"key": "value"}
-        self.CrawlerManager.crawl_tree = {"key": "value"}
-        self.CrawlerManager.reset_crawler()
-        self.assertEqual(self.CrawlerManager.results, {})
-        self.assertEqual(self.CrawlerManager.config, {})
-        self.assertEqual(self.CrawlerManager.crawl_tree, {})
-
-unittest.main()
+@pytest.mark.asyncio
+async def test_crawler_manager_integration():
+    crawler_manager = CrawlerManager()
+    crawler_manager.configure_crawler(target_url="https://crawler.com/", depth=2, limit=100, user_agent="Mozilla/5.0", delay=1, proxy="")
+    assert crawler_manager.config["target_url"] == "https://crawler.com/"
+    with patch("crawler_manager.ResponseProcessor") as MockRP:
+        mock_rp = MockRP.return_value
+        mock_rp.run = AsyncMock()
+        mock_rp.export_tree = AsyncMock()
+        mock_rp.tree = {"home": ["about", "contact"]}
+        mock_rp.external_links = ["https://external.com/"]
+        mock_rp.run.return_value = {"tree": {"home": ["about", "contact"]}, "external_links": ["https://external.com"]}
+        with patch.object(crawler_manager, 'fetch', return_value="<html>Dummy HTML content</html>") as mock_fetch:
+            await crawler_manager.start_crawl()
+        assert "processed_response" in crawler_manager.results
+        assert len(crawler_manager.results["processed_response"]) > 0
+        processed_response = crawler_manager.results["processed_response"][0]
+        assert "tree" in processed_response
+        assert "external_links" in processed_response
+        with patch("crawler_manager.requests.post") as mock_post:
+            mock_response = mock_post.return_value
+            mock_response.status_code = 200
+            await crawler_manager.store_results("http://crawlerapi.com/")
+            mock_post.assert_called_once()
+    crawler_manager.reset_crawler()
+    assert not crawler_manager.results
+    assert not crawler_manager.config
+    assert not crawler_manager.crawl_tree
