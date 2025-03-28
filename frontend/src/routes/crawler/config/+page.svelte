@@ -1,11 +1,12 @@
 <script>
-	import { enhance } from '$app/forms';
+	import { enhance, applyAction } from '$app/forms';
 	import { onMount } from 'svelte';
-	// import { Button } from '$lib/components/ui/button/index.js';
+	import { Button } from '$lib/components/ui/button/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
-	import * as Tooltip from '$lib/components/ui/tooltip';
+	// import * as Tooltip from '$lib/components/ui/tooltip';
 	import StepIndicator from '$lib/components/ui/progressStep/ProgressStep.svelte';
+	import { goto } from '$app/navigation';
 
 	let formData = {};
 	let targetUrlError = false;
@@ -52,10 +53,17 @@
 		}
 	}
 
-	const onSubmitHandler = ({ result }) => {
-		if (result.type === 'success' && result.data?.success) {
-			console.log('✅ All good!');
-		}
+	const onSubmitHandler = () => {
+		return async ({ result, update }) => {
+			if (result.type === 'success' && result.data?.success) {
+				goto('/crawler/run', {
+					replaceState: true
+				});
+				console.log('All good!');
+			} else {
+				await update();
+			}
+		};
 	};
 </script>
 
@@ -65,9 +73,7 @@
 		<StepIndicator status="config" />
 	</div>
 
-	<form method="POST"
-	use:enhance={{ onSubmit: onSubmitHandler }}
-	class="input-container">
+	<form method="POST" use:enhance={onSubmitHandler} class="input-container">
 		{#each inputFields as field}
 			<div class="input-field">
 				<Label for={field.id}>
@@ -81,6 +87,7 @@
 					<div class="flex flex-row">
 						<Input
 							id={field.id}
+							name={field.id}
 							type={field.type}
 							placeholder={field.placeholder}
 							value={formData[field.id] ?? ''}
@@ -90,7 +97,7 @@
 							errorText={targetUrlErrorText}
 						/>
 
-						<Tooltip.TooltipProvider>
+						<!-- <Tooltip.TooltipProvider>
 							<Tooltip.Root>
 								<Tooltip.Trigger>i</Tooltip.Trigger>
 								<Tooltip.Content>
@@ -101,11 +108,13 @@
 									</p>
 								</Tooltip.Content>
 							</Tooltip.Root>
-						</Tooltip.TooltipProvider>
+						</Tooltip.TooltipProvider> -->
 					</div>
 				{:else}
 					<Input
 						id={field.id}
+						name={field.id}
+						value={formData[field.id] ?? ''}
 						type={field.type}
 						placeholder={field.placeholder}
 						oninput={(e) => handleInputChange(field.id, e.target.value)}
@@ -115,11 +124,7 @@
 		{/each}
 
 		<div class="pt-5">
-			<!-- <Button type="submit" variant="default" size="default" class="w-96">
-				dfgdfgdfgdfgdf
-			</Button> -->
-			<button type="submit">Submit</button>
-
+			<Button type="submit" variant="default" size="default" class="w-96">dfgdfgdfgdfgdf</Button>
 		</div>
 	</form>
 </div>
