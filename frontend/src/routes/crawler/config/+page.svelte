@@ -1,10 +1,15 @@
 <script>
-	import { Button } from '$lib/components/ui/button/index.js';
+	import { enhance } from '$app/forms';
+	import { onMount } from 'svelte';
+	// import { Button } from '$lib/components/ui/button/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
-	import { goto } from '$app/navigation';
 	import * as Tooltip from '$lib/components/ui/tooltip';
 	import StepIndicator from '$lib/components/ui/progressStep/ProgressStep.svelte';
+
+	let formData = {};
+	let targetUrlError = false;
+	let targetUrlErrorText = '';
 
 	let inputFields = [
 		{
@@ -25,13 +30,6 @@
 		{ id: 'delay', label: 'Request Delay', type: 'number', placeholder: '1000' },
 		{ id: 'proxy', label: 'Proxy', type: 'number', placeholder: '8080' }
 	];
-
-	let formData = {};
-	let currentStep = 'config';
-	let isSubmitting = false;
-	let statusMessage = '';
-	let targetUrlError = false;
-	let targetUrlErrorText = '';
 
 	function handleInputChange(id, value) {
 		formData[id] = value;
@@ -54,54 +52,22 @@
 		}
 	}
 
-	async function handleSubmit() {
-		console.log('Form Data:', formData);
-
-		validateTargetUrl();
-		if (targetUrlError) {
-			statusMessage = 'Please correct errors before submitting.';
-			return false;
+	const onSubmitHandler = ({ result }) => {
+		if (result.type === 'success' && result.data?.success) {
+			console.log('✅ All good!');
 		}
-
-		isSubmitting = true;
-		statusMessage = 'Sending data...';
-
-		try {
-			const response = await fetch('/crawler/config', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify(formData)
-			});
-
-			console.log('Response status:', response.status);
-
-			const result = await response.json();
-			console.log('Response:', result);
-
-			if (response.ok) {
-				statusMessage = 'Crawler started successfully!';
-				return true;
-			} else {
-				statusMessage = `Error: ${result.message || 'Unknown error'}`;
-				return false;
-			}
-		} catch (error) {
-			statusMessage = 'Failed to send data. Check console for details.';
-			console.error('Error sending data:', error);
-			return false;
-		} finally {
-			isSubmitting = false;
-		}
-	}
+	};
 </script>
 
 <div class="crawler-config">
 	<div class="title-section">
 		<div class="title">Crawler Configuration</div>
-
-		<StepIndicator status={currentStep} />
+		<StepIndicator status="config" />
 	</div>
-	<div class="input-container">
+
+	<form method="POST"
+	use:enhance={{ onSubmit: onSubmitHandler }}
+	class="input-container">
 		{#each inputFields as field}
 			<div class="input-field">
 				<Label for={field.id}>
@@ -110,54 +76,52 @@
 						<span class="text-red-500">*</span>
 					{/if}
 				</Label>
+
 				{#if field.id === 'target-url'}
 					<div class="flex flex-row">
 						<Input
 							id={field.id}
 							type={field.type}
 							placeholder={field.placeholder}
-							bind:value={formData[field.id]}
+							value={formData[field.id] ?? ''}
 							oninput={(e) => handleInputChange(field.id, e.target.value)}
 							onblur={validateTargetUrl}
 							error={targetUrlError}
 							errorText={targetUrlErrorText}
 						/>
-						<Tooltip.Root>
-							<Tooltip.Trigger>i</Tooltip.Trigger>
-							<Tooltip.Content>
-								<p>Only Target URL is required. The rest will use default values if left blank.</p>
-							</Tooltip.Content>
-						</Tooltip.Root>
+
+						<Tooltip.TooltipProvider>
+							<Tooltip.Root>
+								<Tooltip.Trigger>i</Tooltip.Trigger>
+								<Tooltip.Content>
+									<p>
+										Only Target URL is required.
+										<br />
+										The rest will use default values if left blank.
+									</p>
+								</Tooltip.Content>
+							</Tooltip.Root>
+						</Tooltip.TooltipProvider>
 					</div>
 				{:else}
 					<Input
 						id={field.id}
 						type={field.type}
 						placeholder={field.placeholder}
-						bind:value={formData[field.id]}
 						oninput={(e) => handleInputChange(field.id, e.target.value)}
 					/>
 				{/if}
 			</div>
 		{/each}
+
 		<div class="pt-5">
-			<Button
-				onclick={async () => {
-					const success = await handleSubmit();
-					if (success) {
-						goto('/crawler/run');
-					}
-				}}
-				variant="default"
-				size="default"
-				type="button"
-				title="Submit"
-				class="w-96"
-			>
-				Submit
-			</Button>
+			<!-- <Button type="submit" variant="default" size="default" class="w-96">
+				dfgdfgdfgdfgdf
+			</Button> -->
+			<button type="submit">Submit</button>
+
 		</div>
-	</div>
+	</form>
 </div>
 
 <style>
