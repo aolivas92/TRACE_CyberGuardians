@@ -24,11 +24,14 @@ mock_crawled_pages = [
 # Pydantic model for crawler configuration
 class CrawlerConfig(BaseModel):
     target_url: str
-    depth: Optional[int] = 2
-    max_pages: Optional[int] = 50
+    depth: Optional[int] = None
+    max_pages: Optional[int] = None
     user_agent: Optional[str] = None
-    delay: Optional[int] = 1000
+    delay: Optional[int] = None
     proxy: Optional[int] = None
+    excluded_urls: Optional[str] = None
+    crawl_date: Optional[str] = None
+    crawl_time: Optional[str] = None
 
     # Handles formatting data from fronted.
     class Config:
@@ -118,17 +121,15 @@ app.include_router(graphql_app, prefix="/graphql")
 @app.post("/api/crawler")
 async def receive_crawler_data(config: CrawlerConfig):
     logger.info(f"Received crawler configuration: {config}")
+    
     # Pass the configuration to the crawler service
     # TODO: once implemented start a job with the crawler.
     
-    return JSONResponse(
-        content={
-            "message": "Crawler started successfully!",
-            "config": config.dict(),
-            "job_id": "12345"
-        },
-        status_code=200
-    )
+    return {
+        "message": "Crawler started successfully!",
+        "config": config.dict(),
+        "job_id": "12345"  # Mock job ID
+    }
 
 
 # Crawler endpoints.

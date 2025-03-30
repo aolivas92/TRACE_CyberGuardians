@@ -4,7 +4,6 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
-	// import * as Tooltip from '$lib/components/ui/tooltip';
 	import StepIndicator from '$lib/components/ui/progressStep/ProgressStep.svelte';
 	import FormField from '$lib/components/ui/form/FormField.svelte';
 	import { validateField } from '$lib/validation/validationRules';

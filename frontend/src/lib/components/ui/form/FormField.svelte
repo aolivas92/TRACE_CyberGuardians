@@ -25,6 +25,7 @@
   <Input
     {id}
     name={id}
+    label={label}
     {type}
     {placeholder}
     {value}
