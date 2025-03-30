@@ -4,158 +4,175 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
-	import StepIndicator from '$lib/components/ui/progressStep/ProgressStep.svelte';
-	import FormField from '$lib/components/ui/form/FormField.svelte';
 	import { validateField } from '$lib/validation/validationRules';
 	import { goto } from '$app/navigation';
-  
-  let formData = {};
-  let fieldErrors = {};
-  
-  // Field definitions
+	import StepIndicator from '$lib/components/ui/progressStep/ProgressStep.svelte';
+	import FormField from '$lib/components/ui/form/FormField.svelte';
+	import * as Accordion from '$lib/components/ui/accordion/index.js';
+
+	let formData = {};
+	let fieldErrors = {};
+
 	let inputFields = [
 		{
 			id: 'target-url',
 			label: 'Target URL',
 			type: 'text',
 			placeholder: 'https://juice-shop.herokuapp.com',
-			required: true
+			required: true,
+			advanced: false
 		},
 		{
 			id: 'depth',
 			label: 'Crawl Depth',
 			type: 'number',
 			placeholder: '5',
-			required: false
+			required: false,
+			advanced: false
 		},
 		{
 			id: 'excluded-urls',
 			label: 'Excluded URLs',
 			type: 'text',
 			placeholder: 'Comma-separated URLs to skip',
-			required: false
+			required: false,
+			advanced: true
 		},
 		{
 			id: 'crawl-date',
 			label: 'Crawl Date',
 			type: 'date',
-			required: false
+			required: false,
+			advanced: false
 		},
 		{
 			id: 'crawl-time',
 			label: 'Crawl Time',
 			type: 'time',
-			required: false
+			required: false,
+			advanced: false
 		},
 		{
 			id: 'max-pages',
 			label: 'Max Pages',
 			type: 'number',
 			placeholder: '50',
-			required: false
+			required: false,
+			advanced: true
 		},
 		{
 			id: 'user-agent',
 			label: 'User Agent',
 			type: 'text',
 			placeholder: 'https://juice-shop.herokuapp.com/drink/*',
-			required: false
+			required: false,
+			advanced: true
 		},
 		{
 			id: 'delay',
 			label: 'Request Delay',
 			type: 'number',
 			placeholder: '1000',
-			required: false
+			required: false,
+			advanced: true
 		},
 		{
 			id: 'proxy',
 			label: 'Proxy',
 			type: 'number',
 			placeholder: '8080',
-			required: false
+			required: false,
+			advanced: true
 		}
 	];
-  
-  function handleInputChange(id, value) {
-    formData[id] = value;
-    const result = validateField(id, value);
-    fieldErrors[id] = result;
-  }
-  
-  function validateAllFields() {
-    let isValid = true;
-    
-    inputFields.forEach(field => {
-      const result = validateField(field.id, formData[field.id]);
-      fieldErrors[field.id] = result;
-      
-      if (field.required && (!formData[field.id] || result.error)) {
-        isValid = false;
-      }
-    });
-    
-    return isValid;
-  }
-  
-  const onSubmitHandler = () => {
-    return async ({ result, update }) => {
-      const isValid = validateAllFields();
-      
-      if (!isValid) {
-        return;
-      }
-      
-      if (result.type === 'success' && result.data?.success) {
-        goto('/crawler/run', { replaceState: true });
-      } else {
-        await update();
-      }
-    };
-  };
+
+	function handleInputChange(id, value) {
+		formData[id] = value;
+		const result = validateField(id, value);
+		fieldErrors[id] = result;
+	}
+
+	function validateAllFields() {
+		let isValid = true;
+
+		inputFields.forEach((field) => {
+			const result = validateField(field.id, formData[field.id]);
+			fieldErrors[field.id] = result;
+
+			if (field.required && (!formData[field.id] || result.error)) {
+				isValid = false;
+			}
+		});
+
+		return isValid;
+	}
+
+	const onSubmitHandler = () => {
+		return async ({ result, update }) => {
+			const isValid = validateAllFields();
+
+			if (!isValid) {
+				return;
+			}
+
+			if (result.type === 'success' && result.data?.success) {
+				goto('/crawler/run', { replaceState: true });
+			} else {
+				await update();
+			}
+		};
+	};
 </script>
 
 <div class="crawler-config">
-  <div class="title-section">
-    <div class="title">Crawler Configuration</div>
-    <StepIndicator status="config" />
-  </div>
+	<div class="title-section">
+		<div class="title">Crawler Configuration</div>
+		<StepIndicator status="config" />
+	</div>
 
-  <form method="POST" use:enhance={onSubmitHandler} class="input-container">
-    {#each inputFields as field}
-      <FormField
-        id={field.id}
-        label={field.label}
-        type={field.type}
-        placeholder={field.placeholder}
-        required={field.required}
-        value={formData[field.id] || ''}
-        error={fieldErrors[field.id]?.error || false}
-        errorText={fieldErrors[field.id]?.message || ''}
-        onInput={(e) => handleInputChange(field.id, e.target.value)}
-        onBlur={() => handleInputChange(field.id, formData[field.id])}
-      />
-    {/each}
 
-    <div class="pt-5">
-      <Button type="submit" variant="default" size="default" class="w-96">
-        Submit
-      </Button>
-    </div>
-  </form>
+	<form method="POST" use:enhance={onSubmitHandler} class="input-container">
+		{#each inputFields.filter((field) => !field.advanced) as field}
+			<FormField
+				id={field.id}
+				label={field.label}
+				type={field.type}
+				placeholder={field.placeholder}
+				required={field.required}
+				value={formData[field.id] || ''}
+				error={fieldErrors[field.id]?.error || false}
+				errorText={fieldErrors[field.id]?.message || ''}
+				onInput={(e) => handleInputChange(field.id, e.target.value)}
+				onBlur={() => handleInputChange(field.id, formData[field.id])}
+			/>
+		{/each}
 
-		<!-- <Tooltip.TooltipProvider>
-							<Tooltip.Root>
-								<Tooltip.Trigger>i</Tooltip.Trigger>
-								<Tooltip.Content>
-									<p>
-										Only Target URL is required.
-										<br />
-										The rest will use default values if left blank.
-									</p>
-								</Tooltip.Content>
-							</Tooltip.Root>
-						</Tooltip.TooltipProvider> -->
+		<Accordion.Root type="single" class="max-w-full w-96">
+			<Accordion.Item value="item-1">
+				<Accordion.Trigger>Advanced Options</Accordion.Trigger>
+				<Accordion.Content>
+					{#each inputFields.filter((field) => field.advanced) as field}
+						<FormField
+							id={field.id}
+							label={field.label}
+							type={field.type}
+							placeholder={field.placeholder}
+							required={field.required}
+							value={formData[field.id] || ''}
+							error={fieldErrors[field.id]?.error || false}
+							errorText={fieldErrors[field.id]?.message || ''}
+							onInput={(e) => handleInputChange(field.id, e.target.value)}
+							onBlur={() => handleInputChange(field.id, formData[field.id])}
+						/>
+					{/each}
+				</Accordion.Content>
+			</Accordion.Item>
+		</Accordion.Root>
+
+		<div>
+			<Button type="submit" variant="default" size="default" class="w-96">Submit</Button>
+		</div>
+	</form>
 </div>
 
 <style>
