@@ -82,5 +82,34 @@ class TestWebScraper(unittest.TestCase):
                 mock_writer.writerow.assert_called_with(['id', 'content', 'url'])
                 mock_writer.writerows.assert_called_with(mock_scrape_pages.return_value)
 
+
+    async def test_fetch_url(self):
+        mock_file = AsyncMock()
+        mock_file.__aenter__.return_value.read = AsyncMock(return_value='<html><body><p>Test Content</p></body></html>')
+
+        with patch('aiofiles.open', return_value=mock_file):
+            scraper = WebScraper([])
+            result = await scraper._fetch_url('test.html')
+            self.assertEqual(result, '<html><body><p>Test Content</p></body></html>')
+
+
+    @patch('web_scraper.WebScraper._fetch_url')
+    @patch('web_scraper.WebScraper._extract_text_content')
+    async def test_scrape_pages_async(self, mock_extract, mock_fetch):
+        mock_fetch.return_value = "<html><body>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua</body></html>"
+
+        mock_extract.return_value = "Extracted Text"
+
+        scraper = WebScraper(["url1", "url2", "url3", "url4", "url5"])
+        results = await scraper._scrape_pages_async()
+
+        self.assertEqual(len(results), 5)
+        self.assertEqual(results[0], (1, "Extracted Text", "url1"))
+        self.assertEqual(results[1], (2, "Extracted Text", "url2"))
+        self.assertEqual(results[2], (3, "Extracted Text", "url3"))
+        self.assertEqual(results[3], (4, "Extracted Text", "url4"))
+        self.assertEqual(results[4], (5, "Extracted Text", "url5"))
+
+
 if __name__ == '__main__':
     unittest.main()

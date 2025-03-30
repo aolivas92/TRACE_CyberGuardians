@@ -48,6 +48,7 @@ class WebScraper:
             # Header line
             csv_writer.writerow(['id', 'content', 'url'])
             csv_writer.writerows(data)
+<<<<<<< HEAD
         print(f'[INFO] CSV file {filename} has been generated.')
         return data
 
@@ -152,3 +153,6 @@ class WebScraper:
         return results
     
     
+=======
+        print(f"CSV file '{filename}' has been generated.")
+
