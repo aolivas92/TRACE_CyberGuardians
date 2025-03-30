@@ -52,6 +52,7 @@
 
 <style>
 	.no-spinner {
+			appearance: textfield;
 			-moz-appearance: textfield;
 	}
 	.no-spinner::-webkit-inner-spin-button,
