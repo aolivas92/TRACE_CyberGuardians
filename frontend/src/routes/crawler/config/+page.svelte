@@ -1,139 +1,178 @@
 <script>
+	import { enhance, applyAction } from '$app/forms';
+	import { onMount } from 'svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
-	import { Label } from "$lib/components/ui/label/index.js";
+	import { Label } from '$lib/components/ui/label/index.js';
+	import { validateField } from '$lib/validation/validationRules';
 	import { goto } from '$app/navigation';
-	import StepIndicator from "$lib/components/ui/progressStep/ProgressStep.svelte";
-
-	let inputFields = [
-		{ id: "target-url", label: "Target URL", type: "text", placeholder: "https://juice-shop.herokuapp.com" },
-		{ id: "depth", label: "Crawl Depth", type: "number", placeholder: "2" },
-		{ id: "max-pages", label: "Max Pages", type: "number", placeholder: "50" },
-		{ id: "user-agent", label: "User Agent", type: "text", placeholder: "https://juice-shop.herokuapp.com/drink/*" },
-		{ id: "delay", label: "Request Delay", type: "number", placeholder: "1000" },
-		{ id: "proxy", label: "Proxy", type: "number", placeholder: "8080" }
-	];
+	import StepIndicator from '$lib/components/ui/progressStep/ProgressStep.svelte';
+	import FormField from '$lib/components/ui/form/FormField.svelte';
+	import * as Accordion from '$lib/components/ui/accordion/index.js';
 
 	let formData = {};
-	let currentStep = "config";
-	let isSubmitting = false;
-	let statusMessage = "";
-	let targetUrlError = false;
-	let targetUrlErrorText = "";
+	let fieldErrors = {};
+
+	let inputFields = [
+		{
+			id: 'target-url',
+			label: 'Target URL',
+			type: 'text',
+			placeholder: 'https://juice-shop.herokuapp.com',
+			required: true,
+			advanced: false
+		},
+		{
+			id: 'depth',
+			label: 'Crawl Depth',
+			type: 'number',
+			placeholder: '5',
+			required: false,
+			advanced: false
+		},
+		{
+			id: 'excluded-urls',
+			label: 'Excluded URLs',
+			type: 'text',
+			placeholder: 'Comma-separated URLs to skip',
+			required: false,
+			advanced: true
+		},
+		{
+			id: 'crawl-date',
+			label: 'Crawl Date',
+			type: 'date',
+			required: false,
+			advanced: false
+		},
+		{
+			id: 'crawl-time',
+			label: 'Crawl Time',
+			type: 'time',
+			required: false,
+			advanced: false
+		},
+		{
+			id: 'max-pages',
+			label: 'Max Pages',
+			type: 'number',
+			placeholder: '50',
+			required: false,
+			advanced: true
+		},
+		{
+			id: 'user-agent',
+			label: 'User Agent',
+			type: 'text',
+			placeholder: 'https://juice-shop.herokuapp.com/drink/*',
+			required: false,
+			advanced: true
+		},
+		{
+			id: 'delay',
+			label: 'Request Delay',
+			type: 'number',
+			placeholder: '1000',
+			required: false,
+			advanced: true
+		},
+		{
+			id: 'proxy',
+			label: 'Proxy',
+			type: 'number',
+			placeholder: '8080',
+			required: false,
+			advanced: true
+		}
+	];
 
 	function handleInputChange(id, value) {
 		formData[id] = value;
-		// Validate the target URL on input change
-		if (id === "target-url") {
-			validateTargetUrl();
-		}
+		const result = validateField(id, value);
+		fieldErrors[id] = result;
 	}
 
-	function validateTargetUrl() {
-		const url = formData["target-url"];
-		if (!url || url.trim() === "") {
-			targetUrlError = true;
-			targetUrlErrorText = "Target URL is required.";
-		} else if (!/^https?:\/\/[^\s/$.?#].[^\s]*$/.test(url)) {
-			targetUrlError = true;
-			targetUrlErrorText = "Please enter a valid URL.";
-		} else {
-			targetUrlError = false;
-			targetUrlErrorText = "";
-		}
-	}
+	function validateAllFields() {
+		let isValid = true;
 
-	async function handleSubmit() {
-		console.log("Form Data:", formData);
+		inputFields.forEach((field) => {
+			const result = validateField(field.id, formData[field.id]);
+			fieldErrors[field.id] = result;
 
-		// Validate before submission
-		validateTargetUrl();
-		if (targetUrlError) {
-			statusMessage = "Please correct errors before submitting.";
-			return false;
-		}
-
-		isSubmitting = true;
-		statusMessage = "Sending data...";
-
-		try {
-			const response = await fetch("/crawler/config", {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify(formData),
-			});
-
-			console.log("Response status:", response.status);
-
-			const result = await response.json();
-			console.log("Response:", result);
-
-			if (response.ok) {
-				statusMessage = "Crawler started successfully!";
-				return true; // Indicating success
-			} else {
-				statusMessage = `Error: ${result.message || "Unknown error"}`;
-				return false; // Indicating failure
+			if (field.required && (!formData[field.id] || result.error)) {
+				isValid = false;
 			}
-		} catch (error) {
-			statusMessage = "Failed to send data. Check console for details.";
-			console.error("Error sending data:", error);
-			return false; // Indicating failure
-		} finally {
-			isSubmitting = false;
-		}
+		});
+
+		return isValid;
 	}
+
+	const onSubmitHandler = () => {
+		return async ({ result, update }) => {
+			const isValid = validateAllFields();
+
+			if (!isValid) {
+				return;
+			}
+
+			if (result.type === 'success' && result.data?.success) {
+				goto('/crawler/run', { replaceState: true });
+			} else {
+				await update();
+			}
+		};
+	};
 </script>
 
 <div class="crawler-config">
 	<div class="title-section">
 		<div class="title">Crawler Configuration</div>
-		<StepIndicator status={currentStep} />
+		<StepIndicator status="config" />
 	</div>
-	<div class="input-container">
-		{#each inputFields as field}
-			<div class="input-field">
-				<Label for={field.id}>{field.label}</Label>
-				{#if field.id === "target-url"}
-					<Input
-						id={field.id}
-						type={field.type}
-						placeholder={field.placeholder}
-						bind:value={formData[field.id]}
-						oninput={(e) => handleInputChange(field.id, e.target.value)}
-						onblur={validateTargetUrl}
-						error={targetUrlError}
-						errorText={targetUrlErrorText}
-					/>
-				{:else}
-					<Input
-						id={field.id}
-						type={field.type}
-						placeholder={field.placeholder}
-						bind:value={formData[field.id]}
-						oninput={(e) => handleInputChange(field.id, e.target.value)}
-					/>
-				{/if}
-			</div>
+
+
+	<form method="POST" use:enhance={onSubmitHandler} class="input-container">
+		{#each inputFields.filter((field) => !field.advanced) as field}
+			<FormField
+				id={field.id}
+				label={field.label}
+				type={field.type}
+				placeholder={field.placeholder}
+				required={field.required}
+				value={formData[field.id] || ''}
+				error={fieldErrors[field.id]?.error || false}
+				errorText={fieldErrors[field.id]?.message || ''}
+				onInput={(e) => handleInputChange(field.id, e.target.value)}
+				onBlur={() => handleInputChange(field.id, formData[field.id])}
+			/>
 		{/each}
-		<div class="pt-5">
-			<Button
-				onclick={async () => {
-					const success = await handleSubmit();
-					if (success) {
-						goto('/crawler/run');
-					}
-				}}
-				variant="default"
-				size="default"
-				type="button"
-				title="Submit"
-				class="w-96"
-			>
-				Submit
-			</Button>
+
+		<Accordion.Root type="single" class="max-w-full w-96">
+			<Accordion.Item value="item-1">
+				<Accordion.Trigger>Advanced Options</Accordion.Trigger>
+				<Accordion.Content>
+					{#each inputFields.filter((field) => field.advanced) as field}
+						<FormField
+							id={field.id}
+							label={field.label}
+							type={field.type}
+							placeholder={field.placeholder}
+							required={field.required}
+							value={formData[field.id] || ''}
+							error={fieldErrors[field.id]?.error || false}
+							errorText={fieldErrors[field.id]?.message || ''}
+							onInput={(e) => handleInputChange(field.id, e.target.value)}
+							onBlur={() => handleInputChange(field.id, formData[field.id])}
+						/>
+					{/each}
+				</Accordion.Content>
+			</Accordion.Item>
+		</Accordion.Root>
+
+		<div>
+			<Button type="submit" variant="default" size="default" class="w-96">Submit</Button>
 		</div>
-	</div>
+	</form>
 </div>
 
 <style>
@@ -170,12 +209,5 @@
 		max-width: 100%;
 		height: 100%;
 		gap: 1rem;
-	}
-	.input-field {
-		display: flex;
-		width: 100%;
-		max-width: 24rem;
-		flex-direction: column;
-		gap: 0.375rem;
 	}
 </style>
