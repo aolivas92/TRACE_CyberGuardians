@@ -1,4 +1,5 @@
 import { fail } from '@sveltejs/kit';
+import { validateField } from '$lib/validation/validationRules.js';
 
 /** @type {import('./$types').Actions} */
 export const actions = {
@@ -8,11 +9,23 @@ export const actions = {
 
 		console.log("📥 Received form data:", formData);
 
-		// Server-side validation
-		if (!formData['target-url'] || formData['target-url'].trim() === '') {
+		const errors = [];
+		for (const [id, value] of Object.entries(formData)) {
+			const { error, message } = validateField(id, value);
+			if (error) {
+				errors.push(`${id}: ${message}`);
+			}
+		}
+
+		// Ensure required fields exist
+		if (!formData['target-url']) {
+			errors.push("target-url: Target URL is required.");
+		}
+
+		if (errors.length > 0) {
 			return fail(400, {
 				error: true,
-				message: 'Target URL is required.',
+				message: errors.join(" "),
 				values: formData
 			});
 		}
@@ -22,11 +35,14 @@ export const actions = {
 			target_url: formData["target-url"],
 			depth: formData["depth"] ? Number(formData["depth"]) : undefined,
 			max_pages: formData["max-pages"] ? Number(formData["max-pages"]) : undefined,
-			user_agent: formData["user-agent"] ? formData["user-agent"] : undefined,
 			delay: formData["delay"] ? Number(formData["delay"]) : undefined,
-			proxy: formData["proxy"] ? Number(formData["proxy"]) : undefined
+			proxy: formData["proxy"] ? Number(formData["proxy"]) : undefined,
+			user_agent: formData["user-agent"] ? formData["user-agent"] : undefined,
+			excluded_urls: formData["excluded-urls"] ? formData["excluded-urls"] : undefined,
+			crawl_date: formData["crawl-date"] ? formData["crawl-date"] : undefined,
+			crawl_time: formData["crawl-time"] ? formData["crawl-time"] : undefined,
 		};
-
+		
 		try {
 			const response = await fetch("http://127.0.0.1:8000/api/crawler", {
 				method: "POST",
@@ -37,7 +53,6 @@ export const actions = {
 				body: JSON.stringify(transformedData)
 			});
 
-			// Parse response body safely
 			let json;
 			try {
 				json = await response.json();
@@ -46,7 +61,6 @@ export const actions = {
 				console.warn("⚠️ Could not parse JSON:", e.message);
 			}
 
-			// Only redirect if backend succeeded
 			if (!response.ok) {
 				return fail(response.status, {
 					error: true,
@@ -55,15 +69,13 @@ export const actions = {
 				});
 			}
 
-      return {
-        success: true,
-        message: "All good!",
-        values: formData
-      };
-
+			return {
+				success: true,
+				message: "All good!",
+				values: formData
+			};
 		} catch (error) {
 			console.error("🔥 Uncaught server error:", error);
-
 			return fail(500, {
 				error: true,
 				message: "Internal server error",
