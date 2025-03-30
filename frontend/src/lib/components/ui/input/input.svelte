@@ -9,6 +9,7 @@
 		class: className,
 		error = false,
 		errorText = "",
+		infoText = null,
 		...restProps
 	} = $props();
 </script>
