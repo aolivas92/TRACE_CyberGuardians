@@ -95,6 +95,18 @@ export function validateUserAgent() {
 }
 
 /**
+ * Validates the uploaded wordlist file
+ * @param {File|null} file - The uploaded file
+ * @returns {Object} - Validation result with error flag and message
+ */
+export function validateWordlistFile(file) {
+  if (!file || file.size === 0) {
+    return { error: true, message: 'Wordlist file is required.' };
+  }
+  return { error: false, message: '' };
+}
+
+/**
  * Factory function to validate a field based on its ID
  * @param {string} id - The field ID
  * @param {*} value - The field value
@@ -122,6 +134,9 @@ export function validateField(id, value) {
       
     case 'user-agent':
       return validateUserAgent();
+
+    case 'wordlist':
+      return validateWordlistFile(value);
       
     default:
       return { error: false, message: '' };
