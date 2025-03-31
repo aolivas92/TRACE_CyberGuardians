@@ -4,23 +4,42 @@
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
 	import { Button } from '$lib/components/ui/button/index.js';
+	import { goto } from '$app/navigation';
+	import { validateField } from '$lib/validation/validationRules.js';
+	import { enhance } from '$app/forms';
+	import FormField from '$lib/components/ui/form/FormField.svelte';
 
-	let currentStep = 'config';
+	let formData = {};
+	let fieldErrors = {}; 
+	let selectedFile = null;
 
-	// Define toggle options for Username & Password
+	let usernameLength = "";
+	let passwordLength = "";
+
+
+
+	let inputFields = [
+		{
+		id: 'wordlist',
+		label: 'Wordlist',
+		type: 'file',
+		required: true,
+		
+		},
+	]
+
 	let usernameToggles = [
-		{ id: 'username-characters', label: 'Characters', checked: false },
+		{ id: 'username-caps', label: 'Caps', checked: true },
 		{ id: 'username-numbers', label: 'Numbers', checked: true },
 		{ id: 'username-symbols', label: 'Symbols', checked: true }
 	];
 
 	let passwordToggles = [
-		{ id: 'password-characters', label: 'Characters', checked: true },
-		{ id: 'password-numbers', label: 'Numbers', checked: false },
-		{ id: 'password-symbols', label: 'Symbols', checked: false }
+		{ id: 'password-caps', label: 'Caps', checked: true },
+		{ id: 'password-numbers', label: 'Numbers', checked: true },
+		{ id: 'password-symbols', label: 'Symbols', checked: true }
 	];
 
-	// Function to toggle switch state
 	function toggleSwitch(category, index) {
 		if (category === 'username') {
 			usernameToggles[index].checked = !usernameToggles[index].checked;
@@ -28,54 +47,131 @@
 			passwordToggles[index].checked = !passwordToggles[index].checked;
 		}
 	}
+
+	function handleInputChange(file) {
+		selectedFile = file;
+		const result = validateField('wordlist', file);
+		fieldErrors.wordlist = result;
+	}
+	
+	function validateAllFields() {
+		let isValid = true;
+
+		// Validate wordlist (file upload)
+		const result = validateField('wordlist', selectedFile);
+		fieldErrors['wordlist'] = result;
+
+		if (result.error) {
+			isValid = false;
+		}
+
+		return isValid;
+	}
+
+	const onSubmitHandler = () => {
+		return async ({ result, update }) => {
+			const isValid = validateAllFields();
+
+			if (!isValid) {
+				return;
+			}
+
+			if (result.type === 'success' && result.data?.success) {
+				goto('/credGenAI/run', { replaceState: true });
+			} else {
+				await update();
+			}
+		};
+	};
+
+		
 </script>
 
 <div class="credGenAI-config">
 	<div class="title-section">
 		<div class="title">AI Generator</div>
-		<StepIndicator status={currentStep} />
+		<StepIndicator status = 'config' />
 	</div>
 
-	<div class="input-container">
-		<div class="input-section">
-			<Label for="wordlist">Wordlist</Label>
-			<Input id="wordlist" type="file" />
-		</div>
+	<form method="POST" enctype="multipart/form-data" use:enhance={onSubmitHandler} class="input-container">
+		{#each inputFields.filter((field) => !field.advanced) as field}
+			<FormField
+				id="wordlist"
+				label="Wordlist"
+				type="file"
+				required={true}
+				value={formData.wordlist || ''}
+				error={fieldErrors.wordlist?.error || false}
+				errorText={fieldErrors.wordlist?.message || ''}
+				onInput={(e) => handleInputChange(e.target.files?.[0] ?? null)}
+				onBlur={() => handleInputChange(selectedFile)}
+				class="w-full border rounded px-3 py-2"
+			/>
+		{/each}
+
+
 		<div class="toggle-container">
 			<!-- Username Toggle Section -->
 			<div class="toggle-section">
 				<div class="toggle-title">Username</div>
+				<p class="text-sm italic text-gray-500">Note: Characters are always included.</p>
 				{#each usernameToggles as toggle, index}
 					<div class="switch-container">
 						<Label for={toggle.id}>{toggle.label}</Label>
 						<Switch
 							id={toggle.id}
 							bind:checked={toggle.checked}
-							on:change={() => toggleSwitch('username', index)}
+							oninput={() => toggleSwitch('username', index)}
 						/>
 					</div>
 				{/each}
+
+				<div class="length-field">
+					<Label for="username-length">Length</Label>
+					<Input
+						id="username-length"
+						type="number"
+						min="1"
+						bind:value={usernameLength}
+						placeholder='12'
+						class="w-32"
+					/>
+				</div>
 			</div>
+
 
 			<!-- Password Toggle Section -->
 			<div class="toggle-section">
 				<div class="toggle-title">Password</div>
+				<p class="text-sm italic text-gray-500">Note: Characters are always included.</p>
 				{#each passwordToggles as toggle, index}
 					<div class="switch-container">
 						<Label for={toggle.id}>{toggle.label}</Label>
 						<Switch
 							id={toggle.id}
 							bind:checked={toggle.checked}
-							onchange={() => toggleSwitch('password', index)}
+							oninput={() => toggleSwitch('password', index)}
 						/>
 					</div>
 				{/each}
+				<div class="length-field">
+					<Label for="password-length">Length</Label>
+					<Input
+						id="password-length"
+						type="number"
+						min="1"
+						bind:value={passwordLength}
+						placeholder='12'
+						class="w-32"
+					/>
+				</div>
 			</div>
 		</div>
-		<Button variant="default" size="default" type="button" title="Submit" class="w-96">
-			Submit
-		</Button>
-	</div>
+
+		<div>
+			<Button type="submit" variant="default" size="default" class="w-96">Submit</Button>
+		</div>
+	</form>
 </div>
 
 <style>
@@ -135,15 +231,15 @@
 	}
 	.switch-container {
 		display: flex;
-		flex-direction: row;
+		justify-content: space-between;
 		align-items: center;
-		gap: 0.5rem;
-		margin-bottom: 0.5rem;
+		width: 10rem;
 	}
-	.input-section {
-		display: flex;
-		flex-direction: column;
-		padding-bottom: 2rem;
-		gap: 0.5rem;
-	}
+	.length-field {
+	display: flex;
+	flex-direction: column;;
+	gap: 0.25rem;
+	margin-top: 1rem;
+}
+
 </style>
