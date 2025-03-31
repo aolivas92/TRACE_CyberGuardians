@@ -21,3 +21,11 @@ Thumbs.db
 # Vite
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# Ignore Python bytecode files
+__pycache__/
+
+# Other common Python ignores
+*.pyc
+*.pyo
+*.pyd

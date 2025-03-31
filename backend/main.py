@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional
 from strawberry.fastapi import GraphQLRouter
+from fastapi.responses import JSONResponse
 import strawberry
 import logging
 import uvicorn
@@ -23,11 +24,14 @@ mock_crawled_pages = [
 # Pydantic model for crawler configuration
 class CrawlerConfig(BaseModel):
     target_url: str
-    depth: Optional[int] = 2
-    max_pages: Optional[int] = 50
+    depth: Optional[int] = None
+    max_pages: Optional[int] = None
     user_agent: Optional[str] = None
-    delay: Optional[int] = 1000
+    delay: Optional[int] = None
     proxy: Optional[int] = None
+    excluded_urls: Optional[str] = None
+    crawl_date: Optional[str] = None
+    crawl_time: Optional[str] = None
 
     # Handles formatting data from fronted.
     class Config:
@@ -126,6 +130,7 @@ async def receive_crawler_data(config: CrawlerConfig):
         "config": config.dict(),
         "job_id": "12345"  # Mock job ID
     }
+
 
 # Crawler endpoints.
 @app.post("/api/ml_algorithm")
