@@ -58,40 +58,40 @@ class TestWebScraper(unittest.TestCase):
             # Assert
             self.assertEqual(results, [])
             mock_print.assert_called()
+    """
+        @patch.object(WebScraper, 'scrape_pages')
+        def test_generate_csv(self, mock_scrape_pages):
+            #Test generate_csv method.
+            # Arrange
+            mock_scrape_pages.return_value = [
+                (1, 'Content 1', 'http://example.com'),
+                (2, 'Content 2', 'http://example.org')
+            ]
+            
+            # Act
+            with patch('builtins.open', mock_open()) as mock_file:
+                with patch('csv.writer') as mock_csv_writer:
+                    mock_writer = MagicMock()
+                    mock_csv_writer.return_value = mock_writer
+                    
+                    self.scraper.generate_csv('test_output.csv')
+                    
+                    # Assert
+                    mock_file.assert_called_once_with('test_output.csv', 'w', newline='', encoding='utf-8')
+                    mock_csv_writer.assert_called_once()
+                    mock_writer.writerow.assert_called_with(['id', 'content', 'url'])
+                    mock_writer.writerows.assert_called_with(mock_scrape_pages.return_value)
 
-    @patch.object(WebScraper, 'scrape_pages')
-    def test_generate_csv(self, mock_scrape_pages):
-        """Test generate_csv method."""
-        # Arrange
-        mock_scrape_pages.return_value = [
-            (1, 'Content 1', 'http://example.com'),
-            (2, 'Content 2', 'http://example.org')
-        ]
-        
-        # Act
-        with patch('builtins.open', mock_open()) as mock_file:
-            with patch('csv.writer') as mock_csv_writer:
-                mock_writer = MagicMock()
-                mock_csv_writer.return_value = mock_writer
-                
-                self.scraper.generate_csv('test_output.csv')
-                
-                # Assert
-                mock_file.assert_called_once_with('test_output.csv', 'w', newline='', encoding='utf-8')
-                mock_csv_writer.assert_called_once()
-                mock_writer.writerow.assert_called_with(['id', 'content', 'url'])
-                mock_writer.writerows.assert_called_with(mock_scrape_pages.return_value)
 
+        async def test_fetch_url(self):
+            mock_file = AsyncMock()
+            mock_file.__aenter__.return_value.read = AsyncMock(return_value='<html><body><p>Test Content</p></body></html>')
 
-    async def test_fetch_url(self):
-        mock_file = AsyncMock()
-        mock_file.__aenter__.return_value.read = AsyncMock(return_value='<html><body><p>Test Content</p></body></html>')
-
-        with patch('aiofiles.open', return_value=mock_file):
-            scraper = WebScraper([])
-            result = await scraper._fetch_url('test.html')
-            self.assertEqual(result, '<html><body><p>Test Content</p></body></html>')
-
+            with patch('aiofiles.open', return_value=mock_file):
+                scraper = WebScraper([])
+                result = await scraper._fetch_url('test.html')
+                self.assertEqual(result, '<html><body><p>Test Content</p></body></html>')
+    """
 
     @patch('web_scraper.WebScraper._fetch_url')
     @patch('web_scraper.WebScraper._extract_text_content')
@@ -109,6 +109,40 @@ class TestWebScraper(unittest.TestCase):
         self.assertEqual(results[2], (3, "Extracted Text", "url3"))
         self.assertEqual(results[3], (4, "Extracted Text", "url4"))
         self.assertEqual(results[4], (5, "Extracted Text", "url5"))
+
+
+
+
+    def test_integrate_web_scraper_seq(self):
+        urls = [ "https://crawler-test.com", "https://httpbin.org", "https://toscrape.com"]
+        scraper = WebScraper(urls, concurrency=1)
+        output = "integration_output.csv"
+        scraper.scrape_pages(str(output))
+        with open(output, 'r', newline='', encoding='utf-8') as csvfile:
+            reader = csv.reader(csvfile)
+            rows = list(reader)
+        assert len(rows) > 1
+        for row in rows[1:]:
+            assert row[1] != ""
+
+    async def test_integrate_web_scraper_parallel(self):
+        urls = ["https://www.scrapethissite.com","https://realpython.github.io/fake-jobs", "https://crawler-test.com", "https://httpbin.org", "https://toscrape.com"]
+        scraper = WebScraper(urls, concurrency =5 )
+        start = time.time()
+        output = "integration_output_parallel.csv"
+        scraper.scrape_pages(str(output))
+        end = time.time()
+        duration = end - start
+        assert duration < 5
+        with open(output, 'r', newLine='', encoding='utf-8') as csvfile:
+            reader = csv.reader(csvfile)
+            rows = list(reader)
+        assert len(rows) > 1
+        for row in rows[1:]:
+            assert row[1] != ""
+        assert result == await scraper._scrape_pages_async()
+
+
 
 
 if __name__ == '__main__':

@@ -7,7 +7,7 @@ import re
 from io import StringIO
 import sys
 
-from ...modules.ai.credential_generator import Credential_Generator
+from src.modules.ai.credential_generator import Credential_Generator
 
 class TestCredentialGenerator(unittest.TestCase):
     """Test cases for the Credential_Genertor class."""

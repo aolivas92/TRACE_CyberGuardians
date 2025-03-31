@@ -48,7 +48,6 @@ class WebScraper:
             # Header line
             csv_writer.writerow(['id', 'content', 'url'])
             csv_writer.writerows(data)
-<<<<<<< HEAD
         print(f'[INFO] CSV file {filename} has been generated.')
         return data
 
@@ -63,13 +62,23 @@ class WebScraper:
             str: The raw HTML text is successful, or an empty string if an error occurs.
         """
         # TODO: Update to fetch the URLs from the database.
+        """
         try:
             async with aiofiles.open(url, 'r', encoding='utf-8') as f:
                 return await f.read()
         except Exception as e:
             print(f"[ERROR] Could not fetch {url}")
             return ""
+        """
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url) as response:
+                    response.raise_for_status()
+                    return await response.text()
+        except aiohttp.ClientError as e:
+            print(f"[ERROR] Could not fetch {url}: {e}")
         
+
     def _extract_text_content(self, html: str) -> str:
         """
         Parse the HTML and extract:
@@ -88,9 +97,9 @@ class WebScraper:
 
         # Gather textual content from standard text tags
         text_parts = []
-        for tag in soup.find_all(['p', 'h1', 'h2', 'h3', 'span', 'label', 'div']):
+        for tag in soup.find_all(['p', 'h1', 'h2', 'h3', 'span', 'label', 'div', 'section', 'main', 'li', 'lu' ]):
             text_parts.append(tag.get_text(strip=True))
-
+            
         # Gather "logo" text from <img alt="..">
         for img in soup.find_all("img"):
             alt_text = img.get("alt")
@@ -153,6 +162,5 @@ class WebScraper:
         return results
     
     
-=======
         print(f"CSV file '{filename}' has been generated.")
 
