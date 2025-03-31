@@ -107,6 +107,25 @@ export function validateWordlistFile(file) {
 }
 
 /**
+ * Validates a length value for username or password fields.
+ * It ensures the value is a number, is greater than zero, and is an integer.
+ * @param {string|number} value - The length value to validate.
+ * @returns {Object} - Validation result with error flag and message.
+ */
+export function validateLength(value) {
+  const num = Number(value);
+  if (!value || isNaN(num)) {
+    return { error: true, message: 'Length must be a number.' };
+  }
+  if (num <= 0) {
+    return { error: true, message: 'Length must be greater than zero.' };
+  }
+  if (!Number.isInteger(num)) {
+    return { error: true, message: 'Length must be an integer.' };
+  }
+  return { error: false, message: '' };
+}
+/**
  * Factory function to validate a field based on its ID
  * @param {string} id - The field ID
  * @param {*} value - The field value
@@ -137,6 +156,10 @@ export function validateField(id, value) {
 
     case 'wordlist':
       return validateWordlistFile(value);
+
+      case 'username-length':
+      case 'password-length':
+        return validateLength(value);
       
     default:
       return { error: false, message: '' };

@@ -48,10 +48,10 @@
 		}
 	}
 
-	function handleInputChange(id, value) {
-		formData[id] = value;
-		const result = validateField(id, value);
-		fieldErrors[id] = result;
+	function handleInputChange(file) {
+		selectedFile = file;
+		const result = validateField('wordlist', file);
+		fieldErrors.wordlist = result;
 	}
 	
 	function validateAllFields() {
@@ -96,23 +96,16 @@
 	<form method="POST" enctype="multipart/form-data" use:enhance={onSubmitHandler} class="input-container">
 		{#each inputFields.filter((field) => !field.advanced) as field}
 			<FormField
-				id={field.id}
-				label={field.label}
-				type={field.type}
-				placeholder={field.placeholder}
-				required={field.required}
-				value={formData[field.id] || ''}
-				error={fieldErrors[field.id]?.error || false}
-				errorText={fieldErrors[field.id]?.message || ''}
-				onInput={(e) => {
-					if (field.type === 'file') {
-						selectedFile = e.target.files?.[0] ?? null;
-						handleInputChange(field.id, e.target.files?.[0] ?? null);
-					} else {
-						handleInputChange(field.id, e.target.value);
-					}
-				}}
-				onBlur={() => handleInputChange(field.id, formData[field.id])}
+				id="wordlist"
+				label="Wordlist"
+				type="file"
+				required={true}
+				value={formData.wordlist || ''}
+				error={fieldErrors.wordlist?.error || false}
+				errorText={fieldErrors.wordlist?.message || ''}
+				onInput={(e) => handleInputChange(e.target.files?.[0] ?? null)}
+				onBlur={() => handleInputChange(selectedFile)}
+				class="w-full border rounded px-3 py-2"
 			/>
 		{/each}
 
