@@ -7,7 +7,7 @@ export const actions = {
 		const rawFormData = await request.formData();
 		const formData = Object.fromEntries(rawFormData.entries());
 
-		console.log("📥 Received form data:", formData);
+		console.log("Received form data:", formData);
 
 		const errors = [];
 		for (const [id, value] of Object.entries(formData)) {
@@ -30,7 +30,6 @@ export const actions = {
 			});
 		}
 
-		// Transform
 		const transformedData = {
 			target_url: formData["target-url"],
 			depth: formData["depth"] ? Number(formData["depth"]) : undefined,
@@ -56,9 +55,9 @@ export const actions = {
 			let json;
 			try {
 				json = await response.json();
-				console.log("✅ Backend response:", json);
+				console.log("Backend response:", json);
 			} catch (e) {
-				console.warn("⚠️ Could not parse JSON:", e.message);
+				console.warn("Could not parse JSON:", e.message);
 			}
 
 			if (!response.ok) {
@@ -75,7 +74,7 @@ export const actions = {
 				values: formData
 			};
 		} catch (error) {
-			console.error("🔥 Uncaught server error:", error);
+			console.error("Uncaught server error:", error);
 			return fail(500, {
 				error: true,
 				message: "Internal server error",

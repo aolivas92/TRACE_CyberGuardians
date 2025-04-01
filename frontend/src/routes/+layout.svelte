@@ -1,5 +1,5 @@
 <script>
-  import Sidebar from "$lib/components/ui/sidebar/sidebar.svelte";
+  import Sidebar from "$lib/components/ui/sidebar/Sidebar.svelte";
   import { ModeWatcher } from "mode-watcher";
   import "../app.css";
 </script>
