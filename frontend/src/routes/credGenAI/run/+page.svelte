@@ -1,20 +1,38 @@
 <script>
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { goto } from '$app/navigation';
+	import { Progress } from '$lib/components/ui/progress/index.js';
+	import { onMount } from 'svelte';
 	import StepIndicator from '$lib/components/ui/progressStep/ProgressStep.svelte';
 	import Table from '$lib/components/ui/table/Table.svelte';
+	import Alert from '$lib/components/ui/alert/Alert.svelte';
 
-	export let data;
+	//TODO: GET request to fetch data for the currentStep
+	const { data } = $props();
+	let value = $state(15);
+	let currentStep = $state('running');
+	let showStopDialog = $state(false);
 
-	let currentStep = 'results';
+	onMount(() => {
+		const interval = setInterval(() => {
+			if (value < 100) {
+				const randomIncrement = [3, 5, 10][Math.floor(Math.random() * 3)];
+				value = Math.min(value + randomIncrement, 100);
+			} else {
+				clearInterval(interval);
+				currentStep = 'results';
+			}
+		}, 500);
+	});
 
-	// Load metadata from server
-	let runningTime = data.runningTime;
-	let usernamesGenerated = data.usernamesGenerated;
-	let passwordsGenerated = data.passwordsGenerated;
+	function handleStopCancel() {
+		showStopDialog = false;
+	}
 
-	function handleReGenerate() {
-		goto('/credGenAI/config'); 
+	function handleStopConfirm() {
+		showStopDialog = false;
+		console.log('AI Generator stopped');
+		goto('/credGenAI/config');
 	}
 
 	function handleSaveWordList() {
@@ -30,75 +48,109 @@
 		<StepIndicator status={currentStep} />
 	</div>
 
-	<div class="metrics">
-		<div><strong>Running Time</strong><br />{runningTime}</div>
-		<div><strong>Generated Usernames</strong><br />{usernamesGenerated}</div>
-		<div><strong>Generated Passwords</strong><br />{passwordsGenerated}</div>
+	<div class="table">
+		<div class="progress-bar-container">
+			<div class="progress-info">
+				<div class="text-sm font-medium">Progress</div>
+				<div class="text-2xl font-bold">{value}% generated</div>
+			</div>
+			<Progress {value} max={100} class="w-[100%]" />
+		</div>
+		<Table data={data.tableData} columns={data.tableColumns} {currentStep} />
 	</div>
-
-	<Table data={data.tableData} columns={data.tableColumns} currentStep={currentStep} />
 
 	<div class="button-section">
-		<!-- Left side -->
-		<div class="button-left">
+		{#if currentStep === 'running'}
 			<Button
-			onclick={() => {
-				console.log("🔁 Re-Generate button clicked");
-				goto('/credGenAI/config');
-			}}
-		>
-			Re-Generate
-		</Button>
-		</div>
-	
-		<!-- Right side -->
-		<div class="button-right">
-			<Button onclick={handleSaveWordList} variant="secondary">Save Word List</Button>
-		</div>
+				onclick={() => (showStopDialog = true)}
+				variant="destructive"
+				size="default"
+				class="stop-button"
+			>
+				Cancel
+			</Button>
+		{:else}
+			<div class="button-group">
+				<Button
+					onclick={() => goto('/credGenAI/config')}
+					variant="secondary"
+					size="default"
+					class="restart-button"
+				>
+					Re-Generate
+				</Button>
+				<Button onclick={handleSaveWordList} variant="default" size="default" class="save-button">
+					Save
+				</Button>
+			</div>
+		{/if}
 	</div>
+
+	<Alert
+		isOpen={showStopDialog}
+		title="Are you absolutely sure?"
+		message="This action will stop the current process. You won't be able to undo this action."
+		onCancel={handleStopCancel}
+		onContinue={handleStopConfirm}
+	/>
 </div>
 
 <style>
 	.generator-run {
 		display: flex;
-		flex-direction: column;
-		padding: 3rem;
 		margin-left: 4.5rem;
-		gap: 2rem;
+		height: 100vh;
+		flex-direction: column;
 	}
-
 	.title-section {
 		display: flex;
 		flex-direction: row;
 		justify-content: space-between;
+		width: 100%;
+		max-height: fit-content;
 		padding-right: 3rem;
 	}
-
 	.title {
 		font-size: 2rem;
+		font-style: normal;
 		font-weight: 600;
+		padding-left: 3rem;
+		padding-top: 3rem;
 	}
-
-	.metrics {
+	.table {
 		display: flex;
+		flex-direction: column;
 		justify-content: center;
-		gap: 4rem;
-		text-align: center;
-		font-size: 1.05rem;
+		align-items: center;
+		height: 100%;
+	}
+	.button-section {
+		display: flex;
+		flex-direction: row;
+		width: 100%;
+		justify-content: end;
+		padding: 0rem 8rem 3rem 3rem;
+	}
+	.button-group {
+		display: flex;
+		flex-direction: row;
+		gap: 1rem;
+	}
+	.progress-bar-container {
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
+		max-width: 100%;
+		width: 80%;
+		margin: 0 auto;
+		padding-left: 3rem;
+		padding-right: 3rem;
 		padding-top: 1rem;
 	}
-
-	.button-section {
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-	padding-left: 3rem;
-	padding-right: 3rem;
-	margin-top: 1rem;
-	}
-
-	.button-left,
-	.button-right {
+	.progress-info {
 		display: flex;
+		flex-direction: column;
+		justify-content: flex-start;
+		width: 100%;
 	}
 </style>

@@ -1,5 +1,3 @@
-// src/routes/credGenAI/run/+page.server.js
-
 /** @type {import('./$types').PageServerLoad} */
 export async function load() {
 	console.log("AI Generator +page.server.js triggered");
@@ -12,7 +10,14 @@ export async function load() {
 		{ id: 4, username: '3344556677@!()#$', password: 'Xyabcdefghijklmnoqr' },
 		{ id: 5, username: '9988776655@!#%^&*()', password: 'Tuvwxyzabcdefghioqr' },
 		{ id: 6, username: '5544332211%*@!()#$', password: 'Pqrstuvwxyzabcdefgh' },
-		{ id: 7, username: '9080706050$#@%*&@!()', password: 'Jklmnopqrstuvwxyza' }
+		{ id: 7, username: '9080706050$#@%*&@!()', password: 'Jklmnopqrstuvwxyza' },
+		{ id: 8, username: '6677889900@!#$%^&*()', password: 'Cdefghijklmnopqrstuv' },
+		{ id: 9, username: '7766554433%*&^@!()#', password: 'Wxyzabcdefghijklmnop' },
+		{ id: 10, username: '8899001122*()$#@!^', password: 'Efghijklmnopqrstuvwxyz' },
+		{ id: 11, username: '2233445566@!()#$%^', password: 'Ghijklmnopqrstuvwxyza' },
+		{ id: 12, username: '4455667788@!#%^&*()', password: 'Ijklmnopqrstuvwxyzabcd' },
+		{ id: 13, username: '6677889900%*@!()#$', password: 'Klmnopqrstuvwxyabcdef' },
+		{ id: 14, username: '9988776655$#@%*&@!()', password: 'Mnopqrstuvwxyzabcdefg' }
 	];
 
 	const tableColumns = [
@@ -21,16 +26,8 @@ export async function load() {
 		{ key: 'password', label: 'Passwords' }
 	];
 
-	// These eventually come from the backend
-	const metadata = {
-		runningTime: 143.94,
-		usernamesGenerated: 532,
-		passwordsGenerated: 82
-	};
-
 	return {
 		tableData,
 		tableColumns,
-		...metadata
 	};
 }

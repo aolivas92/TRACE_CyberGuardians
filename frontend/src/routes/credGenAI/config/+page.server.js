@@ -7,7 +7,6 @@ export const actions = {
 		const rawFormData = await request.formData();
 		const wordlistFile = rawFormData.get("wordlist");
 
-		// ✅ DEBUG: log what you’re receiving
 		console.log("🧾 wordlistFile:", wordlistFile);
 		console.log("📏 file size:", wordlistFile?.size);
 		console.log("wordlistFile instanceof File:", wordlistFile instanceof File);
@@ -18,7 +17,7 @@ export const actions = {
 		const errors = [];
 
 		if (!wordlistFile || !(wordlistFile instanceof File) || wordlistFile.size === 0) {
-			console.warn("❌ No file received or file is empty.");
+			console.warn("No file received or file is empty.");
 			return fail(400, {
 				error: true,
 				message: "Please upload a valid wordlist file.",
@@ -26,7 +25,7 @@ export const actions = {
 			});
 		}
 
-		// ✅ Validate the file
+		// Validate the file
 		const wordlistValidation = validateField("wordlist", wordlistFile);
 		if (wordlistValidation.error) {
 			return fail(400, {
@@ -49,9 +48,9 @@ export const actions = {
 			}
 		}
 
-		// ❌ Fail early if any errors
+		// Fail early if any errors
 		if (errors.length > 0) {
-			console.warn("❌ Validation errors:", errors);
+			console.warn("Validation errors:", errors);
 			return fail(400, {
 				error: true,
 				fieldErrors: {
@@ -64,8 +63,8 @@ export const actions = {
 			});
 		}
 
-		// ✅ Only return success if valid
-		console.log("✅ All validations passed — redirect OK");
+		// Only return success if valid
+		console.log("All validations passed — redirect OK");
 		return {
 			success: true,
 			values: formData
