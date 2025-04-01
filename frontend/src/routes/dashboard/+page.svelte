@@ -1,7 +1,11 @@
 <script>
 	import { goto } from '$app/navigation';
 	import { Button } from '$lib/components/ui/button/index.js';
+	import { serviceStatus } from '$lib/stores/projectServiceStore.js';
+	import { get } from 'svelte/store';
+
 	export let data;
+	$: $serviceStatus; // reactive store subscription
 </script>
 
 <div class="dashboard">
@@ -21,7 +25,9 @@
 						size="lg"
 						data-active={tool.status === 'Started'}
 						class={tool.status === 'Started' ? 'px-10' : ''}
-						onclick={() => goto(tool.route)}
+						disabled={$serviceStatus.running &&
+							$serviceStatus.serviceType !== tool.name.toLowerCase()}
+						on:click={() => goto(tool.route)}
 					>
 						{tool.status === 'Not Started' ? 'Set Up' : 'View'}
 					</Button>
