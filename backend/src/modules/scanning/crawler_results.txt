@@ -1,6 +1,0 @@
-{'url': 'http://localhost:5000', 'data': {'processor': 'CrawlerResponseProcessor', 'extracted_urls': ['/level1/page1', '/level1/page2'], 'count': 2, 'exmaple.com': ['exmpale.com/nav', 'exmpale.com/nav/pag1']}}
-{'url': 'http://localhost:5000/level1/page1', 'data': {'processor': 'CrawlerResponseProcessor', 'extracted_urls': ['/level2/page1'], 'count': 1, 'exmaple.com': ['exmpale.com/nav', 'exmpale.com/nav/pag1']}}
-{'url': 'http://localhost:5000/level2/page1', 'data': {'processor': 'CrawlerResponseProcessor', 'extracted_urls': [], 'count': 0, 'exmaple.com': ['exmpale.com/nav', 'exmpale.com/nav/pag1']}}
-{'url': 'http://localhost:5000/level1/page2', 'data': {'processor': 'CrawlerResponseProcessor', 'extracted_urls': ['/level2/page2', '/level2/page3'], 'count': 2, 'exmaple.com': ['exmpale.com/nav', 'exmpale.com/nav/pag1']}}
-{'url': 'http://localhost:5000/level2/page2', 'data': {'processor': 'CrawlerResponseProcessor', 'extracted_urls': [], 'count': 0, 'exmaple.com': ['exmpale.com/nav', 'exmpale.com/nav/pag1']}}
-{'url': 'http://localhost:5000/level2/page3', 'data': {'processor': 'CrawlerResponseProcessor', 'extracted_urls': [], 'count': 0, 'exmaple.com': ['exmpale.com/nav', 'exmpale.com/nav/pag1']}}

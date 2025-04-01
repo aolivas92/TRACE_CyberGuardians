@@ -1,15 +1,5 @@
 # crawler_response_processor.py
-import asyncio
 from bs4 import BeautifulSoup
-
-class MockHTTPClient:
-    async def get(self, url, headers=None, proxy=None):
-        await asyncio.sleep(0.1)
-        return self.get_test_html()
-
-    def get_test_html(self):
-        with open("raw_html.txt", "r", encoding="utf-8") as f:
-            return f.read()
 
 class Node:
     def __init__(self, value):
