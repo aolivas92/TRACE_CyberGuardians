@@ -1,7 +1,28 @@
 import { writable } from 'svelte/store';
 
-export const serviceStatus = writable({
-  running: false,
-  serviceType: 'crawler',
-  startTime: null,
-});
+function createServiceStatusStore() {
+	const stored = typeof localStorage !== 'undefined' ? localStorage.getItem('serviceStatus') : null;
+
+	const initial = stored
+		? JSON.parse(stored)
+		: {
+				status: 'idle', // "idle" | "running" | "complete"
+				serviceType: null,
+				startTime: null
+			};
+
+	const store = writable(initial);
+
+	store.subscribe((value) => {
+		if (typeof localStorage !== 'undefined') {
+			console.log('[Store] serviceStatus changed:', value);
+			localStorage.setItem('serviceStatus', JSON.stringify(value));
+			console.log('[Store] serviceStatus changed after:', value);
+
+		}
+	});
+
+	return store;
+}
+
+export const serviceStatus = createServiceStatusStore();

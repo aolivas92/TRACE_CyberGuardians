@@ -3,28 +3,29 @@
 	import { goto } from '$app/navigation';
 	import { Progress } from '$lib/components/ui/progress/index.js';
 	import { onMount } from 'svelte';
+	import { serviceStatus } from '$lib/stores/projectServiceStore.js';
 	import StepIndicator from '$lib/components/ui/progressStep/ProgressStep.svelte';
 	import Table from '$lib/components/ui/table/Table.svelte';
 	import Alert from '$lib/components/ui/alert/Alert.svelte';
+	import { derived } from 'svelte/store';
+	import { get } from 'svelte/store';
+	import { onDestroy } from 'svelte';
+	import { scanProgress, stopScanProgress, scanPaused } from '$lib/stores/scanProgressStore.js';
 
 	//TODO: GET request to fetch data for the currentStep
-  const { data } = $props();
+	const { data } = $props();
 	let value = $state(15);
-	let currentStep = $state('running');
 	let showStopDialog = $state(false);
+	let paused = $state(false);
+	let intervalId;
 
-	// Manage state
-	onMount(() => {
-		const interval = setInterval(() => {
-			if (value < 100) {
-				const randomIncrement = [3, 5, 10][Math.floor(Math.random() * 3)];
-				value = Math.min(value + randomIncrement, 100);
-			} else {
-				clearInterval(interval);
-				currentStep = 'results';
-			}
-		}, 500);
-	});
+	const currentStep = derived(serviceStatus, ($serviceStatus) =>
+		$serviceStatus.status === 'running'
+			? 'running'
+			: $serviceStatus.status === 'complete'
+				? 'results'
+				: 'config'
+	);
 
 	function handleStopCancel() {
 		showStopDialog = false;
@@ -32,7 +33,31 @@
 
 	function handleStopConfirm() {
 		showStopDialog = false;
+		stopScanProgress();
+		scanProgress.set(0);
+
+		serviceStatus.set({
+			status: 'idle',
+			serviceType: 'crawler',
+			startTime: null
+		});
+
 		console.log('Crawler stopped');
+		console.log('Current service status:', get(serviceStatus));
+		goto('/dashboard');
+	}
+
+	function handleRestart() {
+		stopScanProgress();
+		scanProgress.set(0);
+
+		console.log('Restarting at', new Date().toISOString());
+		serviceStatus.set({
+			status: 'idle',
+			serviceType: null,
+			startTime: null
+		});
+		console.log('Current service status:', get(serviceStatus));
 		goto('/crawler/config');
 	}
 </script>
@@ -40,42 +65,55 @@
 <div class="crawler-run">
 	<div class="title-section">
 		<div class="title">
-			{currentStep === 'running' ? 'Crawler Scanning' : 'Crawler Results'}
+			{$currentStep === 'running' ? 'Crawler Scanning' : 'Crawler Results'}
 		</div>
-		<StepIndicator status={currentStep} />
+		<StepIndicator status={$currentStep} />
 	</div>
 
 	<div class="table">
 		<div class="progress-bar-container">
 			<div class="progress-info">
 				<div class="text-sm font-medium">Progress</div>
-				<div class="text-2xl font-bold">{value}% scanned</div>
+				<div class="text-2xl font-bold">{$scanProgress}% scanned</div>
 			</div>
-			<Progress {value} max={100} class="w-[100%]" />
+			<Progress value={$scanProgress} max={100} class="w-[100%]" />
 		</div>
-		<Table data={data.tableData} columns={data.tableColumns} currentStep={currentStep}/>
+		<Table data={data.tableData} columns={data.tableColumns} currentStep={$currentStep} />
 	</div>
 
-	<!-- Button Section: Change buttons based on scan status -->
 	<div class="button-section">
 		<div class="button-group">
-			{#if currentStep === 'running'}
-				<Button onclick={() => goto('/crawler/config')} variant="default" size="default" class="restart-button">
+			{#if $currentStep === 'running'}
+				<Button
+					onclick={() => goto('/crawler/config')}
+					variant="default"
+					size="default"
+					class="restart-button"
+				>
 					Restart
 				</Button>
-				<Button onclick={() => goto('/crawler/run')} variant="default" size="default" class="pause-button">
-					Pause
+				<Button
+					onclick={() => scanPaused.set(!$scanPaused)}
+					variant="default"
+					size="default"
+					class="pause-button"
+				>
+					{$scanPaused ? 'Resume' : 'Pause'}
 				</Button>
-				<Button onclick={() => (showStopDialog = true)} variant="destructive" size="default" class="stop-button">
+
+				<Button
+					onclick={() => (showStopDialog = true)}
+					variant="destructive"
+					size="default"
+					class="stop-button"
+				>
 					Stop
 				</Button>
 			{:else}
-				<!-- Change buttons when results are ready -->
-				<Button onclick={() => goto('/crawler/config')} variant="default" size="default" class="restart-button">
+				<Button onclick={handleRestart} variant="default" size="default" class="restart-button">
 					Restart
 				</Button>
-				<!-- TODO: Redirect this to the Results page-->
-				<Button onclick={() => goto('/crawler/config')} variant="default" size="default" class="view-all-results">
+				<Button onclick={handleRestart} variant="default" size="default" class="view-all-results">
 					View All Results
 				</Button>
 			{/if}
@@ -85,7 +123,6 @@
 		</div>
 	</div>
 
-	<!-- Stop Confirmation Dialog -->
 	<Alert
 		isOpen={showStopDialog}
 		title="Are you absolutely sure?"
@@ -128,7 +165,8 @@
 		display: flex;
 		flex-direction: row;
 		justify-content: space-between;
-		padding: 0rem 3rem 3rem 3rem;
+		width: 100%;
+		padding: 0rem 8rem 3rem 8rem;
 	}
 	.button-group {
 		display: flex;
