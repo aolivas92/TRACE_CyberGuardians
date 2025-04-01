@@ -71,5 +71,4 @@ class CrawlerResponseProcessor:
             "processor": "CrawlerResponseProcessor",
             "extracted_urls": sorted(list(urls)),
             "count": len(urls),
-            "exmaple.com": ["exmpale.com/nav", "exmpale.com/nav/pag1"]
         }
