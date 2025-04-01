@@ -3,8 +3,8 @@ import asyncio
 import datetime
 import json
 from urllib.parse import urljoin
-from crawler_response import CrawlerResponseProcessor
-from mock_http import RealHTTPClient
+from src.modules.scanning.crawler_response import CrawlerResponseProcessor
+from src.modules.scanning.mock_http import RealHTTPClient
 from bs4 import BeautifulSoup
 
 class CrawlerManager:
@@ -30,7 +30,7 @@ class CrawlerManager:
             "excluded_urls": excluded_urls.split(',') if excluded_urls else []
         }
 
-    async def crawl_recursive(self, url, depth_remaining):
+    async def crawl_recursive(self, url, depth_remaining, parent_url=None):
         if url in self.visited or depth_remaining < 0 or len(self.visited) >= self.config.get("limit", 100):
             return
 
@@ -52,7 +52,7 @@ class CrawlerManager:
             char_count = len(text)
             links_found = len(soup.find_all("a"))
 
-            self.table_data.append({ "id": self.counter, "url": url, "title": title, "wordCount": word_count, "charCount": char_count, "linksFound": links_found, "error": False})
+            self.table_data.append({ "id": self.counter, "url": url, "parentUrl": parent_url, "title": title, "wordCount": word_count, "charCount": char_count, "linksFound": links_found, "error": False})
             self.counter += 1
 
             processed_result = self.processor.process_response(raw_html, base_url=url)
@@ -62,12 +62,13 @@ class CrawlerManager:
                 if any(excluded in extracted_url for excluded in self.config["excluded_urls"]):
                     continue
                 full_url = urljoin(url, extracted_url)
-                await self.crawl_recursive(full_url, depth_remaining - 1)
+                await self.crawl_recursive(full_url, depth_remaining - 1, url)
 
         except Exception as e:
             self.table_data.append({
                 "id": self.counter,
                 "url": url,
+                "parentUrl": parent_url,
                 "title": "Error",
                 "wordCount": 0,
                 "charCount": 0,
