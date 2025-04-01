@@ -6,11 +6,6 @@
 	import { Label } from '$lib/components/ui/label/index.js';
 	import { validateField } from '$lib/validation/validationRules';
 	import { goto } from '$app/navigation';
-<<<<<<< HEAD
-	import StepIndicator from '$lib/components/ui/progressStep/ProgressStep.svelte';
-	import FormField from '$lib/components/ui/form/FormField.svelte';
-	import * as Accordion from '$lib/components/ui/accordion/index.js';
-=======
 	import { serviceStatus } from '$lib/stores/projectServiceStore';
 	import { Info } from 'lucide-svelte';
 	import { scanProgress, startScanProgress } from '$lib/stores/scanProgressStore.js';
@@ -18,7 +13,6 @@
 	import FormField from '$lib/components/ui/form/FormField.svelte';
 	import * as Accordion from '$lib/components/ui/accordion/index.js';
 	import * as Tooltip from '$lib/components/ui/tooltip/index.js';
->>>>>>> dc30d3d4b00bae6865b3c17b35bf8fed636f92d8
 
 	let formData = {};
 	let fieldErrors = {};
@@ -126,8 +120,6 @@
 			}
 
 			if (result.type === 'success' && result.data?.success) {
-<<<<<<< HEAD
-=======
 				scanProgress.set(0);
 				
 				serviceStatus.set({
@@ -138,20 +130,16 @@
 
 				startScanProgress(); 
 
->>>>>>> dc30d3d4b00bae6865b3c17b35bf8fed636f92d8
 				goto('/crawler/run', { replaceState: true });
 			} else {
 				await update();
 			}
 		};
 	};
-<<<<<<< HEAD
-=======
 
 	$: console.log('[CURRENT STATUS]', $serviceStatus);
 $: console.log('[CURRENT PROGRESS]', $scanProgress);
 
->>>>>>> dc30d3d4b00bae6865b3c17b35bf8fed636f92d8
 </script>
 
 <div class="crawler-config">
@@ -159,12 +147,6 @@ $: console.log('[CURRENT PROGRESS]', $scanProgress);
 		<div class="title">Crawler Configuration</div>
 		<StepIndicator status="config" />
 	</div>
-<<<<<<< HEAD
-
-
-	<form method="POST" use:enhance={onSubmitHandler} class="input-container">
-		{#each inputFields.filter((field) => !field.advanced) as field}
-=======
 	<form method="POST" use:enhance={onSubmitHandler} class="input-container">
 		{#each inputFields.filter((field) => !field.advanced) as field}
 		{#if field.id === 'target-url'}
@@ -201,7 +183,6 @@ $: console.log('[CURRENT PROGRESS]', $scanProgress);
 			/>
 			</div>
 		{:else}
->>>>>>> dc30d3d4b00bae6865b3c17b35bf8fed636f92d8
 			<FormField
 				id={field.id}
 				label={field.label}
@@ -214,13 +195,6 @@ $: console.log('[CURRENT PROGRESS]', $scanProgress);
 				onInput={(e) => handleInputChange(field.id, e.target.value)}
 				onBlur={() => handleInputChange(field.id, formData[field.id])}
 			/>
-<<<<<<< HEAD
-		{/each}
-
-		<Accordion.Root type="single" class="max-w-full w-96">
-			<Accordion.Item value="item-1">
-				<Accordion.Trigger>Advanced Options</Accordion.Trigger>
-=======
 		{/if}
 	{/each}
 	
@@ -228,7 +202,6 @@ $: console.log('[CURRENT PROGRESS]', $scanProgress);
 		<Accordion.Root type="single" class="w-96 max-w-full">
 			<Accordion.Item value="item-1">
 				<Accordion.Trigger>Advanced Settings</Accordion.Trigger>
->>>>>>> dc30d3d4b00bae6865b3c17b35bf8fed636f92d8
 				<Accordion.Content>
 					{#each inputFields.filter((field) => field.advanced) as field}
 						<FormField
@@ -248,11 +221,7 @@ $: console.log('[CURRENT PROGRESS]', $scanProgress);
 			</Accordion.Item>
 		</Accordion.Root>
 
-<<<<<<< HEAD
-		<div>
-=======
 		<div class="pb-8">
->>>>>>> dc30d3d4b00bae6865b3c17b35bf8fed636f92d8
 			<Button type="submit" variant="default" size="default" class="w-96">Submit</Button>
 		</div>
 	</form>
@@ -292,8 +261,6 @@ $: console.log('[CURRENT PROGRESS]', $scanProgress);
 		height: 100%;
 		gap: 1rem;
 	}
-<<<<<<< HEAD
-=======
 	.input-field {
     display: flex;
     width: 100%;
@@ -301,5 +268,4 @@ $: console.log('[CURRENT PROGRESS]', $scanProgress);
     flex-direction: row;
     gap: 0.375rem;
 	}
->>>>>>> dc30d3d4b00bae6865b3c17b35bf8fed636f92d8
 </style>
