@@ -1,3 +1,4 @@
+import os
 from typing import List, Dict
 from FuzzerResponseProcessor import FuzzerResponseProcessor
 from HTTPClient import AsyncHttpClient
@@ -14,24 +15,27 @@ class FuzzerManager:
         self.response_processor = FuzzerResponseProcessor()
         self.http_client = http_client or AsyncHttpClient()
 
-    def configure_fuzzing(self, target_url: str, http_method: str, headers: Dict =None, cookies: Dict = None, proxy: str =None, body_template: str = None, parameters: List[str] = None, payloads: List[str] =None):
+    def configure_fuzzing(self, target_url: str, http_method: str, headers: Dict =None, cookies: Dict = None, proxy: str =None, body_template: str = None, parameters: List[str] = None, payloads=None):
         """
         Accepts and stores fuzzing configuration.
         """
         if not target_url or not http_method or not parameters or not payloads:
             raise ValueError("Missing required fuzzing configuration parameters.")
-        # === Set Defaults ===
-        headers = headers or {}
-        cookies = cookies or {}
-        body_template = body_template or {}
+        
+        if isinstance(payloads, str) and os.path.isfile(payloads):
+            with open(payloads, "r", encoding="utf-8") as f:
+                payloads = [line.strip() for line in f if line.strip()]
+        
+        if not isinstance(payloads, list) or not payloads:
+            raise ValueError("Payloads must be a non-empty list or a valid file path.")
 
         self.config = {
             "target_url": target_url,
             "http_method": http_method,
-            "headers": headers,
-            "cookies": cookies,
+            "headers": headers or {},
+            "cookies": cookies or {},
             "proxy": proxy,
-            "body_template": body_template,
+            "body_template": body_template or {},
             "parameters": parameters,
             "payloads": payloads
         }

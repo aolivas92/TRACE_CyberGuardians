@@ -12,7 +12,7 @@ async def run_fuzzing_test():
         proxy=None,
         body_template={},  # Not used in GET
         parameters=["q"],
-        payloads=["gucci", "versace", "boss", "<script>alert(1)</script>"]
+        payloads=r"C:\Users\ricar\Documents\sw2\TRACE_CyberGuardians\backend\src\modules\fuzzer\payloads.txt"
     )
 
     print("[*] Starting fuzzing run...")
