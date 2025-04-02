@@ -169,7 +169,7 @@ async def run_crawler_task(job_id: str, config: CrawlerConfig):
         running_jobs[job_id]['status'] = 'running'
 
         # Start the crawler manager
-        crawler = CrawlerManager()
+        crawler = crawler_manager()
         crawler.configure_crawler(
             target_url=config.target_url,
             depth=config.depth,
