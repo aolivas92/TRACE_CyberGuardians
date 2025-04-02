@@ -6,20 +6,17 @@ export const actions = {
 	default: async ({ request }) => {
 		const rawFormData = await request.formData();
 
-		// Separate out the wordlist file
 		const wordlist = rawFormData.get('wordlist');
 		const formData = Object.fromEntries(rawFormData.entries());
-
-		// Avoid serialization issues by excluding file from returned data
 		delete formData.wordlist;
 
-    console.log('📥 Received wordlist:', wordlist?.name);
+		console.log('📥 Received wordlist:', wordlist?.name);
 		console.log('📦 File size:', wordlist?.size);
 		console.log('🧾 Form fields:', formData);
 
 		const fieldErrors = {};
 
-		// Validate non-file fields
+		// Validate fields
 		for (const [id, value] of Object.entries(formData)) {
 			const result = validateField(id, value);
 			if (result.error) {
@@ -27,7 +24,7 @@ export const actions = {
 			}
 		}
 
-		// Validate wordlist file
+		// Validate wordlist
 		const fileValidation = validateField('wordlist', wordlist);
 		if (fileValidation.error) {
 			fieldErrors.wordlist = {
@@ -36,8 +33,8 @@ export const actions = {
 			};
 		}
 
-		// Additional required field checks (in case validation missed them)
-		const requiredFields = ['target-url', 'parameters'];
+		// Required field fallback
+		const requiredFields = ['target-url', 'parameters', 'http-method'];
 		for (const field of requiredFields) {
 			if (!formData[field]) {
 				fieldErrors[field] = {
@@ -47,7 +44,6 @@ export const actions = {
 			}
 		}
 
-		// Stop and report all validation errors
 		if (Object.keys(fieldErrors).length > 0) {
 			console.warn('❌ Validation errors:', fieldErrors);
 			return fail(400, {
@@ -57,15 +53,26 @@ export const actions = {
 			});
 		}
 
-		// All validations passed — prepare backend form
-		const fuzzerPayload = new FormData();
-		fuzzerPayload.append('target_url', formData['target-url']);
-		fuzzerPayload.append('parameters', formData['parameters']);
-		fuzzerPayload.append('wordlist', wordlist);
+		// ✅ Transform data to match backend keys, set undefined for unfilled fields
+		const transformedData = {
+			target_url: formData['target-url'],
+			parameters: formData['parameters'],
+			http_method: formData['http-method'] || undefined,
+			headers: formData['headers'] || undefined,
+			proxy: formData['proxy'] || undefined,
+			body_template: formData['body-template'] || undefined,
+			wordlist
+		};
+		
 
-		if (formData['headers']) fuzzerPayload.append('headers', formData['headers']);
-		if (formData['proxy']) fuzzerPayload.append('proxy', formData['proxy']);
-		if (formData['body-template']) fuzzerPayload.append('body_template', formData['body-template']);
+		// Construct FormData for backend, only including defined values
+		const fuzzerPayload = new FormData();
+		for (const [key, value] of Object.entries(transformedData)) {
+			if (value !== undefined && key !== 'wordlist') {
+				fuzzerPayload.append(key, value);
+			}
+		}
+		fuzzerPayload.append('wordlist', wordlist);
 
 		try {
 			const response = await fetch('http://127.0.0.1:8000/api/fuzzer', {

@@ -18,6 +18,7 @@
 	let formData = {};
 	let fieldErrors = {};
 	let selectedFile = null;
+	let httpMethod = 'GET';
 
 	let inputFields = [
 		{
@@ -200,20 +201,22 @@
 						<span class="text-red-500">*</span>
 					{/if}
 				</Label>
-				<RadioGroup.Root value="option-one" class="flex w-full max-w-96 flex-row gap-4">
+				<RadioGroup.Root bind:value={httpMethod} class="flex w-full max-w-96 flex-row gap-4">
 					<div class="flex items-center space-x-2">
-						<RadioGroup.Item value="option-one" id="option-one" />
-						<Label for="option-one">GET</Label>
+						<RadioGroup.Item value="GET" id="get" />
+						<Label for="get">GET</Label>
 					</div>
 					<div class="flex items-center space-x-2">
-						<RadioGroup.Item value="option-two" id="option-two" />
-						<Label for="option-two">PUT</Label>
+						<RadioGroup.Item value="PUT" id="put" />
+						<Label for="put">PUT</Label>
 					</div>
 					<div class="flex items-center space-x-2">
-						<RadioGroup.Item value="option-three" id="option-three" />
-						<Label for="option-three">POST</Label>
+						<RadioGroup.Item value="POST" id="post" />
+						<Label for="post">POST</Label>
 					</div>
 				</RadioGroup.Root>
+				<!-- Hidden input to send the HTTP method to the server -->	
+				<input type="hidden" name="http-method" value={httpMethod} />
 			{/if}
 		{/each}
 
