@@ -1,5 +1,6 @@
 import asyncio
 import os
+import json
 from src.modules.fuzzer.FuzzerManager import FuzzerManager
 
 async def run_fuzzing_test():
@@ -34,8 +35,7 @@ async def run_fuzzing_test():
 
     with open(results_file, "w", encoding="utf-8") as f:
         for r in results:
-            f.write(f"URL: {r['url']} | Status: {r['status_code']} | Length: {r['length']}\n")
-            f.write(f"Snippet: {r['body_snippet'][:100]}...\n")
+            f.write(json.dumps(r, indent=2) + "\n")
         f.write("\n--- Fuzzing Metrics ---\n")
         f.write(f"Running Time: {metrics['running_time']:.2f} seconds\n")
         f.write(f"Processed Requests: {metrics['processed_requests']}\n")

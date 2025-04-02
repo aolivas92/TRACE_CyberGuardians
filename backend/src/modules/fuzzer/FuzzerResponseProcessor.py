@@ -1,4 +1,5 @@
 import logging
+import json
 from typing import List
 
 class FuzzerResponseProcessor:
@@ -26,10 +27,13 @@ class FuzzerResponseProcessor:
         logging.info("Filtered response: %s [%d bytes]", response.url, content_length)
         if status in self.status_code_filter and content_length >= self.length_threshold:
             self.responses.append({
+                "id": len(self.responses) + 1,
+                "response": status,
                 "url": response.url,
-                "status_code": status,
+                "payload": getattr(response, "payload", None),
                 "length": content_length,
-                "body_snippet": response.text[:200]
+                "snippet": response.text[:200],
+                "error": getattr(response, "error", False)
             })
 
     def get_filtered_results(self):

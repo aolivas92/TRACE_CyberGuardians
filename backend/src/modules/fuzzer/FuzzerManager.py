@@ -18,6 +18,8 @@ class MockResponse:
         self.url = url
         self.status_code = status
         self.text = text
+        self.payload = None
+        self.error = False
 
 class FuzzerManager:
     def __init__(self, http_client=None):
@@ -88,11 +90,17 @@ class FuzzerManager:
                         timeout=5.0
                     )
                     mock = MockResponse(response["url"], response["status"], response["text"])
+                    mock.payload = payload
+                    mock.error = response["status"] not in [200]  # You can customize this logic
                     self.response_processor.process_response(mock)
                     logging.info("Received response %d from %s", response["status"], response["url"])
                     self.request_count += 1
                 except Exception as e:
                     print(f"[!] Request error {e}")
+                    error_response = MockResponse(target_url, 0, str(e))
+                    error_response.payload = payload
+                    error_response.error = True
+                    self.response_processor.process_response(error_response)
         
         self.end_time = time.perf_counter()
     
