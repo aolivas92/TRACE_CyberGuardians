@@ -7,60 +7,69 @@ export const actions = {
 		const rawFormData = await request.formData();
 		const formData = Object.fromEntries(rawFormData.entries());
 
-		console.log("Received form data:", formData);
+		console.log('🧾 Form fields:', formData);
 
-		const errors = [];
+		const fieldErrors = {};
+
+		// Validate all fields using validationRules
 		for (const [id, value] of Object.entries(formData)) {
-			const { error, message } = validateField(id, value);
-			if (error) {
-				errors.push(`${id}: ${message}`);
+			const result = validateField(id, value);
+			if (result.error) {
+				fieldErrors[id] = {
+					error: true,
+					message: result.message
+				};
 			}
 		}
 
-		// Ensure required fields exist
+		// Additional required field checks
 		if (!formData['target-url']) {
-			errors.push("target-url: Target URL is required.");
+			fieldErrors['target-url'] = {
+				error: true,
+				message: 'Target URL is required.'
+			};
 		}
 
-		if (errors.length > 0) {
+		// If any errors exist, fail with structured feedback
+		if (Object.keys(fieldErrors).length > 0) {
+			console.warn('❌ Validation errors in crawler:', fieldErrors);
 			return fail(400, {
 				error: true,
-				message: errors.join(" "),
+				fieldErrors,
 				values: formData
 			});
 		}
 
+		// Transform field names to match backend API
 		const transformedData = {
-			target_url: formData["target-url"],
-			depth: formData["depth"] ? Number(formData["depth"]) : undefined,
-			max_pages: formData["max-pages"] ? Number(formData["max-pages"]) : undefined,
-			delay: formData["delay"] ? Number(formData["delay"]) : undefined,
-			proxy: formData["proxy"] ? Number(formData["proxy"]) : undefined,
-			user_agent: formData["user-agent"] ? formData["user-agent"] : undefined,
-			excluded_urls: formData["excluded-urls"] ? formData["excluded-urls"] : undefined,
-			crawl_date: formData["crawl-date"] ? formData["crawl-date"] : undefined,
-			crawl_time: formData["crawl-time"] ? formData["crawl-time"] : undefined,
+			target_url: formData['target-url'],
+			depth: formData['depth'] ? Number(formData['depth']) : undefined,
+			max_pages: formData['max-pages'] ? Number(formData['max-pages']) : undefined,
+			delay: formData['delay'] ? Number(formData['delay']) : undefined,
+			proxy: formData['proxy'] ? Number(formData['proxy']) : undefined,
+			user_agent: formData['user-agent'] || undefined,
+			excluded_urls: formData['excluded-urls'] || undefined,
+			crawl_date: formData['crawl-date'] || undefined,
+			crawl_time: formData['crawl-time'] || undefined
 		};
-		
+
 		try {
-			const response = await fetch("http://127.0.0.1:8000/api/crawler", {
-				method: "POST",
+			const response = await fetch('http://127.0.0.1:8000/api/crawler', {
+				method: 'POST',
 				headers: {
-					"Content-Type": "application/json",
-					Accept: "application/json"
+					'Content-Type': 'application/json',
+					Accept: 'application/json'
 				},
 				body: JSON.stringify(transformedData)
 			});
 
-			let json;
-			try {
-				json = await response.json();
-				console.log("Backend response:", json);
-			} catch (e) {
-				console.warn("Could not parse JSON:", e.message);
-			}
+			const json = await response.json().catch((e) => {
+				console.warn('⚠️ Could not parse JSON response:', e.message);
+				return {};
+			});
 
 			if (!response.ok) {
+				console.error('❌ Backend responded with error:', json);
 				return fail(response.status, {
 					error: true,
 					message: `Backend error: ${response.statusText}`,
@@ -68,16 +77,17 @@ export const actions = {
 				});
 			}
 
+			console.log('✅ Crawler backend response:', json);
 			return {
 				success: true,
-				message: "All good!",
+				message: 'Crawler launched successfully.',
 				values: formData
 			};
 		} catch (error) {
-			console.error("Uncaught server error:", error);
+			console.error('🔥 Uncaught server error:', error);
 			return fail(500, {
 				error: true,
-				message: "Internal server error",
+				message: 'Internal server error',
 				values: formData
 			});
 		}
