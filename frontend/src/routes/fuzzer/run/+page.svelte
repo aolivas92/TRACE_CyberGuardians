@@ -31,12 +31,6 @@
 	function handleStopConfirm() {
 		showStopDialog = false;
 		stopScanProgress();
-		scanProgress.set(0);
-
-		serviceStatus.set({
-			status: 'idle',
-			serviceType: 'fuzzer',
-		});
 
 		console.log('Fuzzer stopped');
 		console.log('Current service status:', get(serviceStatus));
@@ -45,14 +39,8 @@
 
 	function handleRestart() {
 		stopScanProgress();
-		scanProgress.set(0);
-
+		
 		console.log('Restarting at', new Date().toISOString());
-		serviceStatus.set({
-			status: 'idle',
-			serviceType: null,
-		});
-		console.log('Current service status:', get(serviceStatus));
 		goto('/fuzzer/config');
 	}
 </script>
@@ -79,14 +67,6 @@
 	<div class="button-section">
 		<div class="button-group">
 			{#if $currentStep === 'running'}
-				<Button
-					onclick={() => goto('/fuzzer/config')}
-					variant="default"
-					size="default"
-					class="restart-button"
-				>
-					Restart
-				</Button>
 				<Button
 					onclick={() => scanPaused.set(!$scanPaused)}
 					variant="default"

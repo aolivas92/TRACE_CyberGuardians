@@ -7,10 +7,12 @@ from fastapi.responses import JSONResponse
 import strawberry
 import logging
 import uvicorn
+import time
 
 # TODO: import the ml and the crawler services
 # from src.modules.scanning.CrawlerManager import CrawlerManager
-# from src.modules.ai.credential_generator import Credential_Generator
+from src.modules.ai.credential_generator import Credential_Generator
+from src.modules.ai.web_scraper import WebScraper
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -134,16 +136,30 @@ async def receive_crawler_data(config: CrawlerConfig):
 
 # Crawler endpoints.
 @app.post("/api/ml_algorithm")
-async def receive_crawler_data(config: CrawlerConfig):
-    logger.info(f"Received crawler configuration: {config}")
+async def receive_ml_algorithm_data(config: MLAlgorithmConfig):
+    logger.info(f"Received ML Algorithm configuration: {config}")
     
-    # Pass the configuration to the crawler service
-    # TODO: once implemented start a job with the crawler.
+    # Scrape the target URL
+    # TODO: Update to be the correct target url
+    scraper = WebScraper(urls=[config.target_url])
+    scraped_data = scraper.scrape_pages()
+
+    # Save the Scraped data to database
+    # TODO: Update to save it to the correct database, for now a csv file
+    csv_path = "./src/database/scraped_data.csv"
+
+    # Initialize and run credential generator
+    # TODO: Update utilize the count that the user has passed.
+    generator = Credential_Generator(csv_path=csv_path)
+    credentials = generator.generate_credentials(count=10)
     
     return {
-        "message": "Crawler started successfully!",
-        "config": config.dict(),
-        "job_id": "12345"  # Mock job ID
+        "job_id": "ml_" + str(int(time.time())),
+        "status": "success",
+        "message": f"Generated {len(credentials)} credentials from {config.target_url}",
+        "credentials": [
+            {"username": u, "password": p} for u, p in credentials
+        ]
     }
 
 @app.get("/")

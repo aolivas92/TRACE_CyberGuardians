@@ -41,7 +41,7 @@ export const actions = {
 			crawl_date: formData["crawl-date"] ? formData["crawl-date"] : undefined,
 			crawl_time: formData["crawl-time"] ? formData["crawl-time"] : undefined,
 		};
-		
+
 		try {
 			const response = await fetch("http://127.0.0.1:8000/api/crawler", {
 				method: "POST",
@@ -81,5 +81,15 @@ export const actions = {
 				values: formData
 			});
 		}
+
+		// FOR TESTING ONLY
+		// console.log('🚫 Skipping actual backend request for testing...');
+		// console.log('📤 Payload that would have been sent:', transformedData);
+		
+		// return {
+		// 	success: true,
+		// 	message: 'Simulated fuzzer launch successful (no backend call made).',
+		// 	values: formData
+		// };
 	}
 };
