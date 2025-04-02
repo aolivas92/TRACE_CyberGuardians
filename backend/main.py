@@ -16,10 +16,6 @@ import json
 import os
 from datetime import datetime
 import uuid
-import json
-import os
-from datetime import datetime
-import uuid
 
 # TODO: import the ml and the crawler services
 from src.modules.ai.credential_generator import Credential_Generator
