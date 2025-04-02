@@ -4,3 +4,6 @@ requests
 fastapi
 strawberry-graphql[fastapi]
 uvicorn
+aiohttp
+asyncio
+aiofiles
