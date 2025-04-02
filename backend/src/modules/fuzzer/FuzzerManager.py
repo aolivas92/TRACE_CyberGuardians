@@ -1,7 +1,17 @@
 import os
+import time
+import logging
 from typing import List, Dict
-from FuzzerResponseProcessor import FuzzerResponseProcessor
-from HTTPClient import AsyncHttpClient
+from src.modules.fuzzer.FuzzerResponseProcessor import FuzzerResponseProcessor
+from src.modules.fuzzer.HTTPClient import AsyncHttpClient
+
+log_path = os.path.join(os.path.dirname(__file__), "fuzzing.log")
+logging.basicConfig(
+    filename=log_path,
+    filemode="w",
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s"
+)
 
 class MockResponse:
     def __init__(self, url, status, text):
@@ -14,6 +24,9 @@ class FuzzerManager:
         self.config = {}
         self.response_processor = FuzzerResponseProcessor()
         self.http_client = http_client or AsyncHttpClient()
+        self.request_count = 0
+        self.start_time = None
+        self.end_time = None
 
     def configure_fuzzing(self, target_url: str, http_method: str, headers: Dict =None, cookies: Dict = None, proxy: str =None, body_template: str = None, parameters: List[str] = None, payloads=None):
         """
@@ -41,6 +54,7 @@ class FuzzerManager:
         }
 
     async def start_fuzzing(self):
+        self.start_time = time.perf_counter()
         """
         Begins the fuzzing process using the provided configuration.
         """
@@ -53,13 +67,15 @@ class FuzzerManager:
         parameters = self.config.get("parameters", [])
         payloads = self.config.get("payloads", [])
 
+        logging.info("Fuzzing started with %d payloads across %d parameter(s)", len(payloads), len(parameters))
+
         proxies = {"http": proxy, "https": proxy} if proxy else None
 
         for payload in payloads:
             for param in parameters:
                 modified_body = body_template.copy()
                 modified_body[param] = payload
-
+                logging.info("Sending %s request to %s with %s=%s", http_method, target_url, param, payload)
                 try:
                     response = await self.http_client.send(
                         method=http_method,
@@ -73,8 +89,23 @@ class FuzzerManager:
                     )
                     mock = MockResponse(response["url"], response["status"], response["text"])
                     self.response_processor.process_response(mock)
+                    logging.info("Received response %d from %s", response["status"], response["url"])
+                    self.request_count += 1
                 except Exception as e:
                     print(f"[!] Request error {e}")
+        
+        self.end_time = time.perf_counter()
+    
+    def get_metrics(self):
+        total_time = self.end_time - self.start_time if self.start_time and self.end_time else 0
+        rps = self.request_count / total_time if total_time > 0 else 0
 
+        return {
+            "running_time": total_time,
+            "processed_requests": self.request_count,
+            "filtered_requests": len(self.response_processor.get_filtered_results()),
+            "requests_per_second": rps
+        }
+    
     def get_filtered_results(self):
         return self.response_processor.get_filtered_results()

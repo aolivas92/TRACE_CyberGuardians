@@ -1,3 +1,4 @@
+import logging
 from typing import List
 
 class FuzzerResponseProcessor:
@@ -21,7 +22,8 @@ class FuzzerResponseProcessor:
 
         if status in self.hide_codes:
             return
-
+        
+        logging.info("Filtered response: %s [%d bytes]", response.url, content_length)
         if status in self.status_code_filter and content_length >= self.length_threshold:
             self.responses.append({
                 "url": response.url,
