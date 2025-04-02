@@ -77,7 +77,6 @@ class WebScraper:
                     return await response.text()
         except aiohttp.ClientError as e:
             print(f"[ERROR] Could not fetch {url}: {e}")
-            return None
         
 
     def _extract_text_content(self, html: str) -> str:
@@ -98,7 +97,7 @@ class WebScraper:
 
         # Gather textual content from standard text tags
         text_parts = []
-        for tag in soup.find_all(['p', 'h1', 'h2', 'h3', 'span', 'label', 'div', 'section', 'main', 'li', 'ul' ]):
+        for tag in soup.find_all(['p', 'h1', 'h2', 'h3', 'span', 'label', 'div', 'section', 'main', 'li', 'lu' ]):
             text_parts.append(tag.get_text(strip=True))
             
         # Gather "logo" text from <img alt="..">
