@@ -3,7 +3,7 @@ export function load() {
       projectName: "Project 1",
       tools: [
           { name: "Crawler",  route: "/crawler/config" },
-          { name: "Fuzzer", route: "/dashboard" },
+          { name: "Fuzzer", route: "/fuzzer/config" },
       ],
   };
 }
