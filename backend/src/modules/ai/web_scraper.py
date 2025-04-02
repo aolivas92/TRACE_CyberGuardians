@@ -37,6 +37,7 @@ class WebScraper:
         """
         self.urls = urls
         self.concurrency = concurrency
+        self.filename = None
         
 
     def scrape_pages(self, filename: str="scraped_output.csv")->None:
