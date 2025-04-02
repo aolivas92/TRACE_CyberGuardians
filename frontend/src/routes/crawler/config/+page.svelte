@@ -82,9 +82,9 @@
 		},
 		{
 			id: 'proxy',
-			label: 'Proxy',
-			type: 'number',
-			placeholder: '8080',
+			label: 'Proxy URL',
+			type: 'text',
+			placeholder: 'http://127.0.0.1:8080',
 			required: false,
 			advanced: true
 		}
