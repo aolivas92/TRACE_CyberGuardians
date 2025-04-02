@@ -107,15 +107,15 @@
 			}
 
 			if (result.type === 'success' && result.data?.success) {
-				scanProgress.set(0);
+				if ($serviceStatus.status === 'running') {
+					console.warn('Scan already in progress. Preventing new submission.');
+					return;
+				}
 
-				serviceStatus.set({
-					status: 'running',
-					serviceType: 'fuzzer',
-					startTime: new Date()
-				});
+				startScanProgress('fuzzer');
 
-				startScanProgress();
+				console.log('[Service Status]', $serviceStatus);
+				console.log('[Scan Progress]', $scanProgress);
 
 				goto('/fuzzer/run', { replaceState: true });
 			} else {
@@ -215,7 +215,7 @@
 						<Label for="post">POST</Label>
 					</div>
 				</RadioGroup.Root>
-				<!-- Hidden input to send the HTTP method to the server -->	
+				<!-- Hidden input to send the HTTP method to the server -->
 				<input type="hidden" name="http-method" value={httpMethod} />
 			{/if}
 		{/each}

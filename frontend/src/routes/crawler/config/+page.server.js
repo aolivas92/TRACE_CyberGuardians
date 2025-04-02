@@ -7,69 +7,60 @@ export const actions = {
 		const rawFormData = await request.formData();
 		const formData = Object.fromEntries(rawFormData.entries());
 
-		console.log('🧾 Form fields:', formData);
+		console.log("Received form data:", formData);
 
-		const fieldErrors = {};
-
-		// Validate all fields using validationRules
+		const errors = [];
 		for (const [id, value] of Object.entries(formData)) {
-			const result = validateField(id, value);
-			if (result.error) {
-				fieldErrors[id] = {
-					error: true,
-					message: result.message
-				};
+			const { error, message } = validateField(id, value);
+			if (error) {
+				errors.push(`${id}: ${message}`);
 			}
 		}
 
-		// Additional required field checks
+		// Ensure required fields exist
 		if (!formData['target-url']) {
-			fieldErrors['target-url'] = {
-				error: true,
-				message: 'Target URL is required.'
-			};
+			errors.push("target-url: Target URL is required.");
 		}
 
-		// If any errors exist, fail with structured feedback
-		if (Object.keys(fieldErrors).length > 0) {
-			console.warn('❌ Validation errors in crawler:', fieldErrors);
+		if (errors.length > 0) {
 			return fail(400, {
 				error: true,
-				fieldErrors,
+				message: errors.join(" "),
 				values: formData
 			});
 		}
 
-		// Transform field names to match backend API
 		const transformedData = {
-			target_url: formData['target-url'],
-			depth: formData['depth'] ? Number(formData['depth']) : undefined,
-			max_pages: formData['max-pages'] ? Number(formData['max-pages']) : undefined,
-			delay: formData['delay'] ? Number(formData['delay']) : undefined,
-			proxy: formData['proxy'] ? Number(formData['proxy']) : undefined,
-			user_agent: formData['user-agent'] || undefined,
-			excluded_urls: formData['excluded-urls'] || undefined,
-			crawl_date: formData['crawl-date'] || undefined,
-			crawl_time: formData['crawl-time'] || undefined
+			target_url: formData["target-url"],
+			depth: formData["depth"] ? Number(formData["depth"]) : undefined,
+			max_pages: formData["max-pages"] ? Number(formData["max-pages"]) : undefined,
+			delay: formData["delay"] ? Number(formData["delay"]) : undefined,
+			proxy: formData["proxy"] ? Number(formData["proxy"]) : undefined,
+			user_agent: formData["user-agent"] ? formData["user-agent"] : undefined,
+			excluded_urls: formData["excluded-urls"] ? formData["excluded-urls"] : undefined,
+			crawl_date: formData["crawl-date"] ? formData["crawl-date"] : undefined,
+			crawl_time: formData["crawl-time"] ? formData["crawl-time"] : undefined,
 		};
 
 		try {
-			const response = await fetch('http://127.0.0.1:8000/api/crawler', {
-				method: 'POST',
+			const response = await fetch("http://127.0.0.1:8000/api/crawler", {
+				method: "POST",
 				headers: {
-					'Content-Type': 'application/json',
-					Accept: 'application/json'
+					"Content-Type": "application/json",
+					Accept: "application/json"
 				},
 				body: JSON.stringify(transformedData)
 			});
 
-			const json = await response.json().catch((e) => {
-				console.warn('⚠️ Could not parse JSON response:', e.message);
-				return {};
-			});
+			let json;
+			try {
+				json = await response.json();
+				console.log("Backend response:", json);
+			} catch (e) {
+				console.warn("Could not parse JSON:", e.message);
+			}
 
 			if (!response.ok) {
-				console.error('❌ Backend responded with error:', json);
 				return fail(response.status, {
 					error: true,
 					message: `Backend error: ${response.statusText}`,
@@ -77,19 +68,28 @@ export const actions = {
 				});
 			}
 
-			console.log('✅ Crawler backend response:', json);
 			return {
 				success: true,
-				message: 'Crawler launched successfully.',
+				message: "All good!",
 				values: formData
 			};
 		} catch (error) {
-			console.error('🔥 Uncaught server error:', error);
+			console.error("Uncaught server error:", error);
 			return fail(500, {
 				error: true,
-				message: 'Internal server error',
+				message: "Internal server error",
 				values: formData
 			});
 		}
+
+		// FOR TESTING ONLY
+		// console.log('🚫 Skipping actual backend request for testing...');
+		// console.log('📤 Payload that would have been sent:', transformedData);
+		
+		// return {
+		// 	success: true,
+		// 	message: 'Simulated fuzzer launch successful (no backend call made).',
+		// 	values: formData
+		// };
 	}
 };
