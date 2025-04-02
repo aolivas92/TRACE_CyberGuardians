@@ -117,7 +117,7 @@
 
 				startScanProgress();
 
-				goto('/crawler/run', { replaceState: true });
+				goto('/fuzzer/run', { replaceState: true });
 			} else {
 				await update();
 			}
