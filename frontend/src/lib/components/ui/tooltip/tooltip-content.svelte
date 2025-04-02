@@ -1,25 +1,16 @@
 <script>
 	import { Tooltip as TooltipPrimitive } from "bits-ui";
-	import { cn, flyAndScale } from "$lib/utils.js";
-	let className = undefined;
-	export let sideOffset = 4;
-	export let transition = flyAndScale;
-	export let transitionConfig = {
-		y: 8,
-		duration: 150,
-	};
-	export { className as class };
+	import { cn } from "$lib/utils.js";
+
+	let { ref = $bindable(null), class: className, sideOffset = 6, ...restProps } = $props();
 </script>
 
 <TooltipPrimitive.Content
-	{transition}
-	{transitionConfig}
+	bind:ref
 	{sideOffset}
 	class={cn(
-		"bg-background1 text-foreground z-50 overflow-hidden rounded-md px-3 py-1.5 text-sm shadow-md",
+		"bg-background1 text-popover-foreground animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 overflow-hidden rounded-md px-3 py-1.5 text-sm shadow-md",
 		className
 	)}
-	{...$$restProps}
->
-	<slot />
-</TooltipPrimitive.Content>
+	{...restProps}
+/>

@@ -9,9 +9,10 @@ export {
 	Root,
 	Trigger,
 	Content,
-	Provider as TooltipProvider,
+	Provider,
 	//
 	Root as Tooltip,
+	Content as TooltipContent,
 	Trigger as TooltipTrigger,
-	Content as TooltipContent
+	Provider as TooltipProvider,
 };
