@@ -34,13 +34,6 @@
 	function handleStopConfirm() {
 		showStopDialog = false;
 		stopScanProgress();
-		scanProgress.set(0);
-
-		serviceStatus.set({
-			status: 'idle',
-			serviceType: 'crawler',
-			startTime: null
-		});
 
 		console.log('Crawler stopped');
 		console.log('Current service status:', get(serviceStatus));
@@ -49,15 +42,8 @@
 
 	function handleRestart() {
 		stopScanProgress();
-		scanProgress.set(0);
 
 		console.log('Restarting at', new Date().toISOString());
-		serviceStatus.set({
-			status: 'idle',
-			serviceType: null,
-			startTime: null
-		});
-		console.log('Current service status:', get(serviceStatus));
 		goto('/crawler/config');
 	}
 </script>
@@ -85,14 +71,6 @@
 		<div class="button-group">
 			{#if $currentStep === 'running'}
 				<Button
-					onclick={() => goto('/crawler/config')}
-					variant="default"
-					size="default"
-					class="restart-button"
-				>
-					Restart
-				</Button>
-				<Button
 					onclick={() => scanPaused.set(!$scanPaused)}
 					variant="default"
 					size="default"
@@ -100,7 +78,6 @@
 				>
 					{$scanPaused ? 'Resume' : 'Pause'}
 				</Button>
-
 				<Button
 					onclick={() => (showStopDialog = true)}
 					variant="destructive"
