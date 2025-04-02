@@ -205,10 +205,12 @@ class CredentialMDP:
             action_values = {}
             for act in possible_actions:
                 if self.state_transitions[state][act]:
-                    value = max([
-                        self.q_values[state][(act, nxt_ch)]
-                        for nxt_ch in self.state_transitions[state][act]
-                    ])
+                    value = max(
+                        [
+                            self.q_values[state][(act, nxt_ch)]
+                            for nxt_ch in self.state_transitions[state][act]
+                        ]
+                    )
                     action_values[act] = value
 
             if action_values:
