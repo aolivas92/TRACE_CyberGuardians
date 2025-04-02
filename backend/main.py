@@ -16,7 +16,7 @@ import uuid
 # TODO: import the ml and the crawler services
 from src.modules.ai.credential_generator import Credential_Generator
 from src.modules.ai.web_scraper import WebScraper
-from src.modules.scanning.CrawlerManager import crawler_manager
+from src.modules.scanning.crawler_manager import crawler_manager
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -169,7 +169,7 @@ async def run_crawler_task(job_id: str, config: CrawlerConfig):
         running_jobs[job_id]['status'] = 'running'
 
         # Start the crawler manager
-        crawler = CrawlerManager()
+        crawler = crawler_manager()
         crawler.configure_crawler(
             target_url=config.target_url,
             depth=config.depth,
@@ -282,8 +282,6 @@ async def get_crawler_results(job_id: str):
 
 # ML endpoints.
 @app.post("/api/ml_algorithm")
-async def receive_ml_algorithm_data(config: MLAlgorithmConfig):
-    logger.info(f"Received ML Algorithm configuration: {config}")
 async def receive_ml_data(config: MLAlgorithmConfig):
     logger.info(f"Received ML Algorithm configuration: {config}")
     
