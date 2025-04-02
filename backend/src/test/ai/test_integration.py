@@ -53,7 +53,7 @@ class TestTRACEIntegration(unittest.TestCase):
         for cred in results:
             self.assertGreaterEqual(cred[0], cred_gen.min_username_length) 
             self.assertGreaterEqual(cred[1], cred_gen.min_password_length)
-        print(results)
+        
         
             
 

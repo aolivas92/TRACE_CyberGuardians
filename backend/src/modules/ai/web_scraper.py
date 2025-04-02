@@ -4,7 +4,9 @@ from bs4 import BeautifulSoup
 import time
 from typing import List
 import csv
-import aiofiles
+import os 
+import urllib.parse
+#import aiofiles
 
 class WebScraper:
     """
@@ -35,8 +37,9 @@ class WebScraper:
         """
         self.urls = urls
         self.concurrency = concurrency
+        
 
-    def scrape_pages(self, filename: str="scraped_output.csv") -> None:
+    def scrape_pages(self, filename: str="scraped_output.csv")->None:
         """
         Public main method to run the async scraping from sync code.
         """
@@ -49,6 +52,7 @@ class WebScraper:
             csv_writer.writerow(['id', 'content', 'url'])
             csv_writer.writerows(data)
         print(f'[INFO] CSV file {filename} has been generated.')
+        self.filename = filename
         return data
 
     async def _fetch_url(self, url: str) -> str:
@@ -70,6 +74,26 @@ class WebScraper:
             print(f"[ERROR] Could not fetch {url}")
             return ""
         """
+        parsed_url = urllib.parse.urlparse(url)
+        if parsed_url.scheme == "file":
+            local_path = os.path.normpath(parsed_url.path)
+            try:
+                with open(local_path, "r", encoding="utf-8") as f:
+                    return f.read()
+                
+            except Exception as e:
+                print(f"[ERROR] Could not open local file: {e}")
+                return ""
+        else:
+            try:
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(url) as response:
+                        response.raise_for_status()
+                        return await response.text()
+            except aiohttp.ClientError as e:
+                print(f"[ERROR] Could not fetch {url}: {e}")
+                return ""
+        """
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(url) as response:
@@ -77,7 +101,7 @@ class WebScraper:
                     return await response.text()
         except aiohttp.ClientError as e:
             print(f"[ERROR] Could not fetch {url}: {e}")
-        
+        """
 
     def _extract_text_content(self, html: str) -> str:
         """
