@@ -6,9 +6,13 @@
 	import { Label } from '$lib/components/ui/label/index.js';
 	import { validateField } from '$lib/validation/validationRules';
 	import { goto } from '$app/navigation';
+	import { serviceStatus } from '$lib/stores/projectServiceStore';
+	import { Info } from 'lucide-svelte';
+	import { scanProgress, startScanProgress } from '$lib/stores/scanProgressStore.js';
 	import StepIndicator from '$lib/components/ui/progressStep/ProgressStep.svelte';
 	import FormField from '$lib/components/ui/form/FormField.svelte';
 	import * as Accordion from '$lib/components/ui/accordion/index.js';
+	import * as Tooltip from '$lib/components/ui/tooltip/index.js';
 
 	let formData = {};
 	let fieldErrors = {};
@@ -116,12 +120,26 @@
 			}
 
 			if (result.type === 'success' && result.data?.success) {
+				scanProgress.set(0);
+				
+				serviceStatus.set({
+					status: 'running',
+					serviceType: 'crawler',
+					startTime: new Date()
+				});
+
+				startScanProgress(); 
+
 				goto('/crawler/run', { replaceState: true });
 			} else {
 				await update();
 			}
 		};
 	};
+
+	$: console.log('[CURRENT STATUS]', $serviceStatus);
+$: console.log('[CURRENT PROGRESS]', $scanProgress);
+
 </script>
 
 <div class="crawler-config">
@@ -129,10 +147,42 @@
 		<div class="title">Crawler Configuration</div>
 		<StepIndicator status="config" />
 	</div>
-
-
 	<form method="POST" use:enhance={onSubmitHandler} class="input-container">
 		{#each inputFields.filter((field) => !field.advanced) as field}
+		{#if field.id === 'target-url'}
+			<div class="w-full max-w-96 flex flex-col">
+				<div class="flex items-center input-field">
+					<Label for={field.id} class="font-medium">
+						{field.label}
+						{#if field.required}
+							<span class="text-red-500">*</span>
+						{/if}
+					</Label>
+					<Tooltip.Provider>
+						<Tooltip.Root>
+							<Tooltip.Trigger asChild>
+								<Button variant="ghost" size="circlesm" type="button">
+									<Info style="width: 16px; height: 16px;" />
+								</Button>
+							</Tooltip.Trigger>
+							<Tooltip.Content>
+								<p>Optional fields left empty will use default values</p>
+							</Tooltip.Content>
+						</Tooltip.Root>
+					</Tooltip.Provider>
+				</div>
+				<FormField
+				id={field.id}
+				type={field.type}
+				placeholder={field.placeholder}
+				value={formData[field.id] || ''}
+				error={fieldErrors[field.id]?.error || false}
+				errorText={fieldErrors[field.id]?.message || ''}
+				onInput={(e) => handleInputChange(field.id, e.target.value)}
+				onBlur={() => handleInputChange(field.id, formData[field.id])}
+			/>
+			</div>
+		{:else}
 			<FormField
 				id={field.id}
 				label={field.label}
@@ -145,11 +195,13 @@
 				onInput={(e) => handleInputChange(field.id, e.target.value)}
 				onBlur={() => handleInputChange(field.id, formData[field.id])}
 			/>
-		{/each}
+		{/if}
+	{/each}
+	
 
-		<Accordion.Root type="single" class="max-w-full w-96">
+		<Accordion.Root type="single" class="w-96 max-w-full">
 			<Accordion.Item value="item-1">
-				<Accordion.Trigger>Advanced Options</Accordion.Trigger>
+				<Accordion.Trigger>Advanced Settings</Accordion.Trigger>
 				<Accordion.Content>
 					{#each inputFields.filter((field) => field.advanced) as field}
 						<FormField
@@ -169,7 +221,7 @@
 			</Accordion.Item>
 		</Accordion.Root>
 
-		<div>
+		<div class="pb-8">
 			<Button type="submit" variant="default" size="default" class="w-96">Submit</Button>
 		</div>
 	</form>
@@ -205,9 +257,15 @@
 		justify-content: center;
 		padding-left: 3rem;
 		padding-right: 3rem;
-		margin-bottom: 8rem;
 		max-width: 100%;
 		height: 100%;
 		gap: 1rem;
+	}
+	.input-field {
+    display: flex;
+    width: 100%;
+    max-width: 24rem;
+    flex-direction: row;
+    gap: 0.375rem;
 	}
 </style>

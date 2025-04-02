@@ -20,6 +20,7 @@
 				lg: "h-11 px-8 rounded-lg text-md font-medium",
 				icon: "h-10 w-10",
 				circle: "h-10 w-10",
+				circlesm: "h-8 w-8",
 			},
 		},
 		defaultVariants: {
