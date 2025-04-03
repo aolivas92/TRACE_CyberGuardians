@@ -1,19 +1,19 @@
 import asyncio
 import os
 import json
-from src.modules.fuzzer.FuzzerManager import FuzzerManager
+from src.modules.fuzzer.fuzzer_manager import FuzzerManager
 
 async def run_fuzzing_test():
     fuzzer = FuzzerManager()
 
     fuzzer.configure_fuzzing(
-        target_url="http://www.fragrancenet.com/search",
-        http_method="GET",
-        headers={"User-Agent": "Mozilla/5.0"},
+        target_url="https://team-9-56497.firebaseapp.com/Login",
+        http_method="POST",
+        headers={"User-Agent": "Mozilla/5.0", "Content-Type": "application/x-www-form-urlencoded"},
         cookies={},
         proxy=None,
-        body_template={},  # Not used in GET
-        parameters=["q"],
+        body_template={"field-r1__control": "", "field-r2__control": ""},  # Not used in GET
+        parameters=["field-r1__control", "field-r2__control"],
         payloads=r"C:\Users\ricar\Documents\sw2\TRACE_CyberGuardians\backend\wordlist.txt"
     )
 
@@ -36,6 +36,7 @@ async def run_fuzzing_test():
     with open(results_file, "w", encoding="utf-8") as f:
         for r in results:
             f.write(json.dumps(r, indent=2) + "\n")
+
         f.write("\n--- Fuzzing Metrics ---\n")
         f.write(f"Running Time: {metrics['running_time']:.2f} seconds\n")
         f.write(f"Processed Requests: {metrics['processed_requests']}\n")

@@ -2,7 +2,7 @@ import os
 import time
 import logging
 from typing import List, Dict
-from src.modules.fuzzer.FuzzerResponseProcessor import FuzzerResponseProcessor
+from src.modules.fuzzer.fuzzer_response_processor import FuzzerResponseProcessor
 from src.modules.fuzzer.HTTPClient import AsyncHttpClient
 
 log_path = os.path.join(os.path.dirname(__file__), "fuzzing.log")
