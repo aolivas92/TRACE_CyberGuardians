@@ -66,7 +66,7 @@ class Query:
                                 parent_url=item.get('parentUrl'),
                                 word_count=item['wordCount'],
                                 char_count=item['charCount'],
-                                links_found=['linksFound'],
+                                links_found=item['linksFound'],  # Fixed index error here
                                 error=item['error'],
                             ) for item in data
                         ]
@@ -114,8 +114,8 @@ async def crawler_socket(websocket: WebSocket, job_id: str):
 
     try:
         # Send an initial status message
-        intial_statue = get_job_status_messsage(job_id)
-        await websocket.send_json(intial_statue)
+        initial_status = get_job_status_messsage(job_id)
+        await websocket.send_json(initial_status)
 
         # List for the clients response
         while True:
@@ -145,7 +145,7 @@ async def crawler_socket(websocket: WebSocket, job_id: str):
             active_connections[job_id].remove(websocket)
             if not active_connections[job_id]:
                 del active_connections[job_id]
-        logger.inf(f'WebSocket disconnected for job: {job_id}')
+        logger.info(f'WebSocket disconnected for job: {job_id}')
 
     except Exception as e:
         logger.error(f'Error in WebSocket connection for job {job_id}: {str(e)}')
@@ -154,7 +154,7 @@ async def crawler_socket(websocket: WebSocket, job_id: str):
             if not active_connections[job_id]:
                 del active_connections[job_id]
 
-def get_job_status_messsage(job_id: str) -> Dict[str, Any]:
+def get_job_status_messsage(job_id: str) -> Dict[str, Any]:  # TODO: Fix typo in function name on next refactor
     if job_id in running_jobs:
         job = running_jobs[job_id]
         return {
@@ -284,7 +284,7 @@ async def get_crawler_results(job_id: str):
 
 @app.get("/api/crawler/{job_id}/logs")
 async def get_crawler_logs(job_id: str):
-    return get_job_logs(job_id)
+    return {"logs": get_job_logs(job_id)}
 
 @app.get("/")
 async def root():
