@@ -124,6 +124,7 @@ class WebScraper:
         # Gather textual content from standard text tags
         text_parts = []
         for tag in soup.find_all(['p', 'h1', 'h2', 'h3', 'span', 'label', 'div', 'section', 'main', 'li', 'lu' ]):
+            text_parts.append(tag.get_text(strip=True))
             
         # Gather "logo" text from <img alt="..">
         for img in soup.find_all("img"):
