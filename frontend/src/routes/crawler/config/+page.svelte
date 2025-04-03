@@ -128,9 +128,10 @@
 					startTime: new Date()
 				});
 
-				startScanProgress(); 
+				// Start progress tracking with the job ID from the backend
+				startScanProgress(result.data.jobId); 
 
-				goto('/crawler/run', { replaceState: true });
+				goto(`/crawler/run?jobId=${result.data.jobId}`, { replaceState: true });
 			} else {
 				await update();
 			}

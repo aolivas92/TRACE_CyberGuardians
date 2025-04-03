@@ -2,22 +2,75 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { goto } from '$app/navigation';
 	import { Progress } from '$lib/components/ui/progress/index.js';
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { serviceStatus } from '$lib/stores/projectServiceStore.js';
 	import StepIndicator from '$lib/components/ui/progressStep/ProgressStep.svelte';
 	import Table from '$lib/components/ui/table/Table.svelte';
 	import Alert from '$lib/components/ui/alert/Alert.svelte';
 	import { derived } from 'svelte/store';
 	import { get } from 'svelte/store';
-	import { onDestroy } from 'svelte';
-	import { scanProgress, stopScanProgress, scanPaused } from '$lib/stores/scanProgressStore.js';
+	import { 
+		scanProgress, 
+		stopScanProgress, 
+		scanPaused, 
+		crawlerResults,
+		crawlerLogs,
+		jobId,
+		startScanProgress
+	} from '$lib/stores/scanProgressStore.js';
 
-	//TODO: GET request to fetch data for the currentStep
 	const { data } = $props();
 	let value = $state(15);
 	let showStopDialog = $state(false);
 	let paused = $state(false);
-	let intervalId;
+	let tableData = $state(data.tableData);
+	let logs = $state([]);
+	
+	// Initialize websocket connection when page loads if we have a job ID
+	onMount(() => {
+		if (data.jobId) {
+			console.log('Initializing websocket with job ID:', data.jobId);
+			jobId.set(data.jobId);
+			startScanProgress(data.jobId);
+		} else {
+			console.log('No job ID provided, using mock data');
+		}
+		
+		// Subscribe to crawler results for live updates
+		const unsubscribeCrawlerResults = crawlerResults.subscribe((results) => {
+			console.log('Received crawler results:', results);
+			if (results && results.length > 0) {
+				tableData = results.map((item, index) => ({
+					id: index + 1,
+					url: item.url,
+					title: item.title || 'No Title',
+					wordCount: item.wordCount || item.word_count || 0,
+					charCount: item.charCount || item.char_count || 0,
+					linksFound: item.linksFound || item.links_found || 0,
+					error: item.error || false
+				}));
+			}
+		});
+		
+		// Subscribe to crawler logs for terminal output
+		const unsubscribeCrawlerLogs = crawlerLogs.subscribe((newLogs) => {
+			logs = newLogs;
+		});
+		
+		// Also track scan progress changes for debugging
+		const unsubscribeProgress = scanProgress.subscribe((value) => {
+			console.log(`Progress updated to: ${value}%`);
+			if (value >= 100) {
+				console.log('Scan completed!');
+			}
+		});
+		
+		return () => {
+			unsubscribeCrawlerResults();
+			unsubscribeCrawlerLogs();
+			unsubscribeProgress();
+		};
+	});
 
 	const currentStep = derived(serviceStatus, ($serviceStatus) =>
 		$serviceStatus.status === 'running'
@@ -78,7 +131,7 @@
 			</div>
 			<Progress value={$scanProgress} max={100} class="w-[100%]" />
 		</div>
-		<Table data={data.tableData} columns={data.tableColumns} currentStep={$currentStep} />
+		<Table data={tableData} columns={data.tableColumns} currentStep={$currentStep} />
 	</div>
 
 	<div class="button-section">
