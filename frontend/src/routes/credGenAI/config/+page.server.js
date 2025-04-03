@@ -5,69 +5,102 @@ import { validateField } from '$lib/validation/validationRules.js';
 export const actions = {
 	default: async ({ request }) => {
 		const rawFormData = await request.formData();
-		const wordlistFile = rawFormData.get("wordlist");
 
-		console.log("🧾 wordlistFile:", wordlistFile);
-		console.log("📏 file size:", wordlistFile?.size);
-		console.log("wordlistFile instanceof File:", wordlistFile instanceof File);
-
+		// Extract wordlist separately
+		const wordlistFile = rawFormData.get('wordlist');
 		const formData = Object.fromEntries(rawFormData.entries());
-		delete formData.wordlist; // prevent File object from being returned
+		delete formData.wordlist;
 
-		const errors = [];
+		console.log('📥 Received wordlist:', wordlistFile?.name);
+		console.log('📦 File size:', wordlistFile?.size);
+		console.log('🧾 Form fields:', formData);
 
-		if (!wordlistFile || !(wordlistFile instanceof File) || wordlistFile.size === 0) {
-			console.warn("No file received or file is empty.");
-			return fail(400, {
+		const fieldErrors = {};
+
+		// Validate file
+		const fileValidation = validateField('wordlist', wordlistFile);
+		if (fileValidation.error || !(wordlistFile instanceof File) || wordlistFile.size === 0) {
+			fieldErrors.wordlist = {
 				error: true,
-				message: "Please upload a valid wordlist file.",
-				values: formData
-			});
+				message: fileValidation.message || 'Please upload a valid wordlist file.'
+			};
 		}
 
-		// Validate the file
-		const wordlistValidation = validateField("wordlist", wordlistFile);
-		if (wordlistValidation.error) {
-			return fail(400, {
-				error: true,
-				fieldErrors: {
-					wordlist: {
-						error: true,
-						message: wordlistValidation.message
-					}
-				},
-				values: formData
-			});
-		}		
-
-		// (Optional) validate other fields
+		// Validate text/number fields
 		for (const [id, value] of Object.entries(formData)) {
-			const { error, message } = validateField(id, value);
-			if (error) {
-				errors.push(`${id}: ${message}`);
+			const result = validateField(id, value);
+			if (result.error) {
+				fieldErrors[id] = {
+					error: true,
+					message: result.message
+				};
 			}
 		}
 
-		// Fail early if any errors
-		if (errors.length > 0) {
-			console.warn("Validation errors:", errors);
+		// Return early if validation failed
+		if (Object.keys(fieldErrors).length > 0) {
+			console.warn('❌ Validation errors in credgenAI:', fieldErrors);
 			return fail(400, {
 				error: true,
-				fieldErrors: {
-					wordlist: {
-						error: true,
-						message: "Wordlist is required."
-					}
-				},
+				fieldErrors,
 				values: formData
 			});
 		}
 
-		// Only return success if valid
-		console.log("All validations passed — redirect OK");
-		return {
-			success: true,
-			values: formData
+		// Transform data with undefined for missing optional fields
+		const transformedData = {
+			username_length: formData['username-length'] ? Number(formData['username-length']) : undefined,
+			password_length: formData['password-length'] ? Number(formData['password-length']) : undefined,
+			username_caps: formData['username-caps'] === 'on' ? true : undefined,
+			username_numbers: formData['username-numbers'] === 'on' ? true : undefined,
+			username_symbols: formData['username-symbols'] === 'on' ? true : undefined,
+			password_caps: formData['password-caps'] === 'on' ? true : undefined,
+			password_numbers: formData['password-numbers'] === 'on' ? true : undefined,
+			password_symbols: formData['password-symbols'] === 'on' ? true : undefined
 		};
+
+		// Assemble payload using FormData
+		const credgenPayload = new FormData();
+		for (const [key, value] of Object.entries(transformedData)) {
+			if (value !== undefined) {
+				credgenPayload.append(key, value);
+			}
+		}
+		credgenPayload.append('wordlist', wordlistFile);
+
+		try {
+			const response = await fetch('http://127.0.0.1:8000/api/credgen', {
+				method: 'POST',
+				body: credgenPayload
+			});
+
+			const json = await response.json().catch(e => {
+				console.warn('⚠️ Failed to parse JSON:', e.message);
+				return {};
+			});
+
+			if (!response.ok) {
+				console.error('❌ Backend error:', json);
+				return fail(response.status, {
+					error: true,
+					message: `Backend error: ${response.statusText}`,
+					values: formData
+				});
+			}
+
+			console.log('✅ Backend response:', json);
+			return {
+				success: true,
+				message: 'AI credential generation launched.',
+				values: formData
+			};
+		} catch (err) {
+			console.error('🔥 Uncaught server error:', err);
+			return fail(500, {
+				error: true,
+				message: 'Internal server error',
+				values: formData
+			});
+		}
 	}
 };
