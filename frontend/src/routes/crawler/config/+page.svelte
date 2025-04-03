@@ -125,12 +125,10 @@
 					return;
 				}
 
-				startScanProgress('crawler');
+				// Start progress tracking with the job ID from the backend
+				startScanProgress(result.data.jobId); 
 
-				console.log('[Service Status]', $serviceStatus);
-				console.log('[Scan Progress]', $scanProgress);
-
-				goto('/crawler/run', { replaceState: true });
+				goto(`/crawler/run?jobId=${result.data.jobId}`, { replaceState: true });
 			} else {
 				await update();
 			}
