@@ -1,4 +1,4 @@
-import { writable } from 'svelte/store';
+import { writable, get } from 'svelte/store';
 import { serviceStatus } from './projectServiceStore';
 
 export const scanProgress = writable(0);
@@ -6,6 +6,7 @@ export const scanPaused = writable(false);
 export const crawlerResults = writable([]);
 export const crawlerLogs = writable([]);
 export const jobId = writable(null);
+
 
 let intervalId = null;
 let socket = null;
@@ -36,7 +37,12 @@ function startMockProgress() {
 		let isPaused;
 		scanPaused.subscribe((v) => (isPaused = v))();
 
-		if (isPaused) return; // Don't increment if paused
+	// Set service as running
+	serviceStatus.set({
+		status: 'running',
+		serviceType: service,
+		startTime: new Date().toISOString()
+	});
 
 		const elapsed = Date.now() - startTime;
 		
@@ -192,3 +198,4 @@ export function stopScanProgress() {
 	scanPaused.set(false);
 	jobId.set(null);
 }
+

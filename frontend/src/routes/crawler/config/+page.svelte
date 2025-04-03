@@ -120,13 +120,10 @@
 			}
 
 			if (result.type === 'success' && result.data?.success) {
-				scanProgress.set(0);
-				
-				serviceStatus.set({
-					status: 'running',
-					serviceType: 'crawler',
-					startTime: new Date()
-				});
+				if ($serviceStatus.status === 'running') {
+					console.warn('Scan already in progress. Preventing new submission.');
+					return;
+				}
 
 				// Start progress tracking with the job ID from the backend
 				startScanProgress(result.data.jobId); 
@@ -137,10 +134,6 @@
 			}
 		};
 	};
-
-	$: console.log('[CURRENT STATUS]', $serviceStatus);
-$: console.log('[CURRENT PROGRESS]', $scanProgress);
-
 </script>
 
 <div class="crawler-config">
@@ -150,55 +143,54 @@ $: console.log('[CURRENT PROGRESS]', $scanProgress);
 	</div>
 	<form method="POST" use:enhance={onSubmitHandler} class="input-container">
 		{#each inputFields.filter((field) => !field.advanced) as field}
-		{#if field.id === 'target-url'}
-			<div class="w-full max-w-96 flex flex-col">
-				<div class="flex items-center input-field">
-					<Label for={field.id} class="font-medium">
-						{field.label}
-						{#if field.required}
-							<span class="text-red-500">*</span>
-						{/if}
-					</Label>
-					<Tooltip.Provider>
-						<Tooltip.Root>
-							<Tooltip.Trigger asChild>
-								<Button variant="ghost" size="circlesm" type="button">
-									<Info style="width: 16px; height: 16px;" />
-								</Button>
-							</Tooltip.Trigger>
-							<Tooltip.Content>
-								<p>Optional fields left empty will use default values</p>
-							</Tooltip.Content>
-						</Tooltip.Root>
-					</Tooltip.Provider>
+			{#if field.id === 'target-url'}
+				<div class="flex w-full max-w-96 flex-col">
+					<div class="input-field flex items-center">
+						<Label for={field.id} class="font-medium">
+							{field.label}
+							{#if field.required}
+								<span class="text-red-500">*</span>
+							{/if}
+						</Label>
+						<Tooltip.Provider>
+							<Tooltip.Root>
+								<Tooltip.Trigger asChild>
+									<Button variant="ghost" size="circlesm" type="button">
+										<Info style="width: 16px; height: 16px;" />
+									</Button>
+								</Tooltip.Trigger>
+								<Tooltip.Content>
+									<p>Optional fields left empty will use default values</p>
+								</Tooltip.Content>
+							</Tooltip.Root>
+						</Tooltip.Provider>
+					</div>
+					<FormField
+						id={field.id}
+						type={field.type}
+						placeholder={field.placeholder}
+						value={formData[field.id] || ''}
+						error={fieldErrors[field.id]?.error || false}
+						errorText={fieldErrors[field.id]?.message || ''}
+						onInput={(e) => handleInputChange(field.id, e.target.value)}
+						onBlur={() => handleInputChange(field.id, formData[field.id])}
+					/>
 				</div>
+			{:else}
 				<FormField
-				id={field.id}
-				type={field.type}
-				placeholder={field.placeholder}
-				value={formData[field.id] || ''}
-				error={fieldErrors[field.id]?.error || false}
-				errorText={fieldErrors[field.id]?.message || ''}
-				onInput={(e) => handleInputChange(field.id, e.target.value)}
-				onBlur={() => handleInputChange(field.id, formData[field.id])}
-			/>
-			</div>
-		{:else}
-			<FormField
-				id={field.id}
-				label={field.label}
-				type={field.type}
-				placeholder={field.placeholder}
-				required={field.required}
-				value={formData[field.id] || ''}
-				error={fieldErrors[field.id]?.error || false}
-				errorText={fieldErrors[field.id]?.message || ''}
-				onInput={(e) => handleInputChange(field.id, e.target.value)}
-				onBlur={() => handleInputChange(field.id, formData[field.id])}
-			/>
-		{/if}
-	{/each}
-	
+					id={field.id}
+					label={field.label}
+					type={field.type}
+					placeholder={field.placeholder}
+					required={field.required}
+					value={formData[field.id] || ''}
+					error={fieldErrors[field.id]?.error || false}
+					errorText={fieldErrors[field.id]?.message || ''}
+					onInput={(e) => handleInputChange(field.id, e.target.value)}
+					onBlur={() => handleInputChange(field.id, formData[field.id])}
+				/>
+			{/if}
+		{/each}
 
 		<Accordion.Root type="single" class="w-96 max-w-full">
 			<Accordion.Item value="item-1">
@@ -263,10 +255,10 @@ $: console.log('[CURRENT PROGRESS]', $scanProgress);
 		gap: 1rem;
 	}
 	.input-field {
-    display: flex;
-    width: 100%;
-    max-width: 24rem;
-    flex-direction: row;
-    gap: 0.375rem;
+		display: flex;
+		width: 100%;
+		max-width: 24rem;
+		flex-direction: row;
+		gap: 0.375rem;
 	}
 </style>
