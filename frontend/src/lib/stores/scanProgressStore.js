@@ -40,7 +40,7 @@ function startMockProgress() {
 	// Set service as running
 	serviceStatus.set({
 		status: 'running',
-		serviceType: service,
+		serviceType: 'crawler', // Explicitly set to crawler for mock progress
 		startTime: new Date().toISOString()
 	});
 
