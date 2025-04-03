@@ -6,15 +6,19 @@ from src.modules.fuzzer.fuzzer_manager import FuzzerManager
 async def run_fuzzing_test():
     fuzzer = FuzzerManager()
 
+    payload_path = os.path.abspath(
+        os.path.join(os.path.dirname(__file__), "..", "..", "..", "wordlist.txt")
+    )
+
     fuzzer.configure_fuzzing(
         target_url="https://team-9-56497.firebaseapp.com/Login",
         http_method="POST",
         headers={"User-Agent": "Mozilla/5.0", "Content-Type": "application/x-www-form-urlencoded"},
         cookies={},
         proxy=None,
-        body_template={"field-r1__control": "", "field-r2__control": ""},  # Not used in GET
+        body_template={"field-r1__control": "", "field-r2__control": ""},
         parameters=["field-r1__control", "field-r2__control"],
-        payloads=r"C:\Users\ricar\Documents\sw2\TRACE_CyberGuardians\backend\wordlist.txt"
+        payloads=payload_path
     )
 
     print("[*] Starting fuzzing run...")
@@ -23,15 +27,13 @@ async def run_fuzzing_test():
     results = fuzzer.get_filtered_results()
     metrics = fuzzer.get_metrics()
 
-    # Go from test/fuzzer/ -> ../../modules/fuzzer/
+    # 📁 Save output into modules/fuzzer/
     fuzzer_output_path = os.path.abspath(
         os.path.join(os.path.dirname(__file__), "..", "..", "modules", "fuzzer")
     )
     os.makedirs(fuzzer_output_path, exist_ok=True)
 
-    # Save results file into the fuzzer folder
     results_file = os.path.join(fuzzer_output_path, "results_fuzzer.txt")
-
 
     with open(results_file, "w", encoding="utf-8") as f:
         for r in results:
