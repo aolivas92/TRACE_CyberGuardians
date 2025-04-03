@@ -71,17 +71,17 @@ export async function load({ params, url, fetch }) {
     }
   } else {
     console.log('ℹ️ No job ID provided, will use mock data');
+    // Use mock data if we couldn't get real data
+    if (tableData.length === 0) {
+      console.log('🧪 Using mock data for display');
+      tableData = [
+        { id: 45, url: "https://juice-shop.herokuapp.com", title: "OWASP Juice Shop", wordCount: 200, charCount: 1024, linksFound: 10, error: false },
+        { id: 46, url: "https://juice-shop.herokuapp.com/about", title: "About Us", wordCount: 150, charCount: 850, linksFound: 5, error: false },
+        // ... more mock data entries ...
+      ];
+    }
   }
 
-  // Use mock data if we couldn't get real data
-  if (tableData.length === 0) {
-    console.log('🧪 Using mock data for display');
-    tableData = [
-      { id: 45, url: "https://juice-shop.herokuapp.com", title: "OWASP Juice Shop", wordCount: 200, charCount: 1024, linksFound: 10, error: false },
-      { id: 46, url: "https://juice-shop.herokuapp.com/about", title: "About Us", wordCount: 150, charCount: 850, linksFound: 5, error: false },
-      // ... more mock data entries ...
-    ];
-  }
 
   console.log('🚀 Crawler run page loaded with', tableData.length, 'results');
   
