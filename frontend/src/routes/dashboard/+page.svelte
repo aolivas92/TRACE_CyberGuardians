@@ -2,6 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { serviceStatus } from '$lib/stores/projectServiceStore.js';
+	import { onMount } from 'svelte';
 
 	export let data;
 
@@ -36,6 +37,13 @@ function getToolStatus(tool) {
 	}
 	return 'Not Started';
 }
+
+// Reset service status when dashboard loads if it's in 'complete' state
+onMount(() => {
+	if ($serviceStatus.status === 'complete') {
+		serviceStatus.reset();
+	}
+});
 
 
 function getButtonLabel(tool) {

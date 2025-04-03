@@ -33,7 +33,6 @@ export async function load({ params, url, fetch }) {
       
       if (response.ok) {
         const data = await response.json();
-        console.log('📊 Received results from backend with', data.results?.length || 0, 'items');
         
         if (data && data.results && Array.isArray(data.results)) {
           // Transform the backend data to match our table format
@@ -48,8 +47,6 @@ export async function load({ params, url, fetch }) {
           }));
           
           console.log('✅ Successfully processed', tableData.length, 'result items');
-        } else {
-          console.warn('⚠️ Received empty or invalid results data');
         }
       } else {
         console.warn('⚠️ Backend response not OK:', response.status, response.statusText);
@@ -60,7 +57,6 @@ export async function load({ params, url, fetch }) {
         const logsResponse = await fetch(`http://127.0.0.1:8000/api/crawler/${jobId}/logs`);
         if (logsResponse.ok) {
           const logsData = await logsResponse.json();
-          console.log('📝 Received', logsData.logs?.length || 0, 'log entries');
         }
       } catch (logsError) {
         console.error('❌ Error fetching logs:', logsError);
@@ -81,9 +77,6 @@ export async function load({ params, url, fetch }) {
       ];
     }
   }
-
-
-  console.log('🚀 Crawler run page loaded with', tableData.length, 'results');
   
   return {
     tableData,
