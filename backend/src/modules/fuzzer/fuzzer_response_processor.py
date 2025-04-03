@@ -9,7 +9,7 @@ class FuzzerResponseProcessor:
         self.hide_codes = []
         self.length_threshold = 0
 
-    def set_filters(self, status_filter: List[int], hide_codes: List[int] = [], length_threshold: int = 0):
+    def set_filters(self, status_filter: List[int], hide_codes: List[int] = [], length_threshold: int = None):
         self.status_code_filter = status_filter
         self.hide_codes = hide_codes
         self.length_threshold = length_threshold
