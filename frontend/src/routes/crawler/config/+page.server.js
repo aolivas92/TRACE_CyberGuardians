@@ -70,10 +70,8 @@ export const actions = {
 
 			return {
 				success: true,
-				message: 'Crawler launched successfully.',
-				values: formData,
-				jobId: json.job_id // Pass the job ID to the frontend
-
+				message: "All good!",
+				values: formData
 			};
 		} catch (error) {
 			console.error("Uncaught server error:", error);
