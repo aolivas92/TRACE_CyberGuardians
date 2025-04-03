@@ -5,8 +5,10 @@ import ollama
 import csv
 from typing import Dict, List, Tuple, Set
 import re
+import warnings
 
 from .credential_mdp import CredentialMDP
+
 
 class Credential_Generator:
     """
@@ -30,11 +32,11 @@ class Credential_Generator:
         This class doesn't inherit from any superclass.
     """
 
-    def __init__(self, csv_path: str = None, wordlist_path: str = None):
+    def __init__(self, csv_path: str | None = None, wordlist_path: str | None = None):
         """
         Initialize the Credential Generator.
 
-        Args: 
+        Args:
             csv_path (str, optional): Path to CSV with web text.
             wordlist_path (str, optional): Path to wordlist file.
         """
@@ -49,16 +51,16 @@ class Credential_Generator:
             else:
                 self.wordlists = []
 
-        except (FileNotFoundError) as e:
+        except FileNotFoundError as e:
             print(f"Error loading input files in Credential_Generator: {e}")
             self.web_text = csv_path if csv_path else ""
             self.wordlists = wordlist_path if wordlist_path else []
-        
+
         self.username_mdp = CredentialMDP(order=2)
         self.password_mdp = CredentialMDP(order=3)
         self.min_username_length = 5
         self.min_password_length = 10
-
+        self.hyperparameters: List[str] = [""]
 
     def calculate_password_strength(self, password: str) -> str:
         """
@@ -86,11 +88,11 @@ class Credential_Generator:
             "6. Use of password managers: Consider using password managers for securely storing passwords."
         )
 
-        # Basice strength score to replace embeddings.
+        # Fallback method for scoring the strength of a password to replace embeddings.
         score = self.password_mdp.calculate_password_strength(password)
 
         query = (
-            f"{good_practices_info}\n\n"  
+            f"{good_practices_info}\n\n"
             f"Here's a password: '{password}'. "
             f"Based on best practices for creating secure passwords, and considering the cosine similarity "
             f"of '{score:.2f}' with similar insecure passwords, is this password secure? "
@@ -100,27 +102,27 @@ class Credential_Generator:
             f"\n\nIf the password is weak according to best practices, mention that first and explain why. "
             f"Please answer with 'secure' or 'not secure', followed by a brief explanation (max 5 words) that includes: "
             f"whether best practices were followed, which practice was not followed (if applicable) and what is weak about the pattern (if the pattern is weak), and whether cosine similarity was high."
-        ) 
+        )
 
-        system_message = 'You are a password security expert. Evaluate passwords carefully and provide concise feedback.'
+        system_message = "You are a password security expert. Evaluate passwords carefully and provide concise feedback."
 
         message = [
-            {'role': 'system', 'content': system_message},
-            {'role': 'user', 'content': query},
+            {"role": "system", "content": system_message},
+            {"role": "user", "content": query},
         ]
 
         try:
             response = ollama.chat(model="gemma3:latest", messages=message)
-            return response['message']['content']
-        # TODO: Update this exception handler to more specific
+            return response["message"]["content"]
         except Exception as e:
             print(f"Error calling Ollama: {e}")
-            # TODO: Update, Fallback evaluation if Ollama call is failing
+            warnings.warn("[WARN] Error calling Ollama, continuing with fallback score")
+            # INFO:Fallback method for scoring the strength of a password to replace embeddings.
+            score = self.password_mdp.calculate_password_strength(password)
             if score > 0.7:
                 return "secure - meets best practices"
             else:
                 return "not secure - does not meet all best practices."
-
 
     def calcualte_username_strenth(self, username: str) -> float:
         """
@@ -137,7 +139,7 @@ class Credential_Generator:
         """
         if not username:
             raise ValueError("Username cannot be empty")
-        
+
         return self.username_mdp.calculate_username_quality(username)
 
     def get_ai_hyperparameters(self) -> list[str]:
@@ -153,10 +155,10 @@ class Credential_Generator:
         Raises:
             ValueError: If there are no hyperparameters.
         """
-        # TODO: Update to receive from user when backend is set up.
-        return [
-            ""
-        ]
+        if not self.hyperparameters:
+            warnings.warn("[WARN] No Hyperparameters given, defaulting.")
+            return [""]
+        return self.hyperparameters
 
     def get_ai_wordlist(self) -> list[str]:
         """
@@ -190,7 +192,7 @@ class Credential_Generator:
         """
         if not credentials_list:
             raise ValueError("Credential list cannot be empty")
-        
+
         # Process and score each credential
         processed_credentials = []
         for username, password in credentials_list:
@@ -198,16 +200,26 @@ class Credential_Generator:
             password_response = self.calculate_password_strength(password)
             is_secure = "secure" in password_response.lower()
 
-            processed_credentials.append({
-                "username": username,
-                "username_score": username_score,
-                "password": password,
-                "is_secure": is_secure,
-                "password_evaluation":password_response
-            })
+            processed_credentials.append(
+                {
+                    "username": username,
+                    "username_score": username_score,
+                    "password": password,
+                    "is_secure": is_secure,
+                    "password_evaluation": password_response,
+                }
+            )
 
-        with open("processed_credentials.csv", "w", newline="", encoding="utf-8") as outfile:
-            fieldnames = ["username", "username_score", "password", "is_secure", "password_evaluation"]
+        with open(
+            "processed_credentials.csv", "w", newline="", encoding="utf-8"
+        ) as outfile:
+            fieldnames = [
+                "username",
+                "username_score",
+                "password",
+                "is_secure",
+                "password_evaluation",
+            ]
             writer = csv.DictWriter(outfile, fieldnames=fieldnames)
             writer.writeheader()
             writer.writerows(processed_credentials)
@@ -215,15 +227,17 @@ class Credential_Generator:
     def _preprocess_text(self, text: str) -> List[str]:
         """
         Preprocess text data for training.
-        
+
         Args:
             text (str): The text to preprocess.
-            
+
         Returns:
             List[str]: List of words.
         """
-        words = re.findall(r'\w+', text.lower())
-        return [word for word in words if len(word) >= 4]  # Filter out words shorter than 4 chars
+        words = re.findall(r"\w+", text.lower())
+        return [
+            word for word in words if len(word) >= 4
+        ]  # Filter out words shorter than 4 chars
 
     def _build_state_transitions(self):
         """
@@ -234,26 +248,26 @@ class Credential_Generator:
 
         for word in username_date:
             for i in range(len(word) - self.username_mdp.order):
-                state = f"username_{word[i:i+self.username_mdp.order]}"
-                action = word[i+self.username_mdp.order]
-                next_char = word[i+self.username_mdp.order]
+                state = f"username_{word[i : i + self.username_mdp.order]}"
+                action = word[i + self.username_mdp.order]
+                next_char = word[i + self.username_mdp.order]
                 self.username_mdp.state_transitions[state][action].add(next_char)
                 if i == 0:
                     self.username_mdp.initial_states.append(state)
-        
+
         for word in password_data:
             for i in range(len(word) - self.password_mdp.order):
-                state = f"password_{word[i:i+self.password_mdp.order]}"
-                action = word[i+self.password_mdp.order]
-                next_char = word[i+self.password_mdp.order]
+                state = f"password_{word[i : i + self.password_mdp.order]}"
+                action = word[i + self.password_mdp.order]
+                next_char = word[i + self.password_mdp.order]
                 self.password_mdp.state_transitions[state][action].add(next_char)
                 if i == 0:
                     self.password_mdp.initial_states.append(state)
-    
+
     def generate_credential(self) -> Tuple[str, str]:
         """
         Generate a username and password pair.
-        
+
         Returns:
             tuple[str, str]: Generated username and password.
         """
@@ -269,9 +283,11 @@ class Credential_Generator:
             if not action or not next_char:
                 break
             username += next_char
-            next_state = f"username_{username[-self.username_mdp.order:]}"
+            next_state = f"username_{username[-self.username_mdp.order :]}"
             reward = self.username_mdp.get_reward(state, action, next_char)
-            self.username_mdp.update_q_value(state, action, next_char, next_state, reward)
+            self.username_mdp.update_q_value(
+                state, action, next_char, next_state, reward
+            )
             state = next_state
 
         username = f"{username}{random.randint(1, 999)}"
@@ -289,21 +305,23 @@ class Credential_Generator:
             if not action or not next_char:
                 break
             password += next_char
-            next_state = f'password_{password[-self.password_mdp.order:]}'
+            next_state = f"password_{password[-self.password_mdp.order :]}"
             reward = self.password_mdp.get_reward(state, action, next_char)
-            self.password_mdp.update_q_value(state, action, next_char, next_state, reward)
+            self.password_mdp.update_q_value(
+                state, action, next_char, next_state, reward
+            )
             state = next_state
 
         password = self._improve_password(password)
         return username, password
-    
+
     def generate_credentials(self, count: int = 10) -> List[Tuple[str, str]]:
         """
         Generate multiple credentials.
-        
+
         Args:
             count (int): Number of credentials to generate.
-            
+
         Returns:
             list[tuple[str, str]]: List of generated username and password pairs.
         """
@@ -313,7 +331,7 @@ class Credential_Generator:
             username, password = self.generate_credential()
             credentials.append((username, password))
         return credentials
-    
+
     def _improve_password(self, password: str) -> str:
         """
         Enhance the generated password with additional complexity.
@@ -325,58 +343,64 @@ class Credential_Generator:
             str: Enhanced password.
         """
         enhanced = password.capitalize()
-        enhanced = f'{enhanced}{random.choice("!@#$%^&*")}{random.randint(0, 9)}'
+        enhanced = f"{enhanced}{random.choice('!@#$%^&*')}{random.randint(0, 9)}"
         return enhanced
 
     def _load_web_text(self, csv_path: str) -> str:
         """
         Load web text from a CSV file.
-        
+
         Args:
             csv_path (str): Path to the CSV file.
-            
+
         Returns:
             str: Concatenated content from the CSV.
-            
+
         Raises:
             FileNotFoundError: If the CSV file doesn't exist.
             ValueError: If the CSV doesn't have the required columns.
         """
         if not os.path.exists(csv_path):
-            raise FileNotFoundError(f'CSV file not found: {csv_path}')
+            raise FileNotFoundError(f"CSV file not found: {csv_path}")
         try:
-            with open(csv_path, 'r', encoding='utf-8') as file:
+            with open(csv_path, "r", encoding="utf-8") as file:
                 reader = csv.DictReader(file)
-                if not {'id', 'content', 'url'}.issubset(set(reader.fieldnames or [])):
+                if not {"id", "content", "url"}.issubset(set(reader.fieldnames or [])):
                     raise ValueError("CSV must contain columns: id, content, url")
                 contents = []
                 for row in reader:
-                    if row['content']:
-                        contents.append(row['content'].lower())
+                    if row["content"]:
+                        contents.append(row["content"].lower())
             return " ".join(contents)
         except csv.Error as e:
             raise ValueError(f"Error reading CSV file: {e}")
-        
+
     def _load_wordlist(self, file_path: str) -> List[str]:
         """
         Load wordlist from a file.
-        
+
         Args:
             file_path (str): Path to the wordlist file.
-            
+
         Returns:
             List[str]: List of words from the file.
-            
+
         Raises:
             FileNotFoundError: If the wordlist file doesn't exist.
             ValueError: If there's an error reading the file.
         """
         if not os.path.exists(file_path):
-            raise FileNotFoundError(f'Wordlist file not found: {file_path}')
+            raise FileNotFoundError(f"Wordlist file not found: {file_path}")
         try:
-            with open(file_path, 'r', encoding='utf-8') as file:
+            with open(file_path, "r", encoding="utf-8") as file:
                 words = [line.strip().lower() for line in file if line.strip()]
                 return words
-        # TODO: updated to have a more specific catch
+        except PermissionError as pe:
+            raise PermissionError(
+                f"Error with file permissions, unable to access file: {pe}"
+            )
+        except IOError as ioe:
+            raise ValueError(f"Error with i/o operations on file: {ioe}")
         except Exception as e:
-            raise ValueError(f'Error reading wordlist file: {e}')
+            raise ValueError(f"Error reading wordlist file: {e}")
+
