@@ -5,8 +5,8 @@ import asyncio
 import datetime
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
-from src.modules.scanning.mock_http import RealHTTPClient
-from src.modules.scanning.crawler_response import CrawlerResponseProcessor
+from mock_http import RealHTTPClient
+from crawler_response import CrawlerResponseProcessor
 
 class crawler_manager:
     """
@@ -34,14 +34,7 @@ class crawler_manager:
         self.results = []
         self.table_data = []
         self.counter = 1
-        self.progress_callback = lambda url, error=None: None
 
-    def set_progress_callback(self, callback):
-        """
-        Sets a callback function that will be called whenever a URL is processed.
-        The callback should accept two parameters: url and error (which can be None).
-        """
-        self.progress_callback = callback
     def configure_crawler(self, target_url: str, depth: int, limit: int, user_agent: str, delay: int, proxy: str, crawl_date: str = None, crawl_time: str = None, excluded_urls: str = None) -> None:
         """
         configure_crawler configures the crawler with user defined settings.
@@ -100,9 +93,6 @@ class crawler_manager:
         try:
             raw_html = await self.http_client.get(url, headers=headers, proxy=self.config.get("proxy"))
             await asyncio.sleep(self.config.get("delay", 0) / 1000.0)
-
-            self.progress_callback(url)
-
             if depth_remaining == self.config.get("depth"):
                 with open("raw_html.txt", "w", encoding="utf-8") as f:
                     f.write(raw_html)
@@ -120,12 +110,11 @@ class crawler_manager:
                 if any(excluded in extracted_url for excluded in self.config["excluded_urls"]):
                     continue
                 full_url = urljoin(url, extracted_url)
-                await self.crawl_recursive(full_url, depth_remaining - 1, parent_url=url)
+                await self.crawl_recursive(full_url, depth_remaining - 1, url)
         except Exception as e:
             self.table_data.append({ "id": self.counter, "url": url, "parentUrl": parent_url, "title": "Error",
                 "wordCount": 0, "charCount": 0, "linksFound": 0, "error": True})
             self.counter += 1
-            self.progress_callback(url, str(e))
 
     async def start_crawl(self) -> list:
         """
@@ -143,8 +132,6 @@ class crawler_manager:
         @ensures result is a list of processed crawl results;
         """
         await self.crawl_recursive(self.config.get("target_url"), self.config.get("depth"))
-
-        # TODO: Update this to work correclty.
         with open("crawler_table_data.json", "w", encoding="utf-8") as f:
             json.dump(self.table_data, f, indent=1)
         print("Crawling completed. Results written to crawler_table_data.json")
