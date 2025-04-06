@@ -71,7 +71,8 @@ export const actions = {
 			return {
 				success: true,
 				message: "All good!",
-				values: formData
+				values: formData,
+				job_id: json?.job_id
 			};
 		} catch (error) {
 			console.error("Uncaught server error:", error);

@@ -120,10 +120,26 @@
 			}
 
 			if (result.type === 'success' && result.data?.success) {
-				if ($serviceStatus.status === 'running') {
-					console.warn('Scan already in progress. Preventing new submission.');
+				// if ($serviceStatus.status === 'running') {
+				// 	console.warn('Scan already in progress. Preventing new submission.');
+				// 	return;
+				// }
+
+				const jobId = result.data.job_id;
+
+				if (!jobId) {
+					console.error('Job ID missing from server response.');
 					return;
 				}
+
+				// 🔐 Store job ID
+				localStorage.setItem('currentCrawlerJobId', jobId);
+
+				setTimeout(() => {
+					import('$lib/services/crawlerSocket').then(({ connectToCrawlerWebSocket }) => {
+						connectToCrawlerWebSocket(jobId);
+					});
+				}, 500); // 500ms delay
 
 				startScanProgress('crawler');
 

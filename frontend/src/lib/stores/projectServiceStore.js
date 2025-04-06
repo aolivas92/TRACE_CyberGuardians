@@ -15,10 +15,8 @@ function createServiceStatusStore() {
 
 	store.subscribe((value) => {
 		if (typeof localStorage !== 'undefined') {
-			console.log('[Store] serviceStatus changed:', value);
 			localStorage.setItem('serviceStatus', JSON.stringify(value));
-			console.log('[Store] serviceStatus changed after:', value);
-
+			console.log('[Store] serviceStatus changed:', value);
 		}
 	});
 

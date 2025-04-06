@@ -5,8 +5,8 @@ import asyncio
 import datetime
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
-from mock_http import RealHTTPClient
-from crawler_response import CrawlerResponseProcessor
+from src.modules.scanning.mock_http import RealHTTPClient
+from src.modules.scanning.crawler_response import CrawlerResponseProcessor
 
 class crawler_manager:
     """
@@ -19,7 +19,7 @@ class crawler_manager:
         configure_crawler(target_url: str, depth: int, limit: int, user_agent: str, delay: int, proxy: str, crawl_date: str = None, crawl_time: str = None, excluded_urls: str = None) -> None:
         crawl_recursive(url: str, depth_remaining: int, parent_url: str = None) -> None:
         start_crawl() -> list:
-    
+    s
     Notes:
         - Crawling process is asynchronous.
         - Crawler respects user agent, delay, and exclusions to prevent unnecessary load on websites.
@@ -34,6 +34,15 @@ class crawler_manager:
         self.results = []
         self.table_data = []
         self.counter = 1
+        self.progress_callback = lambda url, error=None: None
+        self.on_new_row = None
+
+    def set_progress_callback(self, callback):
+        """
+        Sets a callback function that will be called whenever a URL is processed.
+        The callback should accept two parameters: url and error (which can be None).
+        """
+        self.progress_callback = callback
 
     def configure_crawler(self, target_url: str, depth: int, limit: int, user_agent: str, delay: int, proxy: str, crawl_date: str = None, crawl_time: str = None, excluded_urls: str = None) -> None:
         """
@@ -63,9 +72,18 @@ class crawler_manager:
         @requires delay >= 0;
         @ensures config == {target_url, depth, limit, user_agent, delay, proxy, crawl_date, crawl_time, excluded_urls};
         """
-        self.config = { "target_url": target_url, "depth": depth, "limit": limit, "user_agent": user_agent,
-            "delay": delay, "proxy": proxy, "crawl_date": crawl_date, "crawl_time": crawl_time,
-            "excluded_urls": excluded_urls.split(',') if excluded_urls else []}
+        self.config = {
+            "target_url": target_url,
+            "depth": depth,
+            "limit": limit,
+            "user_agent": user_agent,
+            "delay": delay,
+            "proxy": proxy,
+            "crawl_date": crawl_date,
+            "crawl_time": crawl_time,
+            "excluded_urls": excluded_urls.split(',') if excluded_urls else []
+        }
+
 
     async def crawl_recursive(self, url: str, depth_remaining: int, parent_url: str = None) -> None:
         """
@@ -93,28 +111,65 @@ class crawler_manager:
         try:
             raw_html = await self.http_client.get(url, headers=headers, proxy=self.config.get("proxy"))
             await asyncio.sleep(self.config.get("delay", 0) / 1000.0)
+
+            self.progress_callback(url)
+
             if depth_remaining == self.config.get("depth"):
                 with open("raw_html.txt", "w", encoding="utf-8") as f:
                     f.write(raw_html)
+
             soup = BeautifulSoup(raw_html, "html.parser")
             title = soup.title.string.strip() if soup.title and soup.title.string else "Untitled"
             text = soup.get_text()
             word_count = len(text.split())
             char_count = len(text)
             links_found = len(soup.find_all("a"))
-            self.table_data.append({ "id": self.counter, "url": url, "parentUrl": parent_url, "title": title, "wordCount": word_count, "charCount": char_count, "linksFound": links_found, "error": False})
+
+            row = {
+                "id": self.counter,
+                "url": url,
+                "parentUrl": parent_url,
+                "title": title,
+                "wordCount": word_count,
+                "charCount": char_count,
+                "linksFound": links_found,
+                "error": False
+            }
+            self.table_data.append(row)
+
+            # 👇 Call the on_new_row callback
+            if callable(self.on_new_row):
+                self.on_new_row(row)
+
             self.counter += 1
+
             processed_result = self.processor.process_response(raw_html, base_url=url)
             self.results.append({"url": url, "data": processed_result})
+
             for extracted_url in processed_result.get("extracted_urls", []):
                 if any(excluded in extracted_url for excluded in self.config["excluded_urls"]):
                     continue
                 full_url = urljoin(url, extracted_url)
-                await self.crawl_recursive(full_url, depth_remaining - 1, url)
+                await self.crawl_recursive(full_url, depth_remaining - 1, parent_url=url)
+
         except Exception as e:
-            self.table_data.append({ "id": self.counter, "url": url, "parentUrl": parent_url, "title": "Error",
-                "wordCount": 0, "charCount": 0, "linksFound": 0, "error": True})
+            error_row = {
+                "id": self.counter,
+                "url": url,
+                "parentUrl": parent_url,
+                "title": "Error",
+                "wordCount": 0,
+                "charCount": 0,
+                "linksFound": 0,
+                "error": True
+            }
+            self.table_data.append(error_row)
+
+            if callable(self.on_new_row):
+                self.on_new_row(error_row)
+
             self.counter += 1
+            self.progress_callback(url, str(e))
 
     async def start_crawl(self) -> list:
         """
@@ -132,18 +187,31 @@ class crawler_manager:
         @ensures result is a list of processed crawl results;
         """
         await self.crawl_recursive(self.config.get("target_url"), self.config.get("depth"))
+
         with open("crawler_table_data.json", "w", encoding="utf-8") as f:
             json.dump(self.table_data, f, indent=1)
+
         print("Crawling completed. Results written to crawler_table_data.json")
         return self.results
 
-manager = crawler_manager()
-manager.configure_crawler( target_url="http://localhost:5000", depth=5, limit=100, user_agent="Mozilla/5.0",
-        delay=1000, proxy="8080", crawl_date=str(datetime.date.today()), crawl_time="22:00",
-        excluded_urls="/login,/admin")
-try:
-    loop = asyncio.get_running_loop()
-    task = loop.create_task(manager.start_crawl())
-    loop.run_until_complete(task)
-except RuntimeError:
-    asyncio.run(manager.start_crawl())
+# Sample test run
+if __name__ == '__main__':
+    manager = crawler_manager()
+    manager.configure_crawler(
+        target_url="http://localhost:5000",
+        depth=5,
+        limit=100,
+        user_agent="Mozilla/5.0",
+        delay=1000,
+        proxy="8080",
+        crawl_date=str(datetime.date.today()),
+        crawl_time="22:00",
+        excluded_urls="/login,/admin"
+    )
+
+    try:
+        loop = asyncio.get_running_loop()
+        task = loop.create_task(manager.start_crawl())
+        loop.run_until_complete(task)
+    except RuntimeError:
+        asyncio.run(manager.start_crawl())

@@ -2,22 +2,36 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { goto } from '$app/navigation';
 	import { Progress } from '$lib/components/ui/progress/index.js';
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { serviceStatus } from '$lib/stores/projectServiceStore.js';
 	import StepIndicator from '$lib/components/ui/progressStep/ProgressStep.svelte';
 	import Table from '$lib/components/ui/table/Table.svelte';
 	import Alert from '$lib/components/ui/alert/Alert.svelte';
-	import { derived } from 'svelte/store';
-	import { get } from 'svelte/store';
-	import { onDestroy } from 'svelte';
+	import { derived, get, writable, readable  } from 'svelte/store';
+	import { serviceResults } from '$lib/stores/serviceResultsStore.js';
+	import { connectToCrawlerWebSocket, closeCrawlerWebSocket } from '$lib/services/crawlerSocket';
 	import { scanProgress, stopScanProgress, scanPaused } from '$lib/stores/scanProgressStore.js';
 
-	//TODO: GET request to fetch data for the currentStep
 	const { data } = $props();
 	let value = $state(15);
 	let showStopDialog = $state(false);
 	let paused = $state(false);
 	let intervalId;
+
+	// Derived stores
+	const crawlerResults = derived(serviceResults, ($serviceResults) => $serviceResults.crawler);
+	const dynamicColumns = derived(crawlerResults, ($crawlerResults) =>
+		$crawlerResults.length > 0
+			? Object.keys($crawlerResults[0]).map((key) => ({
+					key,
+					label: key
+						.replace(/([a-z])([A-Z])/g, '$1 $2')
+						.split('_')
+						.map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+						.join(' ')
+				}))
+			: []
+	);
 
 	const currentStep = derived(serviceStatus, ($serviceStatus) =>
 		$serviceStatus.status === 'running'
@@ -27,6 +41,36 @@
 				: 'config'
 	);
 
+	// Fetch results from the server
+	async function fetchResults(jobId) {
+		try {
+			const res = await fetch(`http://localhost:8000/api/crawler/${jobId}/results`);
+			const response = await res.json();
+			const parsed = Array.isArray(response) ? response : (response.results ?? []);
+
+			// Set into shared store under "crawler"
+			serviceResults.update((r) => ({
+				...r,
+				crawler: parsed
+			}));
+
+			console.log('[Crawler Results]', parsed);
+		} catch (e) {
+			console.error('Failed to fetch crawler results:', e);
+		}
+	}
+
+	// WebSocket connection
+	$effect(() => {
+		if ($currentStep === 'results' && $crawlerResults.length === 0) {
+			const jobId = localStorage.getItem('currentCrawlerJobId');
+			if (jobId) {
+				console.log('[Fetcher] Fetching results for job:', jobId);
+				fetchResults(jobId);
+			}
+		}
+	});
+	
 	function handleStopCancel() {
 		showStopDialog = false;
 	}
@@ -34,18 +78,57 @@
 	function handleStopConfirm() {
 		showStopDialog = false;
 		stopScanProgress();
+		
+		// Reset the service results and status
+		serviceResults.update((r) => ({
+			...r,
+			crawler: []
+		}));
+		serviceStatus.set({
+			status: 'idle',
+			serviceType: null,
+			startTime: null
+		});
+		localStorage.removeItem('currentCrawlerJobId');
 
-		console.log('Crawler stopped');
-		console.log('Current service status:', get(serviceStatus));
+		console.log('[Stop] Service state:', get(serviceResults));
 		goto('/dashboard');
 	}
 
 	function handleRestart() {
 		stopScanProgress();
 
-		console.log('Restarting at', new Date().toISOString());
+		// Reset the service results and status
+		serviceResults.update((r) => ({
+			...r,
+			crawler: []
+		}));
+		serviceStatus.set({
+			status: 'idle',
+			serviceType: null,
+			startTime: null
+		});
+		localStorage.removeItem('currentCrawlerJobId');
+
+		console.log('[Restart] Service state:', get(serviceResults));
 		goto('/crawler/config');
 	}
+
+	// onMount and onDestroy lifecycle hooks
+	onMount(() => {
+		const jobId = localStorage.getItem('currentCrawlerJobId');
+
+		if (jobId) {
+			console.log('[Reconnect] Found job ID in localStorage:', jobId);
+			connectToCrawlerWebSocket(jobId);
+		} else {
+			console.warn('No crawler job ID found in localStorage.');
+		}
+	});
+
+	onDestroy(() => {
+		closeCrawlerWebSocket();
+	});
 </script>
 
 <div class="crawler-run">
@@ -64,7 +147,7 @@
 			</div>
 			<Progress value={$scanProgress} max={100} class="w-[100%]" />
 		</div>
-		<Table data={data.tableData} columns={data.tableColumns} currentStep={$currentStep} />
+			<Table data={$crawlerResults} columns={$dynamicColumns} />
 	</div>
 
 	<div class="button-section">
