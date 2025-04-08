@@ -80,15 +80,74 @@
 		}
 	});
 
-	const togglePause = () => {
-		if ($scanPaused) {
-			resumeCrawlerJob();
+	const togglePause = async () => {
+	if ($scanPaused) {
+		const success = await handlesResume();
+		if (success) {
 			scanPaused.set(false);
-		} else {
-			pauseCrawlerJob();
+		}
+	} else {
+		const success = await handlesPause();
+		if (success) {
 			scanPaused.set(true);
 		}
-	};
+	}
+};
+
+	async function handlesPause() {
+		const jobId = localStorage.getItem('currentCrawlerJobId');
+		if (!jobId) {
+			console.error('No Crawler Job Id found in local storage');
+			return false;
+		}
+
+		// Tell the backend to pause
+		try {
+			const res = await fetch(`http://localhost:8000/api/crawler/${jobId}/pause`, {
+				method: 'POST'
+			});
+			if (res.ok) {
+				console.log('Crawler job paused.');
+			} else {
+				console.error("Failed to pause crawler job:", await res.test());
+			}
+
+		} catch (e) {
+			console.error('Failed to pause crawler:', e);
+			return false;
+		}
+
+		console.log('[Pause] Service state');
+		return true;
+	}
+
+	async function handlesResume() {
+		const jobId = localStorage.getItem('currentCrawlerJobId');
+			if (!jobId) {
+				console.error('No Crawler Job Id found in local storage');
+				return false;
+			}
+
+			// Tell the backend to pause
+			try {
+				const res = await fetch(`http://localhost:8000/api/crawler/${jobId}/resume`, {
+					method: 'POST'
+				});
+				if (res.ok) {
+					console.log('Crawler job resumed.');
+				} else {
+					console.error("Failed to resume crawler job:", await res.test());
+				}
+
+			} catch (e) {
+				console.error('Failed to resume crawler:', e);
+				return false;
+			}
+
+			console.log('[Resume] Service state');
+			return true;
+		}
+	
 
 	function handleStopCancel() {
 		showStopDialog = false;
@@ -102,7 +161,7 @@
 		// Get the job id
 		const jobId = localStorage.getItem('currentCrawlerJobId');
 		if (!jobId) {
-			console.error('No Crawler Job Id found in local storage')
+			console.error('No Crawler Job Id found in local storage');
 		}
 
 		// Clear app state
@@ -185,14 +244,13 @@
 	<div class="button-section">
 		<div class="button-group">
 			{#if $currentStep === 'running'}
-				<!-- <Button
+				<Button
 					onclick={togglePause}
 					variant="default"
 					size="default"
-					class="pause-button"
-				>
+					class="pause-button">
 					{$scanPaused ? 'Resume' : 'Pause'}
-				</Button> -->
+				</Button>
 
 				<Button
 					onclick={() => (showStopDialog = true)}

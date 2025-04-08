@@ -33,9 +33,18 @@ export function connectToCrawlerWebSocket(jobId, retry = 0) {
 		switch (type) {
 			// Updates job status in the serviceStatus store
 			case 'status': {
-				const mappedStatus = data.status === 'completed'
-					? 'complete'
-					: data.status;
+				const mappedStatus = data.status;
+				switch (mappedStatus) {
+					case 'complete' : {
+						
+					}
+					case 'paused' : {
+						scanPaused.set(true);
+					}
+					case 'running': {
+						scanPaused.set(false);
+					}
+				}
 			
 				serviceStatus.set({
 					status: mappedStatus,
@@ -55,8 +64,10 @@ export function connectToCrawlerWebSocket(jobId, retry = 0) {
 
 			// Updates the progress of the crawler job
 			case 'progress':
-				startScanProgress('crawler');
-				scanProgress.set(Math.min(data.progress, 99));
+				if(!get(scanPaused)) {
+					startScanProgress('crawler');
+					scanProgress.set(Math.min(data.progress, 99));				
+				}
 				break;
 
 			// Marks the scan as complete and finalizes UI

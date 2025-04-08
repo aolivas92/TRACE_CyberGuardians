@@ -75,3 +75,26 @@ export function stopScanProgress(markComplete = false) {
 	scanPaused.set(false);
 	currentService.set(null);
 }
+
+export function pauseScan() {
+	if (get(serviceStatus).status !== 'running') return;
+	scanPaused.set(true);
+	serviceStatus.update((s) => ({
+		...s,
+		status: 'paused'
+	}));
+
+	console.log('[Scan] Progress paused');
+}
+
+export function resumeScan() {
+	if (get(serviceStatus).status !== 'paused') return;
+	scanPaused.set(false);
+
+	serviceStatus.update((s) => ({
+		...s,
+		status: 'running'
+	}));
+
+	console.log('[Scan] Progress resumed');
+}
