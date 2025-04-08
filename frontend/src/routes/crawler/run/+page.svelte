@@ -10,10 +10,7 @@
 	import Alert from '$lib/components/ui/alert/Alert.svelte';
 	import { derived, get, writable, readable } from 'svelte/store';
 	import { serviceResults } from '$lib/stores/serviceResultsStore.js';
-	import {
-		connectToCrawlerWebSocket,
-		closeCrawlerWebSocket,
-	} from '$lib/services/crawlerSocket';
+	import { connectToCrawlerWebSocket, closeCrawlerWebSocket } from '$lib/services/crawlerSocket';
 	import { scanProgress, stopScanProgress, scanPaused } from '$lib/stores/scanProgressStore.js';
 
 	const { data } = $props();
@@ -146,7 +143,7 @@
 	</div>
 
 	<div class="table">
-		{#if $showProgress}
+		{#if $showProgress || $serviceStatus.status === 'complete'}
 			<div class="progress-bar-container">
 				<div class="progress-info">
 					<div class="text-sm font-medium">Progress</div>
@@ -163,16 +160,14 @@
 
 	<div class="button-section">
 		<div class="button-group">
-			{#if $currentStep === 'running'}
-				<!-- <Button
-					onclick={togglePause}
-					variant="default"
-					size="default"
-					class="pause-button"
-				>
-					{$scanPaused ? 'Resume' : 'Pause'}
-				</Button> -->
-
+			{#if $serviceStatus.status === 'complete'}
+				<Button onclick={handleRestart} variant="default" size="default" class="restart-button">
+					Restart
+				</Button>
+				<Button onclick={handleRestart} variant="default" size="default" class="view-all-results">
+					View All Results
+				</Button>
+			{:else if $serviceStatus.status === 'running'}
 				<Button
 					onclick={() => (showStopDialog = true)}
 					variant="destructive"
@@ -180,13 +175,6 @@
 					class="stop-button"
 				>
 					Stop
-				</Button>
-			{:else}
-				<Button onclick={handleRestart} variant="default" size="default" class="restart-button">
-					Restart
-				</Button>
-				<Button onclick={handleRestart} variant="default" size="default" class="view-all-results">
-					View All Results
 				</Button>
 			{/if}
 		</div>
