@@ -80,29 +80,50 @@
 		}
 	});
 
-	// const togglePause = () => {
-	// 	if ($scanPaused) {
-	// 		resumeCrawlerJob();
-	// 		scanPaused.set(false);
-	// 	} else {
-	// 		pauseCrawlerJob();
-	// 		scanPaused.set(true);
-	// 	}
-	// };
+	const togglePause = () => {
+		if ($scanPaused) {
+			resumeCrawlerJob();
+			scanPaused.set(false);
+		} else {
+			pauseCrawlerJob();
+			scanPaused.set(true);
+		}
+	};
 
 	function handleStopCancel() {
 		showStopDialog = false;
 	}
 
-	function handleStopConfirm() {
+	async function handleStopConfirm() {
 		showStopDialog = false;
 		stopScanProgress();
 		closeCrawlerWebSocket();
+
+		// Get the job id
+		const jobId = localStorage.getItem('currentCrawlerJobId');
+		if (!jobId) {
+			console.error('No Crawler Job Id found in local storage')
+		}
 
 		// Clear app state
 		serviceResults.update((r) => ({ ...r, crawler: [] }));
 		serviceStatus.set({ status: 'idle', serviceType: null, startTime: null });
 		localStorage.removeItem('currentCrawlerJobId');
+
+		// Tell the backend to stop
+		try {
+			const res = await fetch(`http://localhost:8000/api/crawler/${jobId}/stop`, {
+				method: 'POST'
+			});
+			 if (res.ok) {
+				console.log('Crawler job stopped.');
+			 } else {
+				console.error("Failed to stop crawler job:", await res.test());
+			 }
+
+		} catch (e) {
+			console.error('Failed to stop crawler:', e);
+		}
 
 		console.log('[Stop] Service state');
 		goto('/dashboard');

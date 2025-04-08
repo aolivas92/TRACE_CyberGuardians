@@ -16,6 +16,8 @@ from src.modules.scanning.crawler_service import (
     CrawlerJobResponse,
     CrawlerResults,
     running_jobs,
+    task_instances,
+    crawler_instances,
     job_results,
     active_connections,
     run_crawler_task,
@@ -222,7 +224,9 @@ async def start_crawler(config: CrawlerConfig, background_tasks: BackgroundTasks
     }
     
     # Start crawler in background
-    background_tasks.add_task(run_crawler_task, job_id, config)
+    task = background_tasks.add_task(run_crawler_task, job_id, config)
+
+    task_instances[job_id] = task
     
     return CrawlerJobResponse(
         job_id=job_id,
@@ -290,6 +294,115 @@ async def get_crawler_results(job_id: str):
 @app.get("/api/crawler/{job_id}/logs")
 async def get_crawler_logs(job_id: str):
     return {"logs": get_job_logs(job_id)}
+
+@app.post('/api/crawler/{job_id}/stop')
+async def stop_crawler_job(job_id: str):
+    if job_id in running_jobs:
+        # Log the request
+        if 'logs' in running_jobs[job_id]:
+            running_jobs[job_id]['logs'].append(f'[{datetime.now().isoformat}] Stop requested by user')
+
+        # Update the status to stop the loop
+        running_jobs[job_id]['status'] = 'stopped'
+
+        # Stop the crawler or task instance
+        if job_id in crawler_instances:
+            crawler_instances[job_id].stop()
+        if job_id in task_instances and not task_instances[job_id].done():
+            task_instances[job_id].cancel()
+
+        # Move the job from running to results with an updated state
+        job_results[job_id] = {
+            'status': 'stopped',
+            'urls_processed': running_jobs[job_id].get('urls_processed', 0),
+            'completed_at': datetime.now().isoformat(),
+            'stopped_by_user': True
+        }
+
+        # Copy the logs over
+        if 'logs' in running_jobs[job_id]:
+            job_results[job_id]['logs'] = running_jobs[job_id]['logs']
+
+        # Broadcast the stop message to the connected clients
+        if job_id in active_connections:
+            stop_message = {
+                'type': 'status',
+                'job_id': job_id,
+                'data': {'status': 'stopped'}
+            }
+            for websocket in active_connections[job_id]:
+                try:
+                    await websocket.send_json(stop_message)
+                except Exception as e:
+                    logger.error(f'Error sending stop message to Websocekt: {str(e)}')
+
+        # Remove from the running jobs list
+        del running_jobs[job_id]
+
+        return {'success': True, 'message': 'Job stopped successfully'}
+    
+    # if the job isn't in the running_jobs but is already finished.
+    if job_id in job_results:
+        return {'success': True, 'message': 'Job was already completed.'}
+    
+    # If no job was found in either
+    raise HTTPException(status_code=404, detail=f'Job {job_id} not found')
+
+@app.post('/api/crawler/{job_id}/pause')
+async def pause_crawler_job(job_id: str):
+    if job_id in running_jobs:
+        running_jobs[job_id]['status'] = 'paused'
+        if 'logs' in running_jobs[job_id]:
+            running_jobs[job_id]['logs'].append(f'[{datetime.now().isoformat()}] Pause requested by user')
+
+        # Pause the crawler
+        if job_id in crawler_instances:
+            crawler_instances[job_id].pause()
+
+        # Broadcast that the job has been paused
+        if job_id in active_connections:
+            pause_message = {
+                'type': 'status',
+                'job_id': job_id,
+                'data': {'status': 'paused'}
+            }
+            for websocket in active_connections[job_id]:
+                try:
+                    await websocket.send_json(pause_message)
+                except Exception as e:
+                    logger.error(f'Error sending pause message to Websocekt: {str(e)}')
+        
+        return {'success': True, 'message': 'Job paused successfully'}
+
+    raise HTTPException(status_code=404, detail=f'Job {job_id} not found')
+
+@app.post("/api/crawler/{job_id}/resume")
+async def resume_crawler_job(job_id: str):
+    if job_id in running_jobs:
+        running_jobs[job_id]["status"] = "running"
+        if "logs" in running_jobs[job_id]:
+            running_jobs[job_id]["logs"].append(f"[{datetime.now().isoformat()}] Job resumed by user")
+
+        # Resume the crawler
+        if job_id in crawler_instances:
+            crawler_instances[job_id].resume()
+            
+        # Broadcast resume message to all connected clients
+        if job_id in active_connections:
+            resume_message = {
+                "type": "status", 
+                "job_id": job_id, 
+                "data": {"status": "running"}
+            }
+            for websocket in active_connections[job_id]:
+                try:
+                    await websocket.send_json(resume_message)
+                except Exception as e:
+                    logger.error(f"Error sending resume message to WebSocket: {str(e)}")
+                    
+        return {"success": True, "message": "Job resumed successfully"}
+    
+    raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
 
 @app.get("/")
 async def root():
