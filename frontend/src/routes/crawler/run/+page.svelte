@@ -10,10 +10,7 @@
 	import Alert from '$lib/components/ui/alert/Alert.svelte';
 	import { derived, get, writable, readable } from 'svelte/store';
 	import { serviceResults } from '$lib/stores/serviceResultsStore.js';
-	import {
-		connectToCrawlerWebSocket,
-		closeCrawlerWebSocket,
-	} from '$lib/services/crawlerSocket';
+	import { connectToCrawlerWebSocket, closeCrawlerWebSocket } from '$lib/services/crawlerSocket';
 	import { scanProgress, stopScanProgress, scanPaused } from '$lib/stores/scanProgressStore.js';
 
 	const { data } = $props();
@@ -81,18 +78,18 @@
 	});
 
 	const togglePause = async () => {
-	if ($scanPaused) {
-		const success = await handlesResume();
-		if (success) {
-			scanPaused.set(false);
+		if ($scanPaused) {
+			const success = await handlesResume();
+			if (success) {
+				scanPaused.set(false);
+			}
+		} else {
+			const success = await handlesPause();
+			if (success) {
+				scanPaused.set(true);
+			}
 		}
-	} else {
-		const success = await handlesPause();
-		if (success) {
-			scanPaused.set(true);
-		}
-	}
-};
+	};
 
 	async function handlesPause() {
 		const jobId = localStorage.getItem('currentCrawlerJobId');
@@ -109,9 +106,8 @@
 			if (res.ok) {
 				console.log('Crawler job paused.');
 			} else {
-				console.error("Failed to pause crawler job:", await res.test());
+				console.error('Failed to pause crawler job:', await res.test());
 			}
-
 		} catch (e) {
 			console.error('Failed to pause crawler:', e);
 			return false;
@@ -123,31 +119,29 @@
 
 	async function handlesResume() {
 		const jobId = localStorage.getItem('currentCrawlerJobId');
-			if (!jobId) {
-				console.error('No Crawler Job Id found in local storage');
-				return false;
-			}
-
-			// Tell the backend to pause
-			try {
-				const res = await fetch(`http://localhost:8000/api/crawler/${jobId}/resume`, {
-					method: 'POST'
-				});
-				if (res.ok) {
-					console.log('Crawler job resumed.');
-				} else {
-					console.error("Failed to resume crawler job:", await res.test());
-				}
-
-			} catch (e) {
-				console.error('Failed to resume crawler:', e);
-				return false;
-			}
-
-			console.log('[Resume] Service state');
-			return true;
+		if (!jobId) {
+			console.error('No Crawler Job Id found in local storage');
+			return false;
 		}
-	
+
+		// Tell the backend to pause
+		try {
+			const res = await fetch(`http://localhost:8000/api/crawler/${jobId}/resume`, {
+				method: 'POST'
+			});
+			if (res.ok) {
+				console.log('Crawler job resumed.');
+			} else {
+				console.error('Failed to resume crawler job:', await res.test());
+			}
+		} catch (e) {
+			console.error('Failed to resume crawler:', e);
+			return false;
+		}
+
+		console.log('[Resume] Service state');
+		return true;
+	}
 
 	function handleStopCancel() {
 		showStopDialog = false;
@@ -174,12 +168,11 @@
 			const res = await fetch(`http://localhost:8000/api/crawler/${jobId}/stop`, {
 				method: 'POST'
 			});
-			 if (res.ok) {
+			if (res.ok) {
 				console.log('Crawler job stopped.');
-			 } else {
-				console.error("Failed to stop crawler job:", await res.test());
-			 }
-
+			} else {
+				console.error('Failed to stop crawler job:', await res.test());
+			}
 		} catch (e) {
 			console.error('Failed to stop crawler:', e);
 		}
@@ -226,7 +219,7 @@
 	</div>
 
 	<div class="table">
-		{#if $showProgress}
+		{#if $showProgress || $serviceStatus.status === 'complete'}
 			<div class="progress-bar-container">
 				<div class="progress-info">
 					<div class="text-sm font-medium">Progress</div>
@@ -243,15 +236,14 @@
 
 	<div class="button-section">
 		<div class="button-group">
-			{#if $currentStep === 'running'}
-				<Button
-					onclick={togglePause}
-					variant="default"
-					size="default"
-					class="pause-button">
-					{$scanPaused ? 'Resume' : 'Pause'}
+			{#if $serviceStatus.status === 'complete'}
+				<Button onclick={handleRestart} variant="default" size="default" class="restart-button">
+					Restart
 				</Button>
-
+				<Button onclick={handleRestart} variant="default" size="default" class="view-all-results">
+					View All Results
+				</Button>
+			{:else if $serviceStatus.status === 'running'}
 				<Button
 					onclick={() => (showStopDialog = true)}
 					variant="destructive"
@@ -259,13 +251,6 @@
 					class="stop-button"
 				>
 					Stop
-				</Button>
-			{:else}
-				<Button onclick={handleRestart} variant="default" size="default" class="restart-button">
-					Restart
-				</Button>
-				<Button onclick={handleRestart} variant="default" size="default" class="view-all-results">
-					View All Results
 				</Button>
 			{/if}
 		</div>
