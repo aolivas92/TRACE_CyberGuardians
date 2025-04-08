@@ -196,16 +196,16 @@ async def run_crawler_task(job_id: str, config: CrawlerConfig):
         tracker.set_status('running')
         running_jobs[job_id]['started_at'] = datetime.now().isoformat()
 
-        # ✅ Initialize crawler manager
+        # Initialize crawler manager
         crawler = crawler_manager()
 
-        # ✅ Attach the row broadcast callback AFTER crawler is initialized
+        # Attach the row broadcast callback AFTER crawler is initialized
         def handle_new_row(row):
             print(f"[Backend] Broadcasting new row for {job_id}: {row['url']}")
             tracker._broadcast_message("new_row", {"row": row})
         crawler.on_new_row = handle_new_row
 
-        # ✅ Configure the crawler
+        # Configure the crawler
         crawler.configure_crawler(
             target_url=config.target_url,
             depth=config.depth or 3,
@@ -220,12 +220,12 @@ async def run_crawler_task(job_id: str, config: CrawlerConfig):
 
         tracker.add_log('Crawler config successfully')
 
-        # ✅ Progress update binding
+        # Progress update binding
         def progress_callback(url, error=None):
             tracker.update_progress(url, error)
         crawler.progress_callback = progress_callback
 
-        # ✅ Start the crawl
+        # Start the crawl
         tracker.add_log('Starting crawler execution')
         results = await crawler.start_crawl()
         tracker.add_log('Crawler execution completed')

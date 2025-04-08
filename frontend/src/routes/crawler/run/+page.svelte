@@ -5,11 +5,15 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { serviceStatus } from '$lib/stores/projectServiceStore.js';
 	import StepIndicator from '$lib/components/ui/progressStep/ProgressStep.svelte';
+	import Spinner from '$lib/components/ui/spinner/Spinner.svelte';
 	import Table from '$lib/components/ui/table/Table.svelte';
 	import Alert from '$lib/components/ui/alert/Alert.svelte';
-	import { derived, get, writable, readable  } from 'svelte/store';
+	import { derived, get, writable, readable } from 'svelte/store';
 	import { serviceResults } from '$lib/stores/serviceResultsStore.js';
-	import { connectToCrawlerWebSocket, closeCrawlerWebSocket } from '$lib/services/crawlerSocket';
+	import {
+		connectToCrawlerWebSocket,
+		closeCrawlerWebSocket,
+	} from '$lib/services/crawlerSocket';
 	import { scanProgress, stopScanProgress, scanPaused } from '$lib/stores/scanProgressStore.js';
 
 	const { data } = $props();
@@ -31,6 +35,11 @@
 						.join(' ')
 				}))
 			: []
+	);
+	const showProgress = derived(
+		[serviceStatus, crawlerResults],
+		([$serviceStatus, $crawlerResults]) =>
+			$serviceStatus.status === 'running' && $crawlerResults.length > 0
 	);
 
 	const currentStep = derived(serviceStatus, ($serviceStatus) =>
@@ -70,7 +79,17 @@
 			}
 		}
 	});
-	
+
+	// const togglePause = () => {
+	// 	if ($scanPaused) {
+	// 		resumeCrawlerJob();
+	// 		scanPaused.set(false);
+	// 	} else {
+	// 		pauseCrawlerJob();
+	// 		scanPaused.set(true);
+	// 	}
+	// };
+
 	function handleStopCancel() {
 		showStopDialog = false;
 	}
@@ -78,20 +97,14 @@
 	function handleStopConfirm() {
 		showStopDialog = false;
 		stopScanProgress();
-		
-		// Reset the service results and status
-		serviceResults.update((r) => ({
-			...r,
-			crawler: []
-		}));
-		serviceStatus.set({
-			status: 'idle',
-			serviceType: null,
-			startTime: null
-		});
+		closeCrawlerWebSocket();
+
+		// Clear app state
+		serviceResults.update((r) => ({ ...r, crawler: [] }));
+		serviceStatus.set({ status: 'idle', serviceType: null, startTime: null });
 		localStorage.removeItem('currentCrawlerJobId');
 
-		console.log('[Stop] Service state:', get(serviceResults));
+		console.log('[Stop] Service state');
 		goto('/dashboard');
 	}
 
@@ -99,18 +112,11 @@
 		stopScanProgress();
 
 		// Reset the service results and status
-		serviceResults.update((r) => ({
-			...r,
-			crawler: []
-		}));
-		serviceStatus.set({
-			status: 'idle',
-			serviceType: null,
-			startTime: null
-		});
+		serviceResults.update((r) => ({ ...r, crawler: [] }));
+		serviceStatus.set({ status: 'idle', serviceType: null, startTime: null });
 		localStorage.removeItem('currentCrawlerJobId');
 
-		console.log('[Restart] Service state:', get(serviceResults));
+		console.log('[Restart] Service state');
 		goto('/crawler/config');
 	}
 
@@ -140,27 +146,33 @@
 	</div>
 
 	<div class="table">
-		<div class="progress-bar-container">
-			<div class="progress-info">
-				<div class="text-sm font-medium">Progress</div>
-				<div class="text-2xl font-bold">{$scanProgress}% scanned</div>
+		{#if $showProgress}
+			<div class="progress-bar-container">
+				<div class="progress-info">
+					<div class="text-sm font-medium">Progress</div>
+					<div class="text-2xl font-bold">{$scanProgress}% scanned</div>
+				</div>
+				<Progress value={$scanProgress} max={100} class="w-[100%]" />
 			</div>
-			<Progress value={$scanProgress} max={100} class="w-[100%]" />
-		</div>
-			<Table data={$crawlerResults} columns={$dynamicColumns} />
+		{:else}
+			<Spinner />
+		{/if}
+
+		<Table data={$crawlerResults} columns={$dynamicColumns} />
 	</div>
 
 	<div class="button-section">
 		<div class="button-group">
 			{#if $currentStep === 'running'}
-				<Button
-					onclick={() => scanPaused.set(!$scanPaused)}
+				<!-- <Button
+					onclick={togglePause}
 					variant="default"
 					size="default"
 					class="pause-button"
 				>
 					{$scanPaused ? 'Resume' : 'Pause'}
-				</Button>
+				</Button> -->
+
 				<Button
 					onclick={() => (showStopDialog = true)}
 					variant="destructive"

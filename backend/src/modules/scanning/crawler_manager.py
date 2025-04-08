@@ -37,6 +37,9 @@ class crawler_manager:
         self.progress_callback = lambda url, error=None: None
         self.on_new_row = None
 
+    def stop(self):
+        self._stopped = True
+
     def set_progress_callback(self, callback):
         """
         Sets a callback function that will be called whenever a URL is processed.
@@ -106,6 +109,7 @@ class crawler_manager:
         """
         if url in self.visited or depth_remaining < 0 or len(self.visited) >= self.config.get("limit", 100):
             return
+            
         self.visited.add(url)
         headers = {"User-Agent": self.config.get("user_agent", "")}
         try:
@@ -135,9 +139,9 @@ class crawler_manager:
                 "linksFound": links_found,
                 "error": False
             }
+            
             self.table_data.append(row)
 
-            # 👇 Call the on_new_row callback
             if callable(self.on_new_row):
                 self.on_new_row(row)
 

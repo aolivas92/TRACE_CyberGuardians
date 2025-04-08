@@ -1,41 +1,51 @@
-// src/lib/services/crawlerSocket.js
 import { serviceStatus } from '$lib/stores/projectServiceStore';
-import { scanProgress, stopScanProgress, isRealProgress, startScanProgress } from '$lib/stores/scanProgressStore';
+import { scanProgress, stopScanProgress, startScanProgress } from '$lib/stores/scanProgressStore';
 import { serviceResults } from '$lib/stores/serviceResultsStore.js';
 
 let socket = null;
 
+/**
+ * Establishes a WebSocket connection to the backend crawler using the job ID.
+ * Automatically retries connection if it fails (up to maxRetries).
+ */
 export function connectToCrawlerWebSocket(jobId, retry = 0) {
 	const maxRetries = 5;
 
-	// Prevent duplicate connections
+	// Prevent duplicate connections if one is already open
 	if (socket && socket.readyState !== WebSocket.CLOSED) {
 		console.warn('[WebSocket] Already connected. Skipping duplicate connection.');
 		return;
 	}
 
+	// Open a WebSocket connection to the backend endpoint
 	socket = new WebSocket(`ws://localhost:8000/ws/crawler/${jobId}`);
 
+	// Triggered when the connection is successfully established
 	socket.onopen = () => {
 		console.log('[WebSocket] Connected to crawler job:', jobId);
 	};
 
+	// Triggered whenever a message is received from the backend
 	socket.onmessage = (event) => {
 		const message = JSON.parse(event.data);
 		const { type, data } = message;
 
 		switch (type) {
-			case 'status':
-				if (data.status === 'running') {
-					startScanProgress('crawler');
-				}
+			// Updates job status in the serviceStatus store
+			case 'status': {
+				const mappedStatus = data.status === 'completed'
+					? 'complete'
+					: data.status;
+			
 				serviceStatus.set({
-					status: data.status === 'completed' ? 'complete' : data.status,
+					status: mappedStatus,
 					serviceType: 'crawler',
 					startTime: data.started_at || new Date().toISOString()
 				});
 				break;
+			}
 
+			// Updates the crawler result table with a new scanned row
 			case 'new_row':
 				serviceResults.update((r) => ({
 					...r,
@@ -43,11 +53,13 @@ export function connectToCrawlerWebSocket(jobId, retry = 0) {
 				}));
 				break;
 
+			// Updates the progress of the crawler job
 			case 'progress':
-				isRealProgress.set(true);
+				startScanProgress('crawler');
 				scanProgress.set(Math.min(data.progress, 99));
 				break;
 
+			// Marks the scan as complete and finalizes UI
 			case 'complete':
 				scanProgress.set(100);
 				stopScanProgress(true);
@@ -58,6 +70,7 @@ export function connectToCrawlerWebSocket(jobId, retry = 0) {
 				});
 				break;
 
+			// Handles errors and resets UI state
 			case 'error':
 				serviceStatus.set({
 					status: 'idle',
@@ -67,12 +80,14 @@ export function connectToCrawlerWebSocket(jobId, retry = 0) {
 				console.error('[Crawler Error]', data.message);
 				break;
 
+			// Logs backend messages to console for debugging
 			case 'log':
 				console.log(`[Crawler Log] ${data.message}`);
 				break;
 		}
 	};
 
+	// Handles WebSocket connection errors and retries if needed
 	socket.onerror = (e) => {
 		console.error('[WebSocket Error]', e);
 
@@ -82,12 +97,16 @@ export function connectToCrawlerWebSocket(jobId, retry = 0) {
 		}
 	};
 
+	// Cleans up socket reference when connection is closed
 	socket.onclose = () => {
 		console.log('[WebSocket] Connection closed');
 		socket = null;
 	};
 }
 
+/**
+ * Manually closes the WebSocket connection.
+ */
 export function closeCrawlerWebSocket() {
 	if (socket) {
 		socket.close();
