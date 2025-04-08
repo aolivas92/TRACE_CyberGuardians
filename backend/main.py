@@ -16,7 +16,6 @@ from src.modules.scanning.crawler_service import (
     CrawlerJobResponse,
     CrawlerResults,
     running_jobs,
-    task_instances,
     crawler_instances,
     job_results,
     active_connections,
@@ -224,9 +223,7 @@ async def start_crawler(config: CrawlerConfig, background_tasks: BackgroundTasks
     }
     
     # Start crawler in background
-    task = background_tasks.add_task(run_crawler_task, job_id, config)
-
-    task_instances[job_id] = task
+    background_tasks.add_task(run_crawler_task, job_id, config)
     
     return CrawlerJobResponse(
         job_id=job_id,
@@ -307,9 +304,11 @@ async def stop_crawler_job(job_id: str):
 
         # Stop the crawler or task instance
         if job_id in crawler_instances:
-            crawler_instances[job_id].stop()
-        if job_id in task_instances and not task_instances[job_id].done():
-            task_instances[job_id].cancel()
+            try:
+                crawler_instances[job_id].stop()
+                logger.info(f"Successfully called stop() on crawler for job {job_id}")
+            except Exception as e:
+                logger.error(f"Error stopping crawler for job {job_id}: {str(e)}")
 
         # Move the job from running to results with an updated state
         job_results[job_id] = {

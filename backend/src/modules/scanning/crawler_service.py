@@ -22,8 +22,6 @@ active_connections = {}
 
 # Dictionary to keep track of crawler instances
 crawler_instances: Dict[str, Any] = {}
-# Store the task object if cancelled
-task_instances: Dict[str, asyncio.Task] = {}
 
 # Pydantic models
 class CrawlerConfig(BaseModel):
@@ -300,8 +298,6 @@ async def run_crawler_task(job_id: str, config: CrawlerConfig):
         # Remove the task reference
         if job_id in crawler_instances:
             del crawler_instances[job_id]
-        if job_id in task_instances:
-            del task_instances[job_id]
         
         # Remove this test from running jobs
         if job_id in running_jobs:
@@ -322,8 +318,6 @@ async def run_crawler_task(job_id: str, config: CrawlerConfig):
 
         if job_id in crawler_instances:
             del crawler_instances[job_id]
-        if job_id in task_instances:
-            del task_instances[job_id]
         if job_id in running_jobs:
             del running_jobs[job_id]
 
@@ -354,8 +348,6 @@ async def run_crawler_task(job_id: str, config: CrawlerConfig):
             # Remove the task reference
             if job_id in crawler_instances:
                 del crawler_instances[job_id]
-            if job_id in task_instances:
-                del task_instances[job_id]
 
             # Remove from the running_jobs list
             del running_jobs[job_id]
