@@ -5,46 +5,49 @@ export const scanProgress = writable(0);
 export const scanPaused = writable(false);
 export const currentService = writable(null);
 
+// Internal flags to prevent duplicate or lingering intervals
 let intervalId = null;
+let alreadyStopped = false;
 
+/**
+ * Starts tracking the scan progress for a specific service.
+ * This also sets the service status to "running" and records the start time.
+ *
+ * @param {string} service - Name of the service being run (e.g., 'crawler').
+ */
 export function startScanProgress(service) {
-	// If something is already running, don't start a new one
+	// Prevent starting progress tracking if it's already running
 	if (intervalId !== null || get(serviceStatus).status === 'running') return;
 
+	alreadyStopped = false;
+
+	// Set the current active service and reset tracking state
 	currentService.set(service);
 	scanProgress.set(0);
 	scanPaused.set(false);
 
-	// Set service as running
+	// Update the shared service status store
 	serviceStatus.set({
 		status: 'running',
 		serviceType: service,
 		startTime: new Date().toISOString()
 	});
 
-	intervalId = setInterval(() => {
-		if (get(scanPaused)) return;
-
-		scanProgress.update((val) => {
-			if (val < 100) {
-				const increment = [3, 5, 10][Math.floor(Math.random() * 3)];
-				const next = Math.min(val + increment, 100);
-
-				if (next >= 100) {
-					stopScanProgress(true);
-				}
-				return next;
-			}
-			return val;
-		});
-	}, 500);
+	console.log('[Scan] Progress simulation started for service:', service);
 }
 
-export function togglePause() {
-	scanPaused.update((val) => !val);
-}
-
+/**
+ * Stops tracking the scan progress and resets everything.
+ * Optionally marks the service as "complete" if `markComplete` is true.
+ *
+ * @param {boolean} markComplete - Whether to mark the service as complete instead of idle.
+ */
 export function stopScanProgress(markComplete = false) {
+	// Prevent duplicate stop attempts
+	if (alreadyStopped) return;
+	alreadyStopped = true;
+
+	// Stop any active interval timer
 	if (intervalId) {
 		clearInterval(intervalId);
 		intervalId = null;
@@ -52,6 +55,7 @@ export function stopScanProgress(markComplete = false) {
 
 	const service = get(currentService);
 
+	// Update the status based on whether the scan completed or was interrupted
 	if (markComplete && service) {
 		serviceStatus.set({
 			status: 'complete',
@@ -64,10 +68,10 @@ export function stopScanProgress(markComplete = false) {
 			serviceType: null,
 			startTime: null
 		});
+		scanProgress.set(0);
 	}
 
-	scanProgress.set(0);
+	console.log('[Scan] Progress simulation stopped');
 	scanPaused.set(false);
 	currentService.set(null);
 }
-

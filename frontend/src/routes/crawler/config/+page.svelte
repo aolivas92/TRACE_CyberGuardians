@@ -8,7 +8,6 @@
 	import { goto } from '$app/navigation';
 	import { serviceStatus } from '$lib/stores/projectServiceStore';
 	import { Info } from 'lucide-svelte';
-	import { scanProgress, startScanProgress } from '$lib/stores/scanProgressStore.js';
 	import StepIndicator from '$lib/components/ui/progressStep/ProgressStep.svelte';
 	import FormField from '$lib/components/ui/form/FormField.svelte';
 	import * as Accordion from '$lib/components/ui/accordion/index.js';
@@ -120,16 +119,23 @@
 			}
 
 			if (result.type === 'success' && result.data?.success) {
-				if ($serviceStatus.status === 'running') {
-					console.warn('Scan already in progress. Preventing new submission.');
+
+				const jobId = result.data.job_id;
+
+				if (!jobId) {
+					console.error('Job ID missing from server response.');
 					return;
 				}
 
-				startScanProgress('crawler');
+				localStorage.setItem('currentCrawlerJobId', jobId);
+
+				setTimeout(() => {
+					import('$lib/services/crawlerSocket').then(({ connectToCrawlerWebSocket }) => {
+						connectToCrawlerWebSocket(jobId);
+					});
+				}, 500);
 
 				console.log('[Service Status]', $serviceStatus);
-				console.log('[Scan Progress]', $scanProgress);
-
 				goto('/crawler/run', { replaceState: true });
 			} else {
 				await update();
