@@ -76,25 +76,42 @@ export function stopScanProgress(markComplete = false) {
 	currentService.set(null);
 }
 
-export function pauseScan() {
-	if (get(serviceStatus).status !== 'running') return;
-	scanPaused.set(true);
-	serviceStatus.update((s) => ({
-		...s,
-		status: 'paused'
-	}));
+export async function pauseScan() {
+	const jobId = localStorage.getItem('currentCrawlerJobId');
+	if (!jobId || get(serviceStatus).status !== 'running') return false;
 
-	console.log('[Scan] Progress paused');
+	try {
+		const res = await fetch(`http://localhost:8000/api/crawler/${jobId}/pause`, {
+			method: 'POST'
+		});
+		if (!res.ok) throw new Error('Pause failed');
+
+		scanPaused.set(true);
+		serviceStatus.update((s) => ({ ...s, status: 'paused' }));
+		console.log('[Scan] Progress paused');
+		return true;
+	} catch (err) {
+		console.error('Failed to pause:', err);
+		return false;
+	}
 }
 
-export function resumeScan() {
-	if (get(serviceStatus).status !== 'paused') return;
-	scanPaused.set(false);
+export async function resumeScan() {
+	const jobId = localStorage.getItem('currentCrawlerJobId');
+	if (!jobId || get(serviceStatus).status !== 'paused') return false;
 
-	serviceStatus.update((s) => ({
-		...s,
-		status: 'running'
-	}));
+	try {
+		const res = await fetch(`http://localhost:8000/api/crawler/${jobId}/resume`, {
+			method: 'POST'
+		});
+		if (!res.ok) throw new Error('Resume failed');
 
-	console.log('[Scan] Progress resumed');
+		scanPaused.set(false);
+		serviceStatus.update((s) => ({ ...s, status: 'running' }));
+		console.log('[Scan] Progress resumed');
+		return true;
+	} catch (err) {
+		console.error('Failed to resume:', err);
+		return false;
+	}
 }

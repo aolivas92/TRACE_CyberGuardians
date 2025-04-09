@@ -1,6 +1,7 @@
 import { serviceStatus } from '$lib/stores/projectServiceStore';
-import { scanProgress, stopScanProgress, startScanProgress } from '$lib/stores/scanProgressStore';
+import { scanProgress, stopScanProgress, startScanProgress, scanPaused} from '$lib/stores/scanProgressStore';
 import { serviceResults } from '$lib/stores/serviceResultsStore.js';
+import { get } from 'svelte/store';
 
 let socket = null;
 
@@ -35,14 +36,16 @@ export function connectToCrawlerWebSocket(jobId, retry = 0) {
 			case 'status': {
 				const mappedStatus = data.status;
 				switch (mappedStatus) {
-					case 'complete' : {
-						
+					case 'complete': {
+						break;
 					}
-					case 'paused' : {
+					case 'paused': {
 						scanPaused.set(true);
+						break;
 					}
 					case 'running': {
 						scanPaused.set(false);
+						break;
 					}
 				}
 			
@@ -53,7 +56,7 @@ export function connectToCrawlerWebSocket(jobId, retry = 0) {
 				});
 				break;
 			}
-
+			
 			// Updates the crawler result table with a new scanned row
 			case 'new_row':
 				serviceResults.update((r) => ({
@@ -64,9 +67,9 @@ export function connectToCrawlerWebSocket(jobId, retry = 0) {
 
 			// Updates the progress of the crawler job
 			case 'progress':
-				if(!get(scanPaused)) {
+				if (!get(scanPaused)) {
 					startScanProgress('crawler');
-					scanProgress.set(Math.min(data.progress, 99));				
+					scanProgress.set(Math.min(data.progress, 99));
 				}
 				break;
 
@@ -119,8 +122,16 @@ export function connectToCrawlerWebSocket(jobId, retry = 0) {
  * Manually closes the WebSocket connection.
  */
 export function closeCrawlerWebSocket() {
+	const status = get(serviceStatus).status;
+
+	if (status === 'paused' || status === 'running') {
+		console.log('[WebSocket] Not closing — scan still active or paused.');
+		return;
+	}
+
 	if (socket) {
 		socket.close();
 		socket = null;
+		console.log('[WebSocket] Closed manually.');
 	}
 }

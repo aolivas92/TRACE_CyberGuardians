@@ -11,7 +11,13 @@
 	import { derived, get, writable, readable } from 'svelte/store';
 	import { serviceResults } from '$lib/stores/serviceResultsStore.js';
 	import { connectToCrawlerWebSocket, closeCrawlerWebSocket } from '$lib/services/crawlerSocket';
-	import { scanProgress, stopScanProgress, scanPaused } from '$lib/stores/scanProgressStore.js';
+	import {
+		scanProgress,
+		stopScanProgress,
+		scanPaused,
+		pauseScan,
+		resumeScan
+	} from '$lib/stores/scanProgressStore.js';
 
 	const { data } = $props();
 	let value = $state(15);
@@ -40,7 +46,7 @@
 	);
 
 	const currentStep = derived(serviceStatus, ($serviceStatus) =>
-		$serviceStatus.status === 'running'
+		$serviceStatus.status === 'running' || $serviceStatus.status === 'paused'
 			? 'running'
 			: $serviceStatus.status === 'complete'
 				? 'results'
@@ -79,69 +85,11 @@
 
 	const togglePause = async () => {
 		if ($scanPaused) {
-			const success = await handlesResume();
-			if (success) {
-				scanPaused.set(false);
-			}
+			await resumeScan();
 		} else {
-			const success = await handlesPause();
-			if (success) {
-				scanPaused.set(true);
-			}
+			await pauseScan();
 		}
 	};
-
-	async function handlesPause() {
-		const jobId = localStorage.getItem('currentCrawlerJobId');
-		if (!jobId) {
-			console.error('No Crawler Job Id found in local storage');
-			return false;
-		}
-
-		// Tell the backend to pause
-		try {
-			const res = await fetch(`http://localhost:8000/api/crawler/${jobId}/pause`, {
-				method: 'POST'
-			});
-			if (res.ok) {
-				console.log('Crawler job paused.');
-			} else {
-				console.error('Failed to pause crawler job:', await res.test());
-			}
-		} catch (e) {
-			console.error('Failed to pause crawler:', e);
-			return false;
-		}
-
-		console.log('[Pause] Service state');
-		return true;
-	}
-
-	async function handlesResume() {
-		const jobId = localStorage.getItem('currentCrawlerJobId');
-		if (!jobId) {
-			console.error('No Crawler Job Id found in local storage');
-			return false;
-		}
-
-		// Tell the backend to pause
-		try {
-			const res = await fetch(`http://localhost:8000/api/crawler/${jobId}/resume`, {
-				method: 'POST'
-			});
-			if (res.ok) {
-				console.log('Crawler job resumed.');
-			} else {
-				console.error('Failed to resume crawler job:', await res.test());
-			}
-		} catch (e) {
-			console.error('Failed to resume crawler:', e);
-			return false;
-		}
-
-		console.log('[Resume] Service state');
-		return true;
-	}
 
 	function handleStopCancel() {
 		showStopDialog = false;
@@ -219,7 +167,7 @@
 	</div>
 
 	<div class="table">
-		{#if $showProgress || $serviceStatus.status === 'complete'}
+		{#if $showProgress || $serviceStatus.status === 'complete' || $serviceStatus.status === 'paused'}
 			<div class="progress-bar-container">
 				<div class="progress-info">
 					<div class="text-sm font-medium">Progress</div>
@@ -243,7 +191,15 @@
 				<Button onclick={handleRestart} variant="default" size="default" class="view-all-results">
 					View All Results
 				</Button>
-			{:else if $serviceStatus.status === 'running'}
+			{:else if $serviceStatus.status === 'running' || $serviceStatus.status === 'paused'}
+				<Button onclick={togglePause} variant="secondary" size="default" class="pause-button">
+					{#if $scanPaused}
+						Resume
+					{:else}
+						Pause
+					{/if}
+				</Button>
+
 				<Button
 					onclick={() => (showStopDialog = true)}
 					variant="destructive"
