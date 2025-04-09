@@ -53,7 +53,7 @@ class crawler_manager:
 
     def resume(self):
         """
-        Resumes a paused  crawler 
+        Resumes a paused crawler
         """
         self._paused = False
 

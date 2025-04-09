@@ -322,7 +322,7 @@ async def run_crawler_task(job_id: str, config: CrawlerConfig):
             del running_jobs[job_id]
 
     except Exception as e:
-        error_message = f'Eroor in crawler job: {str(e)}'
+        error_message = f'Error in crawler job: {str(e)}'
         logger.error(f'Error in crawler job {job_id}: {e}')
         tracker.add_log(error_message)
 

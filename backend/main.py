@@ -297,7 +297,7 @@ async def stop_crawler_job(job_id: str):
     if job_id in running_jobs:
         # Log the request
         if 'logs' in running_jobs[job_id]:
-            running_jobs[job_id]['logs'].append(f'[{datetime.now().isoformat}] Stop requested by user')
+            running_jobs[job_id]['logs'].append(f'[{datetime.now().isoformat()}] Stop requested by user')
 
         # Update the status to stop the loop
         running_jobs[job_id]['status'] = 'stopped'
