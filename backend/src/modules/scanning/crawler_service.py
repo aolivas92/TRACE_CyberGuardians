@@ -365,3 +365,52 @@ async def wait_for_resume(job_id: str, crawler: crawler_manager):
         raise asyncio.CancelledError('Job stopped while paused')
     
     crawler.resume()
+
+def get_job_status_message(job_id: str) -> Dict[str, Any]:
+    """
+    Generate a status message for a job based on its current state.
+    """
+    if job_id in running_jobs:
+        job = running_jobs[job_id]
+        return {
+            "type": "status",
+            "job_id": job_id,
+            "data": {
+                "status": job.get("status", "unknown"),
+                "progress": job.get("progress", 0),
+                "urls_processed": job.get("urls_processed", 0),
+                "total_urls": job.get("total_urls", 0),
+                "created_at": job.get("created_at", ""),
+                "started_at": job.get("started_at", "")
+            }
+        }
+    elif job_id in job_results:
+        job = job_results[job_id]
+        return {
+            "type": "status",
+            "job_id": job_id,
+            "data": {
+                "status": job.get("status", "completed"),
+                "progress": 100,
+                "urls_processed": job.get("urls_processed", 0),
+                "total_urls": job.get("total_urls", job.get("urls_processed", 0)),
+                "completed_at": job.get("completed_at", ""),
+                "error": job.get("error", None)
+            }
+        }
+    else:
+        return {
+            "type": "error",
+            "job_id": job_id,
+            "data": {"message": f"Job {job_id} not found"}
+        }
+    
+def get_job_logs(job_id: str) -> List[str]:
+    """
+    Retrieve logs for a specific job.
+    """
+    if job_id in running_jobs and "logs" in running_jobs[job_id]:
+        return running_jobs[job_id]["logs"]
+    elif job_id in job_results and "logs" in job_results[job_id]:
+        return job_results[job_id]["logs"]
+    return []
