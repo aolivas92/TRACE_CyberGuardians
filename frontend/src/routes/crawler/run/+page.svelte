@@ -11,7 +11,13 @@
 	import { derived, get, writable, readable } from 'svelte/store';
 	import { serviceResults } from '$lib/stores/serviceResultsStore.js';
 	import { connectToCrawlerWebSocket, closeCrawlerWebSocket } from '$lib/services/crawlerSocket';
-	import { scanProgress, stopScanProgress, scanPaused } from '$lib/stores/scanProgressStore.js';
+	import {
+		scanProgress,
+		stopScanProgress,
+		scanPaused,
+		pauseScan,
+		resumeScan
+	} from '$lib/stores/scanProgressStore.js';
 
 	const { data } = $props();
 	let value = $state(15);
@@ -40,7 +46,7 @@
 	);
 
 	const currentStep = derived(serviceStatus, ($serviceStatus) =>
-		$serviceStatus.status === 'running'
+		$serviceStatus.status === 'running' || $serviceStatus.status === 'paused'
 			? 'running'
 			: $serviceStatus.status === 'complete'
 				? 'results'
@@ -77,29 +83,47 @@
 		}
 	});
 
-	// const togglePause = () => {
-	// 	if ($scanPaused) {
-	// 		resumeCrawlerJob();
-	// 		scanPaused.set(false);
-	// 	} else {
-	// 		pauseCrawlerJob();
-	// 		scanPaused.set(true);
-	// 	}
-	// };
+	const togglePause = async () => {
+		if ($scanPaused) {
+			await resumeScan();
+		} else {
+			await pauseScan();
+		}
+	};
 
 	function handleStopCancel() {
 		showStopDialog = false;
 	}
 
-	function handleStopConfirm() {
+	async function handleStopConfirm() {
 		showStopDialog = false;
 		stopScanProgress();
 		closeCrawlerWebSocket();
+
+		// Get the job id
+		const jobId = localStorage.getItem('currentCrawlerJobId');
+		if (!jobId) {
+			console.error('No Crawler Job Id found in local storage');
+		}
 
 		// Clear app state
 		serviceResults.update((r) => ({ ...r, crawler: [] }));
 		serviceStatus.set({ status: 'idle', serviceType: null, startTime: null });
 		localStorage.removeItem('currentCrawlerJobId');
+
+		// Tell the backend to stop
+		try {
+			const res = await fetch(`http://localhost:8000/api/crawler/${jobId}/stop`, {
+				method: 'POST'
+			});
+			if (res.ok) {
+				console.log('Crawler job stopped.');
+			} else {
+				console.error('Failed to stop crawler job:', await res.test());
+			}
+		} catch (e) {
+			console.error('Failed to stop crawler:', e);
+		}
 
 		console.log('[Stop] Service state');
 		goto('/dashboard');
@@ -143,7 +167,7 @@
 	</div>
 
 	<div class="table">
-		{#if $showProgress || $serviceStatus.status === 'complete'}
+		{#if $showProgress || $serviceStatus.status === 'complete' || $serviceStatus.status === 'paused'}
 			<div class="progress-bar-container">
 				<div class="progress-info">
 					<div class="text-sm font-medium">Progress</div>
@@ -167,7 +191,15 @@
 				<Button onclick={handleRestart} variant="default" size="default" class="view-all-results">
 					View All Results
 				</Button>
-			{:else if $serviceStatus.status === 'running'}
+			{:else if $serviceStatus.status === 'running' || $serviceStatus.status === 'paused'}
+				<Button onclick={togglePause} variant="secondary" size="default" class="pause-button">
+					{#if $scanPaused}
+						Resume
+					{:else}
+						Pause
+					{/if}
+				</Button>
+
 				<Button
 					onclick={() => (showStopDialog = true)}
 					variant="destructive"

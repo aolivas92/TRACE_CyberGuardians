@@ -1,6 +1,6 @@
 import logging
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from datetime import datetime
 import asyncio
 import os
@@ -14,11 +14,14 @@ logger = logging.getLogger(__name__)
 
 # Track the different Jobs
 running_jobs = {}
-# Format: {job_id: {status, created_at, config, progress, urls_processed, total_urls, logs}}
+# Format: {job_id: {status, created_at, config, progress, urls_processed, total_urls, logs, task, crawler_instance}}
 job_results = {}
 # Format: {job_id, {status, result_file, urls_processed, completed_at, logs}}
 active_connections = {}
 # Format: {job_id: {websocket1, websocket2,...}}
+
+# Dictionary to keep track of crawler instances
+crawler_instances: Dict[str, Any] = {}
 
 # Pydantic models
 class CrawlerConfig(BaseModel):
@@ -199,6 +202,9 @@ async def run_crawler_task(job_id: str, config: CrawlerConfig):
         # Initialize crawler manager
         crawler = crawler_manager()
 
+        # Store the crawler instance so you can pause/stop it
+        crawler_instances[job_id] = crawler
+
         # Attach the row broadcast callback AFTER crawler is initialized
         def handle_new_row(row):
             print(f"[Backend] Broadcasting new row for {job_id}: {row['url']}")
@@ -222,6 +228,15 @@ async def run_crawler_task(job_id: str, config: CrawlerConfig):
 
         # Progress update binding
         def progress_callback(url, error=None):
+            # Check if the status wants it to continue
+            if job_id in running_jobs:
+                job_status = running_jobs[job_id].get('status', '')
+                if job_status == 'stopped':
+                    crawler.stop()
+                    raise asyncio.CancelledError('Job stopped by user')
+                elif job_status == 'paused':
+                    crawler.pause()
+                    asyncio.create_task(wait_for_resume(job_id, crawler))
             tracker.update_progress(url, error)
         crawler.progress_callback = progress_callback
 
@@ -280,14 +295,34 @@ async def run_crawler_task(job_id: str, config: CrawlerConfig):
                 'message': 'Crawler job completed with no results file'
             })
 
+        # Remove the task reference
+        if job_id in crawler_instances:
+            del crawler_instances[job_id]
+        
         # Remove this test from running jobs
         if job_id in running_jobs:
             del running_jobs[job_id]
 
         tracker.add_log(f'Job {job_id} completed without errors..')
 
+    # Handle Cancellation
+    except asyncio.CancelledError:
+        tracker.add_log('Job cancelled by user')
+
+        job_results[job_id] = {
+            'status': 'stopped',
+            'urls_processed': tracker.total_processed,
+            'completed_at': datetime.now().isoformat(),
+            'logs': tracker.logs
+        }
+
+        if job_id in crawler_instances:
+            del crawler_instances[job_id]
+        if job_id in running_jobs:
+            del running_jobs[job_id]
+
     except Exception as e:
-        error_message = f'Eroor in crawler job: {str(e)}'
+        error_message = f'Error in crawler job: {str(e)}'
         logger.error(f'Error in crawler job {job_id}: {e}')
         tracker.add_log(error_message)
 
@@ -310,5 +345,23 @@ async def run_crawler_task(job_id: str, config: CrawlerConfig):
                 'logs': tracker.logs
             }
 
+            # Remove the task reference
+            if job_id in crawler_instances:
+                del crawler_instances[job_id]
+
             # Remove from the running_jobs list
             del running_jobs[job_id]
+
+async def wait_for_resume(job_id: str, crawler: crawler_manager):
+    """
+    Wait for job status to change from paused to something else
+    """
+    while job_id in running_jobs and running_jobs[job_id].get('status') == 'paused':
+        await asyncio.sleep(0.5)
+
+    # Stop it if it's stopped during pause
+    if job_id in running_jobs and running_jobs[job_id].get('status') == 'stopped':
+        crawler.stop()
+        raise asyncio.CancelledError('Job stopped while paused')
+    
+    crawler.resume()

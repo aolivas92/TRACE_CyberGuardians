@@ -12,6 +12,7 @@
 	import FormField from '$lib/components/ui/form/FormField.svelte';
 	import * as Accordion from '$lib/components/ui/accordion/index.js';
 	import * as Tooltip from '$lib/components/ui/tooltip/index.js';
+	import { connectToCrawlerWebSocket } from '$lib/services/crawlerSocket';
 
 	let formData = {};
 	let fieldErrors = {};

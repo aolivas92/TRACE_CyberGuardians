@@ -36,9 +36,26 @@ class crawler_manager:
         self.counter = 1
         self.progress_callback = lambda url, error=None: None
         self.on_new_row = None
+        self._paused = False
+        self._stopped = False
 
     def stop(self):
+        """
+        Signal the crawler to stop processing further URLs.
+        """
         self._stopped = True
+
+    def pause(self):
+        """
+        Pauses the crawler, causing it to wait until resumed.
+        """
+        self._paused = True
+
+    def resume(self):
+        """
+        Resumes a paused crawler
+        """
+        self._paused = False
 
     def set_progress_callback(self, callback):
         """
@@ -86,6 +103,9 @@ class crawler_manager:
             "crawl_time": crawl_time,
             "excluded_urls": excluded_urls.split(',') if excluded_urls else []
         }
+        # Reset flags
+        self._paused = False
+        self._stopped = False
 
 
     async def crawl_recursive(self, url: str, depth_remaining: int, parent_url: str = None) -> None:
@@ -107,6 +127,14 @@ class crawler_manager:
         @requires depth_remaining >= 0;
         @ensures visited contains url if depth_remaining >= 0;
         """
+        # Check if we're paused
+        while self._paused and not self._stopped:
+            await asyncio.sleep(0.5)
+
+        # Check if it was stopped
+        if self._stopped:
+            return
+        
         if url in self.visited or depth_remaining < 0 or len(self.visited) >= self.config.get("limit", 100):
             return
             
@@ -150,7 +178,17 @@ class crawler_manager:
             processed_result = self.processor.process_response(raw_html, base_url=url)
             self.results.append({"url": url, "data": processed_result})
 
+            # Check for stopped before starting recursive call
+            if self._stopped:
+                return
+
             for extracted_url in processed_result.get("extracted_urls", []):
+                # Check if stopped or paused before each next URL
+                while self._paused and not self._stopped:
+                    await asyncio.sleep(0.5)
+                if self._stopped:
+                    return
+                
                 if any(excluded in extracted_url for excluded in self.config["excluded_urls"]):
                     continue
                 full_url = urljoin(url, extracted_url)

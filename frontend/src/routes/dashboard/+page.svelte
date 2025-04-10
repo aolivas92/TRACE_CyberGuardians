@@ -2,26 +2,39 @@
 	import { goto } from '$app/navigation';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { serviceStatus } from '$lib/stores/projectServiceStore.js';
+	import { onMount } from 'svelte';
+	import { get } from 'svelte/store';
+	import { connectToCrawlerWebSocket } from '$lib/services/crawlerSocket';
 
 	export let data;
 
 	// Reactively get the service status from the store
 	$: $serviceStatus;
 
+	onMount(() => {
+	const jobId = localStorage.getItem('currentCrawlerJobId');
+	const status = get(serviceStatus).status;
+
+	if ((status === 'running' || status === 'paused') && jobId) {
+		console.log('[Dashboard] Reconnecting to WebSocket...');
+		connectToCrawlerWebSocket(jobId);
+	}
+});
+
+
 	function handleToolClick(tool) {
 	const toolType = tool.name.toLowerCase();
 
 	if (
-		($serviceStatus.status === 'running' || $serviceStatus.status === 'complete') &&
+		(['running', 'paused', 'complete'].includes($serviceStatus.status)) &&
 		$serviceStatus.serviceType === toolType
 	) {
-		// Both "running" and "complete" should go to /[tool]/run
 		goto(`/${toolType}/run`);
 	} else {
-		// Default to config page
 		goto(tool.route);
 	}
 }
+
 
 
 function getToolStatus(tool) {
@@ -30,6 +43,7 @@ function getToolStatus(tool) {
 	if ($serviceStatus.serviceType === type) {
 		switch ($serviceStatus.status) {
 			case 'running': return 'In Progress';
+			case 'paused': return 'Paused';
 			case 'complete': return 'Finished';
 			default: return 'Not Started';
 		}
@@ -38,18 +52,18 @@ function getToolStatus(tool) {
 }
 
 
+
 function getButtonLabel(tool) {
 	const type = tool.name.toLowerCase();
 
 	if ($serviceStatus.serviceType === type) {
-		return $serviceStatus.status === 'running'
-			? 'View'
-			: $serviceStatus.status === 'complete'
-			? 'View Results'
-			: 'Start';
+		if ($serviceStatus.status === 'running') return 'View';
+		if ($serviceStatus.status === 'paused') return 'Resume';
+		if ($serviceStatus.status === 'complete') return 'View Results';
 	}
 	return 'Start';
 }
+
 </script>
 
 <div class="dashboard">

@@ -3,7 +3,7 @@ numpy
 requests
 fastapi
 strawberry-graphql[fastapi]
-uvicorn
+uvicorn[standard]
 aiohttp
 asyncio
 aiofiles
