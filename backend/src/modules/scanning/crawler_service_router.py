@@ -116,7 +116,7 @@ async def get_crawler_status(job_id: str):
         job = running_jobs[job_id]
         return CrawlerJobResponse(
             job_id=job_id,
-            message=f'Crawler job is {job['status']}',
+            message=f"Crawler job is {job['status']}",
             status=job['status'],
             progress=job.get('progress', 0),
             urls_processed=job.get('urls_processed', 0),
@@ -208,7 +208,7 @@ async def stop_crawler_job(job_id: str):
                 try:
                     await websocket.send_json(stop_message)
                 except Exception as e:
-                    logger.error(f'Error sending stop message to Websocekt: {str(e)}')
+                    logger.error(f'Error sending stop message to WebSocekt: {str(e)}')
 
         # Remove from the running jobs list
         del running_jobs[job_id]

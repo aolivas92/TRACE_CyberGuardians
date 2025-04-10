@@ -44,8 +44,8 @@ class JobStatus:
 class Query:
     @strawberry.field
     def get_crawler_results(self, job_id: str) -> List[CrawlerResultType]:
-        if job_id in job_results and 'results_file' in job_results[job_id]:
-            result_file = job_results[job_id]['results_file']
+        if job_id in job_results and 'result_file' in job_results[job_id]:
+            result_file = job_results[job_id]['result_file']
 
             if os.path.exists(result_file):
                 try:
