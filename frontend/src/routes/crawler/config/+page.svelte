@@ -4,14 +4,12 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
-	import { validateField } from '$lib/validation/validationRules';
+	import { validateField } from '$lib/validation/fieldValidatorFactory.js';
 	import { goto } from '$app/navigation';
 	import { serviceStatus } from '$lib/stores/projectServiceStore';
-	import { Info } from 'lucide-svelte';
 	import StepIndicator from '$lib/components/ui/progressStep/ProgressStep.svelte';
 	import FormField from '$lib/components/ui/form/FormField.svelte';
 	import * as Accordion from '$lib/components/ui/accordion/index.js';
-	import * as Tooltip from '$lib/components/ui/tooltip/index.js';
 	import { connectToCrawlerWebSocket } from '$lib/services/crawlerSocket';
 
 	let formData = {};
@@ -24,7 +22,8 @@
 			type: 'text',
 			placeholder: 'https://juice-shop.herokuapp.com',
 			required: true,
-			advanced: false
+			advanced: false,
+			toolTip: 'The URL of the target application to crawl.'
 		},
 		{
 			id: 'depth',
@@ -40,7 +39,8 @@
 			type: 'text',
 			placeholder: 'Comma-separated URLs to skip',
 			required: false,
-			advanced: true
+			advanced: true,
+			toolTip: 'Comma-separated list of URLs to exclude from crawling.'
 		},
 		{
 			id: 'crawl-date',
@@ -70,7 +70,8 @@
 			type: 'text',
 			placeholder: 'https://juice-shop.herokuapp.com/drink/*',
 			required: false,
-			advanced: true
+			advanced: true,
+			toolTip: 'User agent string to use for the crawl.'
 		},
 		{
 			id: 'delay',
@@ -86,7 +87,8 @@
 			type: 'text',
 			placeholder: 'http://127.0.0.1:8080',
 			required: false,
-			advanced: true
+			advanced: true,
+			toolTip: 'Proxy URL to use for the crawl.'
 		}
 	];
 
@@ -120,7 +122,6 @@
 			}
 
 			if (result.type === 'success' && result.data?.success) {
-
 				const jobId = result.data.job_id;
 
 				if (!jobId) {
@@ -145,6 +146,10 @@
 	};
 </script>
 
+<svelte:head>
+	<title>Crawler Configuration | TRACE</title>
+</svelte:head>
+
 <div class="crawler-config">
 	<div class="title-section">
 		<div class="title">Crawler Configuration</div>
@@ -152,53 +157,14 @@
 	</div>
 	<form method="POST" use:enhance={onSubmitHandler} class="input-container">
 		{#each inputFields.filter((field) => !field.advanced) as field}
-			{#if field.id === 'target-url'}
-				<div class="flex w-full max-w-96 flex-col">
-					<div class="input-field flex items-center">
-						<Label for={field.id} class="font-medium">
-							{field.label}
-							{#if field.required}
-								<span class="text-red-500">*</span>
-							{/if}
-						</Label>
-						<Tooltip.Provider>
-							<Tooltip.Root>
-								<Tooltip.Trigger asChild>
-									<Button variant="ghost" size="circlesm" type="button">
-										<Info style="width: 16px; height: 16px;" />
-									</Button>
-								</Tooltip.Trigger>
-								<Tooltip.Content>
-									<p>Optional fields left empty will use default values</p>
-								</Tooltip.Content>
-							</Tooltip.Root>
-						</Tooltip.Provider>
-					</div>
-					<FormField
-						id={field.id}
-						type={field.type}
-						placeholder={field.placeholder}
-						value={formData[field.id] || ''}
-						error={fieldErrors[field.id]?.error || false}
-						errorText={fieldErrors[field.id]?.message || ''}
-						onInput={(e) => handleInputChange(field.id, e.target.value)}
-						onBlur={() => handleInputChange(field.id, formData[field.id])}
-					/>
-				</div>
-			{:else}
-				<FormField
-					id={field.id}
-					label={field.label}
-					type={field.type}
-					placeholder={field.placeholder}
-					required={field.required}
-					value={formData[field.id] || ''}
-					error={fieldErrors[field.id]?.error || false}
-					errorText={fieldErrors[field.id]?.message || ''}
-					onInput={(e) => handleInputChange(field.id, e.target.value)}
-					onBlur={() => handleInputChange(field.id, formData[field.id])}
-				/>
-			{/if}
+			<FormField
+				{field}
+				value={formData[field.id] || ''}
+				error={fieldErrors[field.id]?.error || false}
+				errorText={fieldErrors[field.id]?.message || ''}
+				onInput={(e) => handleInputChange(field.id, e.target.value)}
+				onBlur={() => handleInputChange(field.id, formData[field.id])}
+			/>
 		{/each}
 
 		<Accordion.Root type="single" class="w-96 max-w-full">
@@ -207,11 +173,7 @@
 				<Accordion.Content>
 					{#each inputFields.filter((field) => field.advanced) as field}
 						<FormField
-							id={field.id}
-							label={field.label}
-							type={field.type}
-							placeholder={field.placeholder}
-							required={field.required}
+							{field}
 							value={formData[field.id] || ''}
 							error={fieldErrors[field.id]?.error || false}
 							errorText={fieldErrors[field.id]?.message || ''}
@@ -224,7 +186,14 @@
 		</Accordion.Root>
 
 		<div class="pb-8">
-			<Button type="submit" variant="default" size="default" class="w-96">Submit</Button>
+			<Button
+				type="submit"
+				variant="default"
+				size="default"
+				class="w-96"
+				aria-label="Submit the form"
+				title="Click to submit the form">Submit</Button
+			>
 		</div>
 	</form>
 </div>
@@ -262,12 +231,5 @@
 		max-width: 100%;
 		height: 100%;
 		gap: 1rem;
-	}
-	.input-field {
-		display: flex;
-		width: 100%;
-		max-width: 24rem;
-		flex-direction: row;
-		gap: 0.375rem;
 	}
 </style>

@@ -12,58 +12,56 @@
 	$: $serviceStatus;
 
 	onMount(() => {
-	const jobId = localStorage.getItem('currentCrawlerJobId');
-	const status = get(serviceStatus).status;
+		const jobId = localStorage.getItem('currentCrawlerJobId');
+		const status = get(serviceStatus).status;
 
-	if ((status === 'running' || status === 'paused') && jobId) {
-		console.log('[Dashboard] Reconnecting to WebSocket...');
-		connectToCrawlerWebSocket(jobId);
-	}
-});
-
+		if ((status === 'running' || status === 'paused') && jobId) {
+			console.log('[Dashboard] Reconnecting to WebSocket...');
+			connectToCrawlerWebSocket(jobId);
+		}
+	});
 
 	function handleToolClick(tool) {
-	const toolType = tool.name.toLowerCase();
+		const toolType = tool.name.toLowerCase();
 
-	if (
-		(['running', 'paused', 'complete'].includes($serviceStatus.status)) &&
-		$serviceStatus.serviceType === toolType
-	) {
-		goto(`/${toolType}/run`);
-	} else {
-		goto(tool.route);
-	}
-}
-
-
-
-function getToolStatus(tool) {
-	const type = tool.name.toLowerCase();
-
-	if ($serviceStatus.serviceType === type) {
-		switch ($serviceStatus.status) {
-			case 'running': return 'In Progress';
-			case 'paused': return 'Paused';
-			case 'complete': return 'Finished';
-			default: return 'Not Started';
+		if (
+			['running', 'paused', 'complete'].includes($serviceStatus.status) &&
+			$serviceStatus.serviceType === toolType
+		) {
+			goto(`/${toolType}/run`);
+		} else {
+			goto(tool.route);
 		}
 	}
-	return 'Not Started';
-}
 
+	function getToolStatus(tool) {
+		const type = tool.name.toLowerCase();
 
-
-function getButtonLabel(tool) {
-	const type = tool.name.toLowerCase();
-
-	if ($serviceStatus.serviceType === type) {
-		if ($serviceStatus.status === 'running') return 'View';
-		if ($serviceStatus.status === 'paused') return 'Resume';
-		if ($serviceStatus.status === 'complete') return 'View Results';
+		if ($serviceStatus.serviceType === type) {
+			switch ($serviceStatus.status) {
+				case 'running':
+					return 'In Progress';
+				case 'paused':
+					return 'Paused';
+				case 'complete':
+					return 'Finished';
+				default:
+					return 'Not Started';
+			}
+		}
+		return 'Not Started';
 	}
-	return 'Start';
-}
 
+	function getButtonLabel(tool) {
+		const type = tool.name.toLowerCase();
+
+		if ($serviceStatus.serviceType === type) {
+			if ($serviceStatus.status === 'running') return 'View';
+			if ($serviceStatus.status === 'paused') return 'Resume';
+			if ($serviceStatus.status === 'complete') return 'View Results';
+		}
+		return 'Start';
+	}
 </script>
 
 <div class="dashboard">
@@ -85,11 +83,11 @@ function getButtonLabel(tool) {
 						size="lg"
 						class={$serviceStatus.status === 'running' ? 'px-10' : ''}
 						data-active={$serviceStatus.serviceType === tool.name.toLowerCase()}
-						disabled={
-							$serviceStatus.status === 'running' &&
-							$serviceStatus.serviceType !== tool.name.toLowerCase()
-						}
+						disabled={$serviceStatus.status === 'running' &&
+							$serviceStatus.serviceType !== tool.name.toLowerCase()}
 						onclick={() => handleToolClick(tool)}
+						aria-label={getButtonLabel(tool)}
+						title={getButtonLabel(tool)}
 					>
 						{getButtonLabel(tool)}
 					</Button>

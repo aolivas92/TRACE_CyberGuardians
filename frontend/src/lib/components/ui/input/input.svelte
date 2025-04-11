@@ -8,7 +8,6 @@
 		files = $bindable(),
 		class: className,
 		error = false,
-		errorText = "",
 		infoText = null,
 		...restProps
 	} = $props();
@@ -26,11 +25,10 @@
 			type="file"
 			bind:files
 			bind:value
+			aria-invalid={error}
+			aria-describedby={restProps['aria-describedby']}
 			{...restProps}
 		/>
-		{#if error}
-			<p class="text-sm text-error mt-1">{errorText}</p>
-		{/if}
 	</div>
 {:else}
 	<div class="w-full">
@@ -43,11 +41,10 @@
 			)}
 			{type}
 			bind:value
+			aria-invalid={error}
+			aria-describedby={restProps['aria-describedby']}
 			{...restProps}
 		/>
-		{#if error}
-			<p class="text-sm text-error mt-1">{errorText}</p>
-		{/if}
 	</div>
 {/if}
 

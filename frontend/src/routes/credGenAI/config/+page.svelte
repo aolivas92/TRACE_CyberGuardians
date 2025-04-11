@@ -4,7 +4,7 @@
 	import { Label } from '$lib/components/ui/label/index.js';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { goto } from '$app/navigation';
-	import { validateField } from '$lib/validation/validationRules.js';
+	import { validateField } from '$lib/validation/fieldValidatorFactory.js';
 	import { enhance } from '$app/forms';
 	import * as Tooltip from '$lib/components/ui/tooltip/index.js';
 	import FormField from '$lib/components/ui/form/FormField.svelte';
@@ -22,7 +22,22 @@
 			id: 'wordlist',
 			label: 'Wordlist',
 			type: 'file',
-			required: true
+			required: true,
+			toolTip: 'Upload a custom wordlist for generation (must be a .txt file).'
+		},
+		{
+			id: 'username-length',
+			label: 'Username Length',
+			type: 'number',
+			placeholder: '12',
+			required: false,
+		},
+		{
+			id: 'password-length',
+			label: 'Password Length',
+			type: 'number',
+			placeholder: '12',
+			required: false,
 		}
 	];
 
@@ -89,6 +104,10 @@
 	};
 </script>
 
+<svelte:head>
+	<title>CredGenAI Configuration | TRACE</title>
+</svelte:head>
+
 <div class="credGenAI-config">
 	<div class="title-section">
 		<div class="title">AI Generator</div>
@@ -101,26 +120,22 @@
 		use:enhance={onSubmitHandler}
 		class="input-container"
 	>
-		<FormField
-			id="wordlist"
-			label="Wordlist"
-			type="file"
-			required={true}
-			value={formData.wordlist || ''}
-			error={fieldErrors.wordlist?.error || false}
-			errorText={fieldErrors.wordlist?.message || ''}
-			onInput={(e) => handleInputChange(e.target.files?.[0] ?? null)}
-			onBlur={() => handleInputChange(selectedFile)}
-			class="w-full rounded border px-3 py-2"
-		/>
+		{#each inputFields.filter((f) => f.id === 'wordlist') as field}
+			<FormField
+				{field}
+				value={formData[field.id] || ''}
+				error={fieldErrors[field.id]?.error || false}
+				errorText={fieldErrors[field.id]?.message || ''}
+				onInput={(e) => handleInputChange(e.target.files?.[0] ?? null)}
+				onBlur={() => handleInputChange(selectedFile)}
+			/>
+		{/each}
 
 		<div class="toggle-container">
 			<!-- Username Toggle Section -->
 			<div class="toggle-section">
 				<div class="flex items-center gap-2">
-					<div class="toggle-title">
-						Username
-					</div>
+					<div class="toggle-title">Username</div>
 					<Tooltip.Provider>
 						<Tooltip.Root>
 							<Tooltip.Trigger asChild>
@@ -128,6 +143,7 @@
 									variant="ghost"
 									size="circlesm"
 									type="button"
+									aria-label="Information about username options"
 								>
 									<Info style="width: 16px; height: 16px;" />
 								</Button>
@@ -141,35 +157,34 @@
 				{#each usernameToggles as toggle, index}
 					<div class="switch-container">
 						<Label for={toggle.id}>{toggle.label}</Label>
-						<Switch
-							id={toggle.id}
-							bind:checked={toggle.checked}
-							oninput={() => toggleSwitch('username', index)}
-						/>
+						<fieldset class="toggle-section">
+							<legend class="sr-only">Username generation options</legend>
+							<Switch
+								id={toggle.id}
+								bind:checked={toggle.checked}
+								oninput={() => toggleSwitch('username', index)}
+							/>
+						</fieldset>
 					</div>
 				{/each}
 				<div class="length-field">
-					<FormField
-						id="username-length"
-						label="Length"
-						type="number"
-						bind:value={usernameLength}
-						placeholder="12"
-						class="w-32"
-						error={fieldErrors['username-length']?.error || false}
-						errorText={fieldErrors['username-length']?.message || ''}
-						onInput={(e) => handleLengthChange('username-length', e.target.value)}
-						onBlur={() => handleLengthChange('username-length', usernameLength)}
-					/>
+					{#each inputFields.filter((f) => f.id === 'username-length') as field}
+						<FormField
+							{field}
+							value={formData[field.id] || ''}
+							error={fieldErrors[field.id]?.error || false}
+							errorText={fieldErrors[field.id]?.message || ''}
+							onInput={(e) => handleLengthChange(field.id, e.target.value)}
+							onBlur={() => handleLengthChange(field.id, formData[field.id])}
+						/>
+					{/each}
 				</div>
 			</div>
 
 			<!-- Password Toggle Section -->
 			<div class="toggle-section">
 				<div class="flex items-center gap-2">
-					<div class="toggle-title">
-						Password
-					</div>
+					<div class="toggle-title">Password</div>
 					<Tooltip.Provider>
 						<Tooltip.Root>
 							<Tooltip.Trigger asChild>
@@ -177,6 +192,7 @@
 									variant="ghost"
 									size="circlesm"
 									type="button"
+									aria-label="Information about password options"
 								>
 									<Info style="width: 16px; height: 16px;" />
 								</Button>
@@ -190,32 +206,42 @@
 				{#each passwordToggles as toggle, index}
 					<div class="switch-container">
 						<Label for={toggle.id}>{toggle.label}</Label>
-						<Switch
-							id={toggle.id}
-							bind:checked={toggle.checked}
-							oninput={() => toggleSwitch('password', index)}
-						/>
+						<fieldset class="toggle-section">
+							<legend class="sr-only">Password generation options</legend>
+							<Switch
+								id={toggle.id}
+								bind:checked={toggle.checked}
+								oninput={() => toggleSwitch('password', index)}
+							/>
+						</fieldset>
 					</div>
 				{/each}
 				<div class="length-field">
-					<FormField
-						id="password-length"
-						label="Length"
-						type="number"
-						bind:value={passwordLength}
-						placeholder="12"
-						class="w-32"
-						error={fieldErrors['password-length']?.error || false}
-						errorText={fieldErrors['password-length']?.message || ''}
-						onInput={(e) => handleLengthChange('password-length', e.target.value)}
-						onBlur={() => handleLengthChange('password-length', passwordLength)}
-					/>
+					{#each inputFields.filter((f) => f.id === 'password-length') as field}
+						<FormField
+							{field}
+							value={formData[field.id] || ''}
+							error={fieldErrors[field.id]?.error || false}
+							errorText={fieldErrors[field.id]?.message || ''}
+							onInput={(e) => handleLengthChange(field.id, e.target.value)}
+							onBlur={() => handleLengthChange(field.id, formData[field.id])}
+						/>
+					{/each}
 				</div>
 			</div>
 		</div>
 
 		<div>
-			<Button type="submit" variant="default" size="default" class="w-96">Submit</Button>
+			<Button
+				type="submit"
+				variant="default"
+				size="default"
+				class="w-96"
+				aria-label="Submit the form"
+				title="Submit the form"
+			>
+				Submit
+			</Button>
 		</div>
 	</form>
 </div>

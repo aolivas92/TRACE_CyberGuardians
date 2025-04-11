@@ -46,7 +46,8 @@
 			variant="ghost"
 			size="icon"
 			type="button"
-			title="Toggle Theme"
+			title="TRACE Home"
+			aria-label="TRACE Home"
 		>
 			{#if $mode === 'dark'}
 				<img

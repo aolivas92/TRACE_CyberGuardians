@@ -3,6 +3,9 @@
   import { ModeWatcher } from "mode-watcher";
   import "../app.css";
 </script>
+<svelte:head>
+  <title>TRACE | Tool Dashboard</title>
+</svelte:head>
 
 <ModeWatcher />
 

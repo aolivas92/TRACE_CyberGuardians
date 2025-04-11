@@ -72,6 +72,8 @@
 					variant="default"
 					size="default"
 					class="pause-button"
+					aria-label={$scanPaused ? 'Resume scanning' : 'Pause scanning'}
+					title={$scanPaused ? 'Resume scanning' : 'Pause scanning'}
 				>
 					{$scanPaused ? 'Resume' : 'Pause'}
 				</Button>
@@ -81,20 +83,44 @@
 					variant="destructive"
 					size="default"
 					class="stop-button"
+					aria-label="Stop scanning"
+					title="Stop scanning"
 				>
 					Stop
 				</Button>
 			{:else}
-				<Button onclick={handleRestart} variant="default" size="default" class="restart-button">
+				<Button
+					onclick={handleRestart}
+					variant="default"
+					size="default"
+					class="restart-button"
+					aria-label="Restart scanning"
+					title="Restart scanning"
+				>
 					Restart
 				</Button>
-				<Button onclick={handleRestart} variant="default" size="default" class="view-all-results">
+				<Button
+					onclick={handleRestart}
+					variant="default"
+					size="default"
+					class="view-all-results"
+					aria-label="View all results"
+					title="View all results"
+				>
 					View All Results
 				</Button>
 			{/if}
 		</div>
 		<div class="single-button">
-			<Button variant="secondary" size="default" class="terminal-button">Terminal</Button>
+			<Button 
+				variant="secondary" 
+				size="default" 
+				class="terminal-button" 
+				aria-label="Open terminal" 
+				title="Open terminal"
+			>
+				Terminal
+			</Button>
 		</div>
 	</div>
 
@@ -106,6 +132,10 @@
 		onContinue={handleStopConfirm}
 	/>
 </div>
+
+<svelte:head>
+  <title>Fuzzer Run | TRACE</title>
+</svelte:head>
 
 <style>
 	.fuzzer-run {
