@@ -164,6 +164,12 @@
 								bind:checked={toggle.checked}
 								oninput={() => toggleSwitch('username', index)}
 							/>
+							<input
+								type="checkbox"
+								class="sr-only"
+								name={toggle.id}
+								checked={toggle.checked}
+							/>
 						</fieldset>
 					</div>
 				{/each}
@@ -212,6 +218,12 @@
 								id={toggle.id}
 								bind:checked={toggle.checked}
 								oninput={() => toggleSwitch('password', index)}
+							/>
+							<input
+								type="checkbox"
+								class="sr-only"
+								name={toggle.id}
+								checked={toggle.checked}
 							/>
 						</fieldset>
 					</div>

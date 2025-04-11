@@ -58,7 +58,7 @@ export const actions = {
 			password_numbers: formData['password-numbers'] === 'on' ? true : undefined,
 			password_symbols: formData['password-symbols'] === 'on' ? true : undefined
 		};
-
+/*
 		// Assemble payload using FormData
 		const credgenPayload = new FormData();
 		for (const [key, value] of Object.entries(transformedData)) {
@@ -101,6 +101,6 @@ export const actions = {
 				message: 'Internal server error',
 				values: formData
 			});
-		}
+		} */
 	}
 };
