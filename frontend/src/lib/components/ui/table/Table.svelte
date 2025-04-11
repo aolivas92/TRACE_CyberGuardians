@@ -16,7 +16,7 @@
 	<div class="table-body rounded-lg shadow-[0_8px_30px_rgb(0,0,0,0.12)]">
 		<table class="w-full border-collapse">
 			<thead class="sticky-header">
-				<tr class="bg-accent text-background">
+				<tr class="bg-accent text-foreground">
 					{#each columns as column}
 						<th class="p-2 text-left">{column.label}</th>
 					{/each}

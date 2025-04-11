@@ -1,5 +1,5 @@
 import { fail } from '@sveltejs/kit';
-import { validateField } from '$lib/validation/validationRules.js';
+import { validateField } from '$lib/validation/fieldValidatorFactory.js';
 
 /** @type {import('./$types').Actions} */
 export const actions = {

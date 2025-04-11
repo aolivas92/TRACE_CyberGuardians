@@ -40,6 +40,10 @@
 	}
 </script>
 
+<svelte:head>
+  <title>CredGenAI Run | TRACE</title>
+</svelte:head>
+
 <div class="generator-run">
 	<div class="title-section">
 		<div class="title">
@@ -66,6 +70,8 @@
 				variant="destructive"
 				size="default"
 				class="stop-button"
+				aria-label="Cancel the process"
+				title="Cancel the process"
 			>
 				Cancel
 			</Button>
@@ -76,10 +82,19 @@
 					variant="secondary"
 					size="default"
 					class="restart-button"
+					aria-label="Re-generate the configuration"
+					title="Re-generate the configuration"
 				>
 					Re-Generate
 				</Button>
-				<Button onclick={handleSaveWordList} variant="default" size="default" class="save-button">
+				<Button
+					onclick={handleSaveWordList}
+					variant="default"
+					size="default"
+					class="save-button"
+					aria-label="Save the word list"
+					title="Save the word list"
+				>
 					Save
 				</Button>
 			</div>

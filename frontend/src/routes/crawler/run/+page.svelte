@@ -22,8 +22,6 @@
 	const { data } = $props();
 	let value = $state(15);
 	let showStopDialog = $state(false);
-	let paused = $state(false);
-	let intervalId;
 
 	// Derived stores
 	const crawlerResults = derived(serviceResults, ($serviceResults) => $serviceResults.crawler);
@@ -158,6 +156,10 @@
 	});
 </script>
 
+<svelte:head>
+	<title>Crawler Run | TRACE</title>
+</svelte:head>
+
 <div class="crawler-run">
 	<div class="title-section">
 		<div class="title">
@@ -185,14 +187,35 @@
 	<div class="button-section">
 		<div class="button-group">
 			{#if $serviceStatus.status === 'complete'}
-				<Button onclick={handleRestart} variant="default" size="default" class="restart-button">
+				<Button
+					onclick={handleRestart}
+					variant="default"
+					size="default"
+					class="restart-button"
+					aria-label="Restart the scan"
+					title="Click to restart the scan"
+				>
 					Restart
 				</Button>
-				<Button onclick={handleRestart} variant="default" size="default" class="view-all-results">
+				<Button
+					onclick={handleRestart}
+					variant="default"
+					size="default"
+					class="view-all-results"
+					aria-label="View all results"
+					title="Click to view all results"
+				>
 					View All Results
 				</Button>
 			{:else if $serviceStatus.status === 'running' || $serviceStatus.status === 'paused'}
-				<Button onclick={togglePause} variant="secondary" size="default" class="pause-button">
+				<Button
+					onclick={togglePause}
+					variant="secondary"
+					size="default"
+					class="pause-button"
+					aria-label={$scanPaused ? 'Resume the scan' : 'Pause the scan'}
+					title={$scanPaused ? 'Click to resume the scan' : 'Click to pause the scan'}
+				>
 					{#if $scanPaused}
 						Resume
 					{:else}
@@ -205,13 +228,23 @@
 					variant="destructive"
 					size="default"
 					class="stop-button"
+					aria-label="Stop the scan"
+					title="Click to stop the scan"
 				>
 					Stop
 				</Button>
 			{/if}
 		</div>
 		<div class="single-button">
-			<Button variant="secondary" size="default" class="terminal-button">Terminal</Button>
+			<Button
+				variant="secondary"
+				size="default"
+				class="terminal-button"
+				aria-label="Open terminal"
+				title="Click to open the terminal"
+			>
+				Terminal
+			</Button>
 		</div>
 	</div>
 
