@@ -1,9 +1,11 @@
+# fuzzer_manager.py
+
 import os
 import time
 import logging
 from typing import List, Dict
 from src.modules.fuzzer.fuzzer_response_processor import FuzzerResponseProcessor
-from src.modules.fuzzer.HTTPClient import AsyncHttpClient
+from src.modules.fuzzer.http_client import AsyncHttpClient
 
 log_path = os.path.join(os.path.dirname(__file__), "fuzzing.log")
 logging.basicConfig(
@@ -14,7 +16,7 @@ logging.basicConfig(
 )
 
 class MockResponse:
-    def __init__(self, url, status, text):
+    def __init__(self, url: str, status: int, text: str):
         self.url = url
         self.status_code = status
         self.text = text
@@ -22,7 +24,23 @@ class MockResponse:
         self.error = False
 
 class FuzzerManager:
-    def __init__(self, http_client=None):
+    """
+    FuzzerManager manages configuration and execution of HTTP fuzzing sessions.
+
+    Attributes:
+        None
+
+    Methods:
+        configure_fuzzing(...) -> None
+        start_fuzzing() -> Coroutine
+        get_metrics() -> Dict[str, [int, float]]
+        get_filtered_results() -> List[Dict]
+
+    Notes:
+        Use this class to automate black box fuzz testing of web applications or APIs.
+    """
+
+    def __init__(self, http_client: [AsyncHttpClient] = None) -> None:
         self.config = {}
         self.response_processor = FuzzerResponseProcessor()
         self.http_client = http_client or AsyncHttpClient()
@@ -30,20 +48,50 @@ class FuzzerManager:
         self.start_time = None
         self.end_time = None
 
-    def configure_fuzzing(self, target_url: str, http_method: str, headers: Dict =None, cookies: Dict = None, proxy: str =None, body_template: str = None, parameters: List[str] = None, payloads=None):
+    def configure_fuzzing(
+        self,
+        target_url: str,
+        http_method: str,
+        headers: [Dict] = None,
+        cookies: [Dict] = None,
+        proxy: [str] = None,
+        body_template: [Dict] = None,
+        parameters: List[str] = None,
+        payloads: [str, List[str]] = None
+    ) -> None:
         """
-        Accepts and stores fuzzing configuration.
+        configure_fuzzing accepts and stores the configuration required for the fuzzing session.
+
+        Args:
+            target_url (str): URL to send requests to.
+            http_method (str): HTTP method (GET, POST).
+            headers ([Dict]): HTTP headers.
+            cookies ([Dict]): HTTP cookies.
+            proxy ([str]):  proxy URL.
+            body_template ([Dict]): Template for request body.
+            parameters (List[str]): List of parameters to fuzz.
+            payloads ([str, List[str]]): Payloads or path to file containing them.
+
+        Returns:
+            None
+
+        Raises:
+            ValueError: If any required argument is missing or invalid.
+
+        @requires target_url is not None and target_url != "";
+        @requires http_method is not None and http_method != "";
+        @requires parameters is not None and len(parameters) > 0;
+        @requires payloads is not None and (isinstance(payloads, list) or os.path.isfile(payloads));
+        @ensures "target_url" in self.config and self.config["target_url"] == target_url;
+        @ensures isinstance(self.config["payloads"], list) and len(self.config["payloads"]) > 0;
         """
         if not target_url or not http_method or not parameters or not payloads:
             raise ValueError("Missing required fuzzing configuration parameters.")
-        
         if isinstance(payloads, str) and os.path.isfile(payloads):
             with open(payloads, "r", encoding="utf-8") as f:
                 payloads = [line.strip() for line in f if line.strip()]
-        
         if not isinstance(payloads, list) or not payloads:
             raise ValueError("Payloads must be a non-empty list or a valid file path.")
-
         self.config = {
             "target_url": target_url,
             "http_method": http_method,
@@ -55,10 +103,24 @@ class FuzzerManager:
             "payloads": payloads
         }
 
-    async def start_fuzzing(self):
+    async def start_fuzzing(self) -> None:
         self.start_time = time.perf_counter()
         """
-        Begins the fuzzing process using the provided configuration.
+        start_fuzzing begins fuzzing by sending requests using the provided configuration.
+        Sends HTTP requests for every parameter and payload combination, then processes the responses using the response processor.
+
+        Args:
+            None
+
+        Returns:
+            None
+
+        Raises:
+            Exception: If a request fails unexpectedly during fuzzing.
+
+        @requires self.config is not None and all required keys are present;
+        @ensures self.request_count >= 0;
+        @ensures self.end_time >= self.start_time;
         """
         target_url = self.config.get("target_url")
         http_method = self.config.get("http_method", "GET").upper()
@@ -68,11 +130,8 @@ class FuzzerManager:
         body_template = self.config.get("body_template", {})
         parameters = self.config.get("parameters", [])
         payloads = self.config.get("payloads", [])
-
         logging.info("Fuzzing started with %d payloads across %d parameter(s)", len(payloads), len(parameters))
-
         proxies = {"http": proxy, "https": proxy} if proxy else None
-
         for payload in payloads:
             for param in parameters:
                 modified_body = body_template.copy()
@@ -101,13 +160,28 @@ class FuzzerManager:
                     error_response.payload = payload
                     error_response.error = True
                     self.response_processor.process_response(error_response)
-        
         self.end_time = time.perf_counter()
     
-    def get_metrics(self):
+    def get_metrics(self) -> Dict[str, [int, float]]:
+        """
+        get_metrics returns performance metrics for the fuzzing session.
+
+        Args:
+            None
+
+        Returns:
+            Dict[str, [int, float]]: Metrics including total time, request count,
+            filtered request count, and requests per second.
+
+        Raises:
+            None
+        
+        @ensures result["running_time"] >= 0;
+        @ensures result["processed_requests"] == self.request_count;
+        @ensures result["filtered_requests"] >= 0;
+        """
         total_time = self.end_time - self.start_time if self.start_time and self.end_time else 0
         rps = self.request_count / total_time if total_time > 0 else 0
-
         return {
             "running_time": total_time,
             "processed_requests": self.request_count,
@@ -115,5 +189,19 @@ class FuzzerManager:
             "requests_per_second": rps
         }
     
-    def get_filtered_results(self):
+    def get_filtered_results(self) -> List[Dict]:
+        """
+        get_filtered_results returns the filtered results of the fuzzing session.
+
+        Args:
+            None
+
+        Returns:
+            List[Dict]: List of responses that matched filter criteria.
+
+        Raises:
+            None
+        
+        @ensures isinstance(result, list);
+        """
         return self.response_processor.get_filtered_results()
