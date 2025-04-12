@@ -102,5 +102,15 @@ export const actions = {
 				values: formData
 			});
 		}
+		
+		// FOR TESTING ONLY
+		// console.log('🚫 Skipping actual backend request for testing...');
+		// console.log('📤 Payload that would have been sent:', transformedData);
+		
+		// return {
+		// 	success: true,
+		// 	message: 'Simulated credGenAI launch successful (no backend call made).',
+		// 	values: formData
+		// };
 	}
 };
