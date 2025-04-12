@@ -164,7 +164,7 @@ async def run_ml_task(job_id: str, config: MLConfig):
             config.target_urls = [config.target_urls]
         
         scraper = WebScraper(config.target_urls)
-        csv_file = scraper.scrape_pages()
+        csv_file = await scraper.scrape_pages()
         
         if not csv_file:
             raise ValueError("Web scraping failed to produce a CSV file")
