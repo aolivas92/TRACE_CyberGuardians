@@ -1,7 +1,7 @@
 import { writable } from 'svelte/store';
 
 /**
- * Creates a writable store for managing the status of a running service (like the crawler).
+ * Creates a writable store for managing the status of a running service.
  * The store is persisted to localStorage so the UI can recover state on refresh.
  */
 function createServiceStatusStore() {

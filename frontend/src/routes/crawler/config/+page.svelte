@@ -31,7 +31,8 @@
 			type: 'number',
 			placeholder: '5',
 			required: false,
-			advanced: false
+			advanced: false,
+			toolTip: 'The maximum depth of the crawl.'
 		},
 		{
 			id: 'excluded-urls',
@@ -47,14 +48,16 @@
 			label: 'Crawl Date',
 			type: 'date',
 			required: false,
-			advanced: false
+			advanced: false,
+			toolTip: 'The date to start the crawl from.'
 		},
 		{
 			id: 'crawl-time',
 			label: 'Crawl Time',
 			type: 'time',
 			required: false,
-			advanced: false
+			advanced: false,
+			toolTip: 'The time to start the crawl.'
 		},
 		{
 			id: 'max-pages',
@@ -62,7 +65,8 @@
 			type: 'number',
 			placeholder: '50',
 			required: false,
-			advanced: true
+			advanced: true,
+			toolTip: 'Maximum number of pages to crawl.'
 		},
 		{
 			id: 'user-agent',
@@ -79,7 +83,8 @@
 			type: 'number',
 			placeholder: '1000',
 			required: false,
-			advanced: true
+			advanced: true,
+			toolTip: 'Delay between requests in milliseconds.'
 		},
 		{
 			id: 'proxy',

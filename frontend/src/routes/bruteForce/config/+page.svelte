@@ -2,21 +2,19 @@
 	import { enhance, applyAction } from '$app/forms';
 	import { onMount } from 'svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
+	import { Input } from '$lib/components/ui/input/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
 	import { validateField } from '$lib/validation/fieldValidatorFactory.js';
 	import { goto } from '$app/navigation';
 	import { serviceStatus } from '$lib/stores/projectServiceStore';
-	import { scanProgress, startScanProgress } from '$lib/stores/scanProgressStore.js';
 	import StepIndicator from '$lib/components/ui/progressStep/ProgressStep.svelte';
 	import FormField from '$lib/components/ui/form/FormField.svelte';
 	import * as Accordion from '$lib/components/ui/accordion/index.js';
-	import * as RadioGroup from '$lib/components/ui/radio-group/index.js';
-	import { connectToFuzzerWebSocket } from '$lib/services/fuzzerSocket.js';
+	import { connectToBruteForceWebSocket } from '$lib/services/bruteForceSocket.js';
 
 	let formData = {};
 	let fieldErrors = {};
 	let selectedFile = null;
-	let httpMethod = 'GET';
 
 	let inputFields = [
 		{
@@ -26,43 +24,52 @@
 			placeholder: 'https://juice-shop.herokuapp.com',
 			required: true,
 			advanced: false,
-			toolTip: 'The URL of the target application to be fuzzed'
+			toolTip: 'The URL of the domain being targeted.'
 		},
 		{
-			id: 'parameters',
-			label: 'Parameters',
-			type: 'text',
-			placeholder: 'username, password',
+			id: 'attempt-limit',
+			label: 'Attempt Limit',
+			type: 'number',
+			placeholder: '-1',
 			required: true,
 			advanced: false,
-			toolTip: 'Comma-separated list of parameters to be fuzzed (username, password, etc.)'
+			toolTip: 'Maximum number of attempts per directory. Use -1 for unlimited.'
 		},
 		{
-			id: 'headers',
-			label: 'Headers',
+			id: 'top-level-directory',
+			label: 'Top-Level Directory',
 			type: 'text',
-			placeholder: 'User-Agent: Mozilla/5.0',
+			placeholder: '/',
 			required: false,
 			advanced: true,
-			toolTip: 'Custom headers to be included in the request'
+			toolTip: 'The directory path where bruteforce starts (defaults to root).'
 		},
 		{
-			id: 'proxy',
-			label: 'Proxy URL',
+			id: 'hide-status-codes',
+			label: 'Hide Status Codes',
 			type: 'text',
-			placeholder: 'http://127.0.0.1:8080',
+			placeholder: '403, 404',
 			required: false,
 			advanced: true,
-			toolTip: 'Proxy URL for the fuzzer to use'
+			toolTip: 'Comma-separated list of HTTP status codes to hide in results.'
 		},
 		{
-			id: 'body-template',
-			label: 'Body Template',
+			id: 'show-status-codes',
+			label: 'Show Only Status Codes',
 			type: 'text',
-			placeholder: 'username: payload, password: payload',
+			placeholder: '200, 500',
 			required: false,
 			advanced: true,
-			toolTip: 'Template for the body of POST requests'
+			toolTip: 'Comma-separated list of HTTP status codes to show exclusively.'
+		},
+		{
+			id: 'filter-content-length',
+			label: 'Filter by Content Length',
+			type: 'text',
+			placeholder: '>100, <500',
+			required: false,
+			advanced: true,
+			toolTip: 'Optional content length filters (>100, <500).'
 		}
 	];
 
@@ -101,6 +108,7 @@
 		return isValid;
 	}
 
+
 	const onSubmitHandler = () => {
 		return async ({ result, update }) => {
 			const isValid = validateAllFields();
@@ -117,18 +125,16 @@
 					return;
 				}
 
-				localStorage.setItem('currentFuzzerJobId', jobId);
+				localStorage.setItem('currentBruteForceJobId', jobId);
 
 				setTimeout(() => {
-					import('$lib/services/fuzzerSocket').then(({ connectToFuzzerWebSocket }) => {
-						connectToFuzzerWebSocket(jobId);
+					import('$lib/services/bruteForceSocket').then(({ connectToBruteForceWebSocket }) => {
+						connectToBruteForceWebSocket(jobId);
 					});
 				}, 500);
 
 				console.log('[Service Status]', $serviceStatus);
-				console.log('[Scan Progress]', $scanProgress);
-
-				goto('/fuzzer/run', { replaceState: true });
+				goto('/bruteForce/run', { replaceState: true });
 			} else {
 				await update();
 			}
@@ -137,20 +143,16 @@
 </script>
 
 <svelte:head>
-	<title>Fuzzer Configuration | TRACE</title>
+	<title>bruteForce Configuration | TRACE</title>
 </svelte:head>
 
-<div class="fuzzer-config">
+<div class="bruteForce-config">
 	<div class="title-section">
-		<div class="title">Fuzzer Configuration</div>
+		<div class="title">Brute Force Configuration</div>
 		<StepIndicator status="config" />
 	</div>
-	<form
-		method="POST"
-		enctype="multipart/form-data"
-		use:enhance={onSubmitHandler}
-		class="input-container"
-	>
+	<form method="POST" enctype="multipart/form-data"
+	use:enhance={onSubmitHandler} class="input-container">
 		{#each inputFields.filter((field) => !field.advanced) as field}
 			<FormField
 				{field}
@@ -161,7 +163,6 @@
 				onBlur={() => handleInputChange(field.id, formData[field.id])}
 			/>
 		{/each}
-
 		<FormField
 			field={{
 				id: 'wordlist',
@@ -176,28 +177,6 @@
 			onInput={(e) => handleInputChange('wordlist', e.target.files?.[0] ?? null)}
 			onBlur={() => handleInputChange('wordlist', selectedFile)}
 		/>
-
-		<Label for="HTTP-method" class="flex w-full max-w-96 gap-1 font-medium">
-			HTTP Method<span class="text-red-500">*</span>
-		</Label>
-
-		<RadioGroup.Root bind:value={httpMethod} class="flex w-full max-w-96 flex-row gap-4">
-			<div class="flex items-center space-x-2">
-				<RadioGroup.Item value="GET" id="get" />
-				<Label for="get">GET</Label>
-			</div>
-			<div class="flex items-center space-x-2">
-				<RadioGroup.Item value="PUT" id="put" />
-				<Label for="put">PUT</Label>
-			</div>
-			<div class="flex items-center space-x-2">
-				<RadioGroup.Item value="POST" id="post" />
-				<Label for="post">POST</Label>
-			</div>
-		</RadioGroup.Root>
-		<!-- Hidden input to send the HTTP method to the server -->
-		<input type="hidden" name="http-method" value={httpMethod} />
-
 		<Accordion.Root type="single" class="w-96 max-w-full">
 			<Accordion.Item value="item-1">
 				<Accordion.Trigger>Advanced Settings</Accordion.Trigger>
@@ -222,17 +201,15 @@
 				variant="default"
 				size="default"
 				class="w-96"
-				aria-label="Submit Form"
-				title="Submit the form to start the fuzzer"
+				aria-label="Submit the form"
+				title="Click to submit the form">Submit</Button
 			>
-				Submit
-			</Button>
 		</div>
 	</form>
 </div>
 
 <style>
-	.fuzzer-config {
+	.bruteForce-config {
 		display: flex;
 		margin-left: 4.5rem;
 		height: 100vh;

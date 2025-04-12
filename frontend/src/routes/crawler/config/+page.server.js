@@ -84,8 +84,8 @@ export const actions = {
 		}
 
 		// FOR TESTING ONLY
-		// console.log('🚫 Skipping actual backend request for testing...');
-		// console.log('📤 Payload that would have been sent:', transformedData);
+		// console.log('Skipping actual backend request for testing...');
+		// console.log('Payload that would have been sent:', transformedData);
 		
 		// return {
 		// 	success: true,
