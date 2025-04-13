@@ -35,9 +35,32 @@
 		goto('/credGenAI/config');
 	}
 
-	function handleSaveWordList() {
-		alert('Mock: Word list saved!');
+	function handleExportWordList() {
+	try {
+		const headers = data.tableColumns.map(col => col.label);
+		const csvRows = [
+			headers.join(','),
+			...data.tableData.map(row =>
+				headers.map(h => JSON.stringify(row[h.replace(/\s/g, '')] || '')).join(',')
+			)
+		];
+
+		const csvContent = csvRows.join('\n');
+		const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+		const url = window.URL.createObjectURL(blob);
+		const a = document.createElement('a');
+		a.href = url;
+		a.download = 'credGenAI_wordlist.csv';
+		document.body.appendChild(a);
+		a.click();
+		a.remove();
+		window.URL.revokeObjectURL(url);
+	} catch (err) {
+		alert('Failed to export word list');
+		console.error(err);
 	}
+}
+
 </script>
 
 <svelte:head>
@@ -88,7 +111,7 @@
 					Re-Generate
 				</Button>
 				<Button
-					onclick={handleSaveWordList}
+					onclick={handleExportWordList}
 					variant="default"
 					size="default"
 					class="save-button"
