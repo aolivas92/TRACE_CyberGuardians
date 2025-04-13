@@ -111,8 +111,6 @@ class TestCrawlerManager(unittest.TestCase):
             await self.manager.crawl_recursive("http://example.com", 2)
 
             # Verify results
-            print(f"visited URLs: {self.manager.visited}")
-            print(f"results: {self.manager.results}")
             self.assertIn("http://example.com", self.manager.visited)
             self.assertTrue(len(self.manager.results) > 0)
             self.assertEqual(self.manager.results[0]["url"], "http://example.com")
