@@ -13,8 +13,9 @@
 	import { connectToCrawlerWebSocket, closeCrawlerWebSocket } from '$lib/services/crawlerSocket';
 	import {
 		scanProgress,
-		stopScanProgress,
 		scanPaused,
+		startScanProgress,
+		stopScanProgress,
 		pauseScan,
 		resumeScan
 	} from '$lib/stores/scanProgressStore.js';
@@ -83,9 +84,9 @@
 
 	const togglePause = async () => {
 		if ($scanPaused) {
-			await resumeScan();
+			await resumeScan('crawler');
 		} else {
-			await pauseScan();
+			await pauseScan('crawler');
 		}
 	};
 

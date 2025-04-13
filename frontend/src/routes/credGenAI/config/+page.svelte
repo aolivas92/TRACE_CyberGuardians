@@ -9,6 +9,7 @@
 	import * as Tooltip from '$lib/components/ui/tooltip/index.js';
 	import FormField from '$lib/components/ui/form/FormField.svelte';
 	import { Info } from 'lucide-svelte';
+	import { connectToCredGenAIWebSocket } from '$lib/services/credGenAISocket.js';
 
 	let formData = {};
 	let fieldErrors = {};
@@ -88,20 +89,36 @@
 	}
 
 	const onSubmitHandler = () => {
-		return async ({ result, update }) => {
-			const isValid = validateAllFields();
+	return async ({ result, update }) => {
+		const isValid = validateAllFields();
 
-			if (!isValid) {
+		if (!isValid) {
+			return;
+		}
+
+		if (result.type === 'success' && result.data?.success) {
+			const jobId = result.data.job_id;
+
+			if (!jobId) {
+				console.error('Job ID missing from server response.');
 				return;
 			}
 
-			if (result.type === 'success' && result.data?.success) {
-				goto('/credGenAI/run', { replaceState: true });
-			} else {
-				await update();
-			}
-		};
+			localStorage.setItem('currentCredGenJobId', jobId);
+
+			setTimeout(() => {
+				import('$lib/services/credGenAISocket').then(({ connectToCredGenAIWebSocket }) => {
+					connectToCredGenAIWebSocket(jobId);
+				});
+			}, 500);
+
+			goto('/credGenAI/run', { replaceState: true });
+		} else {
+			await update();
+		}
 	};
+};
+
 </script>
 
 <svelte:head>
