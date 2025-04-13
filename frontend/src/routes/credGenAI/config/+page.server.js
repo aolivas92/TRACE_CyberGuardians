@@ -39,7 +39,7 @@ export const actions = {
 
 		// Return early if validation failed
 		if (Object.keys(fieldErrors).length > 0) {
-			console.warn('❌ Validation errors in credgenAI:', fieldErrors);
+			console.warn('Validation errors in credgenAI:', fieldErrors);
 			return fail(400, {
 				error: true,
 				fieldErrors,
@@ -71,16 +71,21 @@ export const actions = {
 		try {
 			const response = await fetch('http://127.0.0.1:8000/api/credgen', {
 				method: 'POST',
+				headers: {
+					Accept: "application/json"
+				},
 				body: credgenPayload
 			});
 
-			const json = await response.json().catch(e => {
-				console.warn('⚠️ Failed to parse JSON:', e.message);
-				return {};
-			});
+			let json;
+			try {
+				json = await response.json();
+				console.log("Backend response:", json);
+			} catch (e) {
+				console.warn("Could not parse JSON:", e.message);
+			}
 
 			if (!response.ok) {
-				console.error('❌ Backend error:', json);
 				return fail(response.status, {
 					error: true,
 					message: `Backend error: ${response.statusText}`,
@@ -88,19 +93,29 @@ export const actions = {
 				});
 			}
 
-			console.log('✅ Backend response:', json);
 			return {
 				success: true,
-				message: 'AI credential generation launched.',
-				values: formData
+				message: 'Credential Generator started successfully!',
+				values: formData,
+				job_id: json?.job_id
 			};
 		} catch (err) {
-			console.error('🔥 Uncaught server error:', err);
+			console.error('Uncaught server error:', err);
 			return fail(500, {
 				error: true,
 				message: 'Internal server error',
 				values: formData
 			});
 		}
+		
+		// FOR TESTING ONLY
+		// console.log('Skipping actual backend request for testing...');
+		// console.log('Payload that would have been sent:', transformedData);
+		
+		// return {
+		// 	success: true,
+		// 	message: 'Simulated credGenAI launch successful (no backend call made).',
+		// 	values: formData
+		// };
 	}
 };

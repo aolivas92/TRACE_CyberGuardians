@@ -13,8 +13,9 @@
 	import { connectToCrawlerWebSocket, closeCrawlerWebSocket } from '$lib/services/crawlerSocket';
 	import {
 		scanProgress,
-		stopScanProgress,
 		scanPaused,
+		startScanProgress,
+		stopScanProgress,
 		pauseScan,
 		resumeScan
 	} from '$lib/stores/scanProgressStore.js';
@@ -22,6 +23,8 @@
 	const { data } = $props();
 	let value = $state(15);
 	let showStopDialog = $state(false);
+
+	const exporting = writable(false);
 
 	// Derived stores
 	const crawlerResults = derived(serviceResults, ($serviceResults) => $serviceResults.crawler);
@@ -83,9 +86,9 @@
 
 	const togglePause = async () => {
 		if ($scanPaused) {
-			await resumeScan();
+			await resumeScan('crawler');
 		} else {
-			await pauseScan();
+			await pauseScan('crawler');
 		}
 	};
 
@@ -139,6 +142,60 @@
 		goto('/crawler/config');
 	}
 
+	async function handleExport() {
+	exporting.set(true);
+	const jobId = localStorage.getItem('currentCrawlerJobId');
+
+	try {
+		const res = await fetch(`http://localhost:8000/api/crawler/${jobId}/results`);
+		if (!res.ok) throw new Error('Failed to fetch results');
+
+		const json = await res.json();
+		const results = json.results || json;
+
+		// Define CSV headers
+		const headers = [
+			"URL", "Parent URL", "Title",
+			"Word Count", "Character Count", "Links Found", "Error"
+		];
+
+		// Convert to CSV
+		const csvRows = [
+			headers.join(","),
+			...results.map(entry => {
+				return [
+					`"${entry.url}"`,
+					`"${entry.parentUrl || ''}"`,
+					`"${entry.title.replace(/\n/g, ' ').trim()}"`,
+					entry.wordCount,
+					entry.charCount,
+					entry.linksFound,
+					entry.error
+				].join(",");
+			})
+		];
+
+		const csvContent = csvRows.join("\n");
+		const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+		const url = window.URL.createObjectURL(blob);
+
+		// Trigger download
+		const a = document.createElement('a');
+		a.href = url;
+		a.download = `crawler_${jobId}_results.csv`;
+		document.body.appendChild(a);
+		a.click();
+		a.remove();
+		window.URL.revokeObjectURL(url);
+
+	} catch (err) {
+		alert('Failed to export results');
+		console.error(err);
+	} finally {
+		exporting.set(false);
+	}
+}
+		
 	// onMount and onDestroy lifecycle hooks
 	onMount(() => {
 		const jobId = localStorage.getItem('currentCrawlerJobId');
@@ -198,14 +255,14 @@
 					Restart
 				</Button>
 				<Button
-					onclick={handleRestart}
-					variant="default"
+					onclick={handleExport}
+					variant="secondary"
 					size="default"
 					class="view-all-results"
-					aria-label="View all results"
-					title="Click to view all results"
+					aria-label="Export results"
+					title="Click to export crawler results"
 				>
-					View All Results
+					Export Results
 				</Button>
 			{:else if $serviceStatus.status === 'running' || $serviceStatus.status === 'paused'}
 				<Button
