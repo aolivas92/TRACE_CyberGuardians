@@ -86,7 +86,7 @@ class MLProgressTracker:
 
         # Update the logs in running_jobs
         if self.job_id in running_jobs:
-            running_jobs[self.job_id]['logs'] = self.logs
+            running_jobs[self.job_id]['logs'] = self.logs.copy() 
         logger.info(f'ML Job {self.job_id}: {message}')
 
         # Broadcast the log message to the connected websockets
@@ -201,7 +201,7 @@ async def run_ml_task(job_id: str, config: MLConfig):
         cred_gen.process_ai_wordlist(credentials)
         
         # Save results to a JSON file for API access
-        result_file = f'ml_credentials_{job_id}.json'
+        results_file = f'ml_credentials_{job_id}.json'
         
         # Convert credentials to a list of dictionaries
         credential_dicts = []
@@ -220,17 +220,17 @@ async def run_ml_task(job_id: str, config: MLConfig):
             })
         
         # Save to JSON file
-        with open(result_file, 'w') as f:
+        with open(results_file, 'w') as f:
             json.dump(credential_dicts, f, indent=2)
             
-        tracker.add_log(f'Credential generation completed, saved to {result_file}')
+        tracker.add_log(f'Credential generation completed, saved to {results_file}')
         
         # Update job status
         job_results[job_id] = {
             'status': 'completed',
-            'results_file': result_file,
+            'results_file': results_file,  
             'completed_at': datetime.now().isoformat(),
-            'logs': tracker.logs,
+            'logs': tracker.logs.copy(), 
         }
         
         # Broadcast completion message
@@ -266,7 +266,7 @@ async def run_ml_task(job_id: str, config: MLConfig):
                 'status': 'error',
                 'error': error_message,
                 'completed_at': datetime.now().isoformat(),
-                'logs': tracker.logs
+                'logs': tracker.logs.copy()
             }
             
             # Remove from running jobs
@@ -312,8 +312,12 @@ def get_job_logs(job_id: str) -> List[str]:
     """
     Retrieve logs for a specific job.
     """
+    logger.info(f"Getting logs for ML job: {job_id}")
     if job_id in running_jobs and "logs" in running_jobs[job_id]:
+        logger.info(f"Found {len(running_jobs[job_id]['logs'])} logs in running job {job_id}")
         return running_jobs[job_id]["logs"]
     elif job_id in job_results and "logs" in job_results[job_id]:
+        logger.info(f"Found {len(job_results[job_id]['logs'])} logs in completed job {job_id}")
         return job_results[job_id]["logs"]
+    logger.warning(f"No logs found for ML job {job_id}")
     return []
