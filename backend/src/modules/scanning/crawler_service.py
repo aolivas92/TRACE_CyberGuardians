@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 running_jobs = {}
 # Format: {job_id: {status, created_at, config, progress, urls_processed, total_urls, logs, task, crawler_instance}}
 job_results = {}
-# Format: {job_id, {status, result_file, urls_processed, completed_at, logs}}
+# Format: {job_id, {status, results_file, urls_processed, completed_at, logs}}
 active_connections = {}
 # Format: {job_id: {websocket1, websocket2,...}}
 
@@ -100,7 +100,7 @@ class CrawlerProgressTracker:
 
         # Update the logs in running_jobs
         if self.job_id in running_jobs:
-            running_jobs[self.job_id]['logs'] = self.logs
+            running_jobs[self.job_id]['logs'] = self.logs.copy()
         logger.info(f'Job {self.job_id}: {message}')
 
         # Broadcast the log message to the other connected  websockets
@@ -253,16 +253,16 @@ async def run_crawler_task(job_id: str, config: CrawlerConfig):
 
 
             # Save the results in a new location with id
-            result_file = f'crawler_results_{job_id}.json'
-            with open(result_file, 'w') as file:
+            results_file = f'crawler_results_{job_id}.json'
+            with open(results_file, 'w') as file:
                 json.dump(table_data, file, indent=2)
 
-            tracker.add_log(f'Results saved to {result_file}')
+            tracker.add_log(f'Results saved to {results_file}')
 
             # Update job status
             job_results[job_id] = {
                 'status': 'completed',
-                'results_file': result_file,
+                'results_file': results_file,
                 'urls_processed': len(table_data),
                 'completed_at': datetime.now().isoformat(),
                 'total_urls': len(table_data),
