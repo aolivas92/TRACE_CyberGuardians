@@ -1,8 +1,8 @@
 import asyncio
 
-from httpmock import AsyncHttpClient
-from dbf_manager import DirectoryBruteForceManager
-from dbf_response_processor import ResponseProcessor
+from src.modules.dbf.httpmock import AsyncHttpClient
+from src.modules.dbf.dbf_manager import DirectoryBruteForceManager
+from src.modules.dbf.dbf_response_processor import ResponseProcessor
 
 async def run_directory_brute_force_test():
     # Setup
@@ -40,6 +40,11 @@ async def run_directory_brute_force_test():
 
     print("\n--- Metrics ---")
     print(manager.get_metrics())
+
+    #saves file to txt
+    manager.save_results_to_txt("my_scan_output.txt")
+    print("Results saved to my_scan_output.txt")
+
 
 
 if __name__ == "__main__":

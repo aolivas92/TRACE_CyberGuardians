@@ -2,8 +2,8 @@ import os
 import time
 import logging
 from typing import List, Dict
-from dbf_response_processor import ResponseProcessor
-from httpmock import AsyncHttpClient
+from src.modules.dbf.dbf_response_processor import ResponseProcessor
+from src.modules.dbf.httpmock import AsyncHttpClient
 
 log_path = os.path.join(os.path.dirname(__file__), "directory_bruteforce.log")
 logging.basicConfig(
@@ -99,3 +99,14 @@ class DirectoryBruteForceManager:
 
     def get_filtered_results(self) -> List[Dict]:
         return self.response_processor.get_filtered_results()
+    
+    def save_results_to_txt(self, filename: str = "dbf_results.txt") -> None:
+        results = self.get_filtered_results()
+        with open(filename, "w", encoding="utf-8") as f:
+            for entry in results:
+                f.write(f"URL: {entry['url']}\n")
+                f.write(f"Status: {entry['status']}\n")
+                f.write(f"Payload: {entry['payload']}\n")
+                f.write(f"Length: {entry['length']}\n")
+                f.write(f"Error: {entry['error']}\n")
+                f.write("-" * 40 + "\n")

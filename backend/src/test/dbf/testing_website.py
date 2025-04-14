@@ -42,6 +42,3 @@ def final():
 
 if __name__ == '__main__':
     app.run(debug=True, port=5002)
-
-def start_testing_server():
-    app.run(debug=False, port=5002, use_reloader=False)
