@@ -28,12 +28,14 @@ class MLConfig(BaseModel):
     """
     Configuration model for ML jobs
     """
+    # TODO: get rid of the target_urls field
     target_urls: List[str]
     wordlist_path: Optional[str] = None
     credential_count: Optional[int] = 10
+    # TODO: add the toggle fields
     min_username_length: Optional[int] = 5
     min_password_length: Optional[int] = 10
-
+    wordlist: Optional[str] = None
     class Config:
         alias_generator = lambda field_name: field_name.replace('_', '-')
         populate_by_name = True
@@ -183,8 +185,15 @@ async def run_ml_task(job_id: str, config: MLConfig):
         # Step 3: Credential Generation
         step = tracker.next_step()
         tracker.add_log('Starting credential generation')
-        
-        cred_gen = Credential_Generator(csv_path=csv_file, wordlist_path=config.wordlist_path)
+
+        if config.wordlist:
+            wordlist_path = f'temp_wordlist_{job_id}.txt'
+            with open(wordlist_path, 'w') as f:
+                f.write(config.wordlist)
+        else:
+            raise ValueError("No wordlist provided")
+
+        cred_gen = Credential_Generator(csv_path=csv_file, wordlist_path=wordlist_path)
         if config.min_username_length:
             cred_gen.min_username_length = config.min_username_length
         if config.min_password_length:
@@ -234,13 +243,16 @@ async def run_ml_task(job_id: str, config: MLConfig):
         }
         
         # Broadcast completion message
+        await asyncio.sleep(1)  # short pause to ensure frontend is in ready state
         tracker._broadcast_message('complete', {
             'progress': 100,
             'message': 'ML job completed successfully',
             'credentials_count': len(credentials)
         })
-        
+
         # Remove from running jobs
+        running_jobs[job_id]['status'] = 'completed'
+        await asyncio.sleep(10)
         if job_id in running_jobs:
             del running_jobs[job_id]
             

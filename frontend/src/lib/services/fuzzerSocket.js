@@ -88,7 +88,7 @@ export function connectToFuzzerWebSocket(jobId, retry = 0) {
       case 'error':
         serviceStatus.set({
           status: 'idle',
-          serviceType: null,
+          serviceType: 'fuzzer',
           startTime: null
         });
         console.error('[fuzzer Error]', data.message);

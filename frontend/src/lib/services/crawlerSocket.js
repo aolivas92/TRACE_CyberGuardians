@@ -88,7 +88,7 @@ export function connectToCrawlerWebSocket(jobId, retry = 0) {
 			case 'error':
 				serviceStatus.set({
 					status: 'idle',
-					serviceType: null,
+					serviceType: 'crawler',
 					startTime: null
 				});
 				console.error('[Crawler Error]', data.message);

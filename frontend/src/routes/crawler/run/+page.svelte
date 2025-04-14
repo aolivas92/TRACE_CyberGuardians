@@ -24,8 +24,6 @@
 	let value = $state(15);
 	let showStopDialog = $state(false);
 
-	const exporting = writable(false);
-
 	// Derived stores
 	const crawlerResults = derived(serviceResults, ($serviceResults) => $serviceResults.crawler);
 	const dynamicColumns = derived(crawlerResults, ($crawlerResults) =>
@@ -143,58 +141,68 @@
 	}
 
 	async function handleExport() {
-	exporting.set(true);
 	const jobId = localStorage.getItem('currentCrawlerJobId');
+	if (!jobId) {
+		alert('Crawler job ID not found.');
+		return;
+	}
 
 	try {
 		const res = await fetch(`http://localhost:8000/api/crawler/${jobId}/results`);
-		if (!res.ok) throw new Error('Failed to fetch results');
+		if (!res.ok) throw new Error('Failed to fetch crawler results.');
 
-		const json = await res.json();
-		const results = json.results || json;
+		const { results = [] } = await res.json();
 
-		// Define CSV headers
+		// Fields you want to include in the export
+		const exportFields = [
+			'url',
+			'parentUrl',
+			'title',
+			'wordCount',
+			'charCount',
+			'linksFound',
+			'error'
+		];
+
+		// Optional: Human-readable column names
 		const headers = [
-			"URL", "Parent URL", "Title",
-			"Word Count", "Character Count", "Links Found", "Error"
+			'URL',
+			'Parent URL',
+			'Title',
+			'Word Count',
+			'Character Count',
+			'Links Found',
+			'Error'
 		];
 
-		// Convert to CSV
+		// Build CSV content
 		const csvRows = [
-			headers.join(","),
-			...results.map(entry => {
-				return [
-					`"${entry.url}"`,
-					`"${entry.parentUrl || ''}"`,
-					`"${entry.title.replace(/\n/g, ' ').trim()}"`,
-					entry.wordCount,
-					entry.charCount,
-					entry.linksFound,
-					entry.error
-				].join(",");
-			})
+			headers.join(','), // Header row
+			...results.map((row) =>
+				exportFields.map((key) => JSON.stringify(row[key] ?? '')).join(',')
+			)
 		];
 
-		const csvContent = csvRows.join("\n");
-		const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-		const url = window.URL.createObjectURL(blob);
+		// Create blob and trigger download
+		const csvContent = csvRows.join('\n');
+		const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+		const url = URL.createObjectURL(blob);
 
-		// Trigger download
 		const a = document.createElement('a');
 		a.href = url;
 		a.download = `crawler_${jobId}_results.csv`;
 		document.body.appendChild(a);
 		a.click();
 		a.remove();
-		window.URL.revokeObjectURL(url);
 
-	} catch (err) {
-		alert('Failed to export results');
-		console.error(err);
-	} finally {
-		exporting.set(false);
+		URL.revokeObjectURL(url);
+	} catch (error) {
+		console.error('[Crawler Export Error]', error);
+		alert('There was an error exporting the crawler results.');
 	}
 }
+
+
 		
 	// onMount and onDestroy lifecycle hooks
 	onMount(() => {

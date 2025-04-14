@@ -6,7 +6,6 @@ export const actions = {
 	default: async ({ request }) => {
 		const rawFormData = await request.formData();
 
-		// Extract wordlist separately
 		const wordlistFile = rawFormData.get('wordlist');
 		const formData = Object.fromEntries(rawFormData.entries());
 		delete formData.wordlist;
@@ -37,7 +36,6 @@ export const actions = {
 			}
 		}
 
-		// Return early if validation failed
 		if (Object.keys(fieldErrors).length > 0) {
 			console.warn('Validation errors in credgenAI:', fieldErrors);
 			return fail(400, {
@@ -47,10 +45,14 @@ export const actions = {
 			});
 		}
 
-		// Transform data with undefined for missing optional fields
-		const transformedData = {
-			username_length: formData['username-length'] ? Number(formData['username-length']) : undefined,
-			password_length: formData['password-length'] ? Number(formData['password-length']) : undefined,
+		const wordlistText = await wordlistFile.text();
+
+		const jsonPayload = {
+			target_urls: ['https://crawler-test.com/'],
+			credential_count: 10,
+			wordlist: wordlistText,
+			min_username_length: formData['username-length'] ? Number(formData['username-length']) : undefined,
+			min_password_length: formData['password-length'] ? Number(formData['password-length']) : undefined,
 			username_caps: formData['username-caps'] === 'on' ? true : undefined,
 			username_numbers: formData['username-numbers'] === 'on' ? true : undefined,
 			username_symbols: formData['username-symbols'] === 'on' ? true : undefined,
@@ -59,22 +61,14 @@ export const actions = {
 			password_symbols: formData['password-symbols'] === 'on' ? true : undefined
 		};
 
-		// Assemble payload using FormData
-		const credgenPayload = new FormData();
-		for (const [key, value] of Object.entries(transformedData)) {
-			if (value !== undefined) {
-				credgenPayload.append(key, value);
-			}
-		}
-		credgenPayload.append('wordlist', wordlistFile);
-
 		try {
-			const response = await fetch('http://127.0.0.1:8000/api/credgen', {
+			const response = await fetch('http://127.0.0.1:8000/api/ml', {
 				method: 'POST',
 				headers: {
-					Accept: "application/json"
+					'Content-Type': 'application/json',
+					Accept: 'application/json'
 				},
-				body: credgenPayload
+				body: JSON.stringify(jsonPayload)
 			});
 
 			let json;
@@ -107,15 +101,5 @@ export const actions = {
 				values: formData
 			});
 		}
-		
-		// FOR TESTING ONLY
-		// console.log('Skipping actual backend request for testing...');
-		// console.log('Payload that would have been sent:', transformedData);
-		
-		// return {
-		// 	success: true,
-		// 	message: 'Simulated credGenAI launch successful (no backend call made).',
-		// 	values: formData
-		// };
 	}
 };
