@@ -261,7 +261,7 @@ async def run_crawler_task(job_id: str, config: CrawlerConfig):
 
             # Update job status
             job_results[job_id] = {
-                'status': 'completed',
+                'status': 'complete',
                 'results_file': results_file,
                 'urls_processed': len(table_data),
                 'completed_at': datetime.now().isoformat(),
@@ -280,7 +280,7 @@ async def run_crawler_task(job_id: str, config: CrawlerConfig):
         else:
             tracker.add_log('No results data file found')
             job_results[job_id] = {
-                'status': 'completed',
+                'status': 'complete',
                 'message': 'No results data file found!',
                 'urls_processed': tracker.total_processed,
                 'completed_at': datetime.now().isoformat(),

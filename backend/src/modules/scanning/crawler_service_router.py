@@ -161,12 +161,12 @@ async def get_crawler_status(job_id: str):
     # Check if the job is completed
     if job_id in job_results:
         job = job_results[job_id]
-        logger.info(f'Job {job_id} is completed with status: {job.get("status", "completed")}')
+        logger.info(f'Job {job_id} is completed with status: {job.get("status", "complete")}')
         return CrawlerJobResponse(
             job_id=job_id,
             message='Crawler job completed',
-            status=job.get('status', 'completed'),
-            progress=100 if job.get('status') == 'completed' else 0,
+            status=job.get('status', 'complete'),
+            progress=100 if job.get('status') == 'complete' else 0,
             urls_processed=job.get('urls_processed', 0),
             total_urls=job.get('total_urls', job.get('urls_processed', 0))
         )
