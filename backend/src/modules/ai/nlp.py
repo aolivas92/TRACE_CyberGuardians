@@ -149,7 +149,7 @@ class NLP:
 
     def _process_content(self, data: Dict[str, Any]) -> List[Dict[str, Any]]:
         """
-        Process the content field of each row to breakup any acontractions and remove
+        Process the content field of each row to break up any contractions and remove
         stopwords.
 
         This method takes the rows from a CSV file and processes the 'content' field
