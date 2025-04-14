@@ -53,25 +53,31 @@ export const actions = {
 			});
 		}
 
-		// Transform data to match backend keys, set undefined for unfilled fields
-		const transformedData = {
-			target_url: formData['target-url'],
-			parameters: formData['parameters'],
-			http_method: formData['http-method'] || undefined,
-			headers: formData['headers'] || undefined,
-			proxy: formData['proxy'] || undefined,
-			body_template: formData['body-template'] || undefined,
-			wordlist
-		};
+
 
 		// Construct FormData for backend, only including defined values
 		const fuzzerPayload = new FormData();
-		for (const [key, value] of Object.entries(transformedData)) {
-			if (value !== undefined && key !== 'wordlist') {
-				fuzzerPayload.append(key, value);
-			}
-		}
-		fuzzerPayload.append('wordlist', wordlist);
+
+		// Step 1: Construct the JSON config
+		const configForBackend = {
+			target_url: formData['target-url'],
+			http_method: formData['http-method'],
+			parameters: formData['parameters'].split(',').map(p => p.trim()),
+			headers: formData['headers'] ? JSON.parse(formData['headers']) : undefined,
+			cookies: formData['cookies'] ? JSON.parse(formData['cookies']) : undefined,
+			proxy: formData['proxy'] || undefined,
+			body_template: formData['body-template'] ? JSON.parse(formData['body-template']) : undefined,
+			// payload_file will be handled separately
+		};
+		
+		// Step 2: Append the JSON string as one field
+		fuzzerPayload.append('config', JSON.stringify(configForBackend));
+		
+		// Step 3: Attach the wordlist file as `payload_file`
+		fuzzerPayload.append('payload_file', wordlist);
+		
+		
+
 
 		try {
 			const response = await fetch('http://127.0.0.1:8000/api/fuzzer', {
@@ -112,15 +118,5 @@ export const actions = {
 				values: formData
 			});
 		}
-
-		// FOR TESTING ONLY
-		// console.log('Skipping actual backend request for testing...');
-		// console.log('Payload that would have been sent:', transformedData);
-
-		// return {
-		// 	success: true,
-		// 	message: 'Simulated fuzzer launch successful (no backend call made).',
-		// 	values: formData
-		// };
 	}
 };
