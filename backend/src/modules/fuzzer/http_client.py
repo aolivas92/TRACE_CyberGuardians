@@ -1,5 +1,5 @@
 # http_client.py
-
+from typing import List, Dict, Any
 import aiohttp
 
 class AsyncHttpClient:
@@ -29,13 +29,13 @@ class AsyncHttpClient:
         self,
         method: str,
         url: str,
-        headers: [[str, str]] = None,
-        cookies: [[str, str]] = None,
-        data: [] = None,
-        params: [[str, str]] = None,
-        proxy: [str] = None,
+        headers: List[str] = None,
+        cookies: List[str] = None,
+        data: List[str] = None,
+        params: List[str] = None,
+        proxy: List[str] = None,
         timeout: int = 5
-    ) -> [str]:
+    ) -> List[str]:
         """
         send() asynchronously sends an HTTP request and returns a dictionary containing the response.
 
