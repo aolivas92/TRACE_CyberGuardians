@@ -214,8 +214,10 @@ class TestCredentialGenerator(unittest.TestCase):
         password = self.generator._improve_password("testpassword")
         result_criteria = self.generator._get_password_status(password)
         self.assertEqual(result_criteria, 0b111)
+        self.assertEqual(self.generator._get_password_status("testpassword"), 0b111)
         self.generator.password_cap = True
         self.generator.password_special_chars = True
+        self.assertEqual(self.generator._get_password_status("testpassword"), 0b100)
 
     @patch("src.modules.ai.credential_generator.os.path.exists")
     @patch("builtins.open", new_callable=mock_open)
