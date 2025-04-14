@@ -8,8 +8,15 @@ import os
 import json
 from typing import List, Optional
 
-from src.modules.scanning.crawler_service_router import get_service_routers, get_websocket_handlers
-from src.modules.scanning.crawler_service import job_results, running_jobs
+# Cralwer Routers and Services
+from src.modules.scanning.crawler_service_router import get_service_routers as get_crawler_routers
+from src.modules.scanning.crawler_service_router import get_websocket_handlers as get_crawler_websocket_handlers
+from src.modules.scanning.crawler_service import job_results as crawler_job_results, running_jobs as crawler_running_jobs
+
+# ML Routers and Services
+from src.modules.ai.ml_service_router import get_service_routers as get_ml_router
+from src.modules.ai.ml_service_router import get_websocket_handlers as get_ml_websocket_handlers
+from src.modules.ai.ml_service import job_results as ml_job_results, running_jobs as ml_running_jobs
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -27,7 +34,15 @@ class CrawlerResultType:
     linksFound: int
     error: bool
 
-# GraphQL Schema Definitions
+@strawberry.type
+class CredentialType:
+    id: int
+    username: str
+    username_score: float
+    password: str
+    is_secure: bool
+    password_evaluation: str
+
 @strawberry.type
 class JobStatus:
     job_id: str
@@ -44,8 +59,8 @@ class JobStatus:
 class Query:
     @strawberry.field
     def get_crawler_results(self, job_id: str) -> List[CrawlerResultType]:
-        if job_id in job_results and 'result_file' in job_results[job_id]:
-            result_file = job_results[job_id]['result_file']
+        if job_id in crawler_job_results and 'result_file' in crawler_job_results[job_id]:
+            result_file = crawler_job_results[job_id]['result_file']
 
             if os.path.exists(result_file):
                 try:
@@ -69,10 +84,42 @@ class Query:
         return []
     
     @strawberry.field
-    def get_job_status(self, job_id: str) -> str:
-        if job_id in running_jobs:
-            return running_jobs[job_id]['status']
-        if job_id in job_results:
+    def get_ml_results(self, job_id: str) -> List[CredentialType]:
+        if job_id in ml_job_results and 'results_file' in ml_job_results[job_id]:
+            result_file = ml_job_results[job_id]['results_file']
+
+            if os.path.exists(result_file):
+                try:
+                    with open(result_file, 'r') as file:
+                        data = json.load(file)
+                        return [
+                            CredentialType(
+                                id=item['id'],
+                                username=item['username'],
+                                username_score=item['username_score'],
+                                password=item['password'],
+                                is_secure=item['is_secure'],
+                                password_evaluation=item['password_evaluation'],
+                            ) for item in data
+                        ]
+                except Exception as e:
+                    logger.error(f'Error reading ML results: {e}')
+                    return []
+        return []
+    
+    @strawberry.field
+    def get_crawler_job_status(self, job_id: str) -> str:
+        if job_id in crawler_running_jobs:
+            return crawler_running_jobs[job_id]['status']
+        if job_id in crawler_job_results:
+            return 'completed'
+        return 'not found'
+    
+    @strawberry.field
+    def get_ml_job_status(self, job_id: str) -> str:
+        if job_id in ml_running_jobs:
+            return ml_running_jobs[job_id]['status']
+        if job_id in ml_job_results:
             return 'completed'
         return 'not found'
     
@@ -95,16 +142,26 @@ app.add_middleware(
 app.include_router(graphql_app, prefix='/graphql')
 
 # Register service routers
-for router in get_service_routers():
+# Crawler routers
+for router in get_crawler_routers():
+    app.include_router(router)
+
+# ML router
+for router in get_ml_router():
     app.include_router(router)
 
 # Register WebSocket handlers
-websocket_handlers = get_websocket_handlers()
+crawler_websocket_handlers = get_crawler_websocket_handlers()
+ml_websocket_handlers = get_ml_websocket_handlers()
 
 # WebSocket endpoint for crawler updates
 @app.websocket('/ws/crawler/{job_id}')
 async def crawler_socket(websocket: WebSocket, job_id: str):
-    await websocket_handlers["crawler"](websocket, job_id)
+    await crawler_websocket_handlers["crawler"](websocket, job_id)
+
+@app.websocket('/ws/ml/{job_id}')
+async def ml_socket(websocket: WebSocket, job_id: str):
+    await ml_websocket_handlers['ml'](websocket, job_id)
 
 # Root endpoint
 @app.get("/")

@@ -40,21 +40,21 @@ class WebScraper:
         self.filename = None
         
 
-    def scrape_pages(self, filename: str="scraped_output.csv")->None:
+    async def scrape_pages(self, filename: str="scraped_output.csv")->None:
         """
         Public main method to run the async scraping from sync code.
         """
-        data = asyncio.run(self._scrape_pages_async())
+        data = await self._scrape_pages_async()
 
         # Save the results
         with open(filename, 'w', newline='', encoding='utf-8') as csvfile:
             csv_writer = csv.writer(csvfile)
-            # Header line
+            # Write a header for clarity
             csv_writer.writerow(['id', 'content', 'url'])
             csv_writer.writerows(data)
         print(f'[INFO] CSV file {filename} has been generated.')
         self.filename = filename
-        return data
+        return filename
 
     async def _fetch_url(self, url: str) -> str:
         """

@@ -9,6 +9,7 @@
 	import * as Tooltip from '$lib/components/ui/tooltip/index.js';
 	import FormField from '$lib/components/ui/form/FormField.svelte';
 	import { Info } from 'lucide-svelte';
+	import { serviceStatus } from '$lib/stores/projectServiceStore';
 	import { connectToCredGenAIWebSocket } from '$lib/services/credGenAISocket.js';
 
 	let formData = {};
@@ -31,14 +32,14 @@
 			label: 'Username Length',
 			type: 'number',
 			placeholder: '12',
-			required: false,
+			required: false
 		},
 		{
 			id: 'password-length',
 			label: 'Password Length',
 			type: 'number',
 			placeholder: '12',
-			required: false,
+			required: false
 		}
 	];
 
@@ -89,36 +90,39 @@
 	}
 
 	const onSubmitHandler = () => {
-	return async ({ result, update }) => {
-		const isValid = validateAllFields();
+		return async ({ result, update }) => {
+			const isValid = validateAllFields();
 
-		if (!isValid) {
-			return;
-		}
-
-		if (result.type === 'success' && result.data?.success) {
-			const jobId = result.data.job_id;
-
-			if (!jobId) {
-				console.error('Job ID missing from server response.');
+			if (!isValid) {
 				return;
 			}
 
-			localStorage.setItem('currentCredGenJobId', jobId);
+			if (result.type === 'success' && result.data?.success) {
+				const jobId = result.data.job_id;
 
-			setTimeout(() => {
-				import('$lib/services/credGenAISocket').then(({ connectToCredGenAIWebSocket }) => {
-					connectToCredGenAIWebSocket(jobId);
-				});
-			}, 500);
+				if (!jobId) {
+					console.error('Job ID missing from server response.');
+					return;
+				}
 
-			goto('/credGenAI/run', { replaceState: true });
-		} else {
-			await update();
-		}
+				// Save jobId to localStorage
+				localStorage.setItem('currentCredGenAIJobId', jobId);
+
+				// Delay connection slightly to let backend fully register job
+				setTimeout(() => {
+					import('$lib/services/credGenAISocket').then(({ connectToCredGenAIWebSocket }) => {
+						console.log('[Form] Connecting to WebSocket for job:', jobId);
+						connectToCredGenAIWebSocket(jobId);
+					});
+				}, 1000);
+
+				// Go to results page
+				goto('/credGenAI/results', { replaceState: true });
+			} else {
+				await update();
+			}
+		};
 	};
-};
-
 </script>
 
 <svelte:head>
@@ -181,12 +185,7 @@
 								bind:checked={toggle.checked}
 								oninput={() => toggleSwitch('username', index)}
 							/>
-							<input
-								type="checkbox"
-								class="sr-only"
-								name={toggle.id}
-								checked={toggle.checked}
-							/>
+							<input type="checkbox" class="sr-only" name={toggle.id} checked={toggle.checked} />
 						</fieldset>
 					</div>
 				{/each}
@@ -236,12 +235,7 @@
 								bind:checked={toggle.checked}
 								oninput={() => toggleSwitch('password', index)}
 							/>
-							<input
-								type="checkbox"
-								class="sr-only"
-								name={toggle.id}
-								checked={toggle.checked}
-							/>
+							<input type="checkbox" class="sr-only" name={toggle.id} checked={toggle.checked} />
 						</fieldset>
 					</div>
 				{/each}

@@ -88,7 +88,7 @@ export function connectToBruteForceWebSocket(jobId, retry = 0) {
       case 'error':
         serviceStatus.set({
           status: 'idle',
-          serviceType: null,
+          serviceType: 'bruteForce',
           startTime: null
         });
         console.error('[bruteForce Error]', data.message);

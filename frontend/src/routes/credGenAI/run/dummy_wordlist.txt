@@ -1,1 +1,0 @@
-This is dummy content for testing file upload functionality.
