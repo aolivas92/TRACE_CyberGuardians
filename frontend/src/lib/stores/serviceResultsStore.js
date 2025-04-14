@@ -6,4 +6,6 @@ import { writable } from 'svelte/store';
  */
 export const serviceResults = writable({
 	crawler: [],
+	bruteForce: [],
 });
+
