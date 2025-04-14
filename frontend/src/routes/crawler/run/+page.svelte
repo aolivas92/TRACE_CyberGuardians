@@ -23,6 +23,7 @@
 	const { data } = $props();
 	let value = $state(15);
 	let showStopDialog = $state(false);
+	let intervalId;
 
 	// Derived stores
 	const crawlerResults = derived(serviceResults, ($serviceResults) => $serviceResults.crawler);
@@ -94,6 +95,23 @@
 		showStopDialog = false;
 	}
 
+	function saveCheckpoint() {
+		const jobId = localStorage.getItem('currentCrawlerJobId');
+		if (!jobId) {
+			console.log('No Crawler Job Id found in local storage');
+			return;
+		}
+
+		const data = get(serviceResults).crawler;
+		if (!data || data.length === 0) {
+			console.log('No data to save as checkpoint');
+			return;
+		}
+
+		localStorage.setItem(`checkpoint_${jobId}`, JSON.stringify(data));
+		console.log('Checkpoint saved:', data);
+	}
+
 	async function handleStopConfirm() {
 		showStopDialog = false;
 		stopScanProgress();
@@ -141,82 +159,102 @@
 	}
 
 	async function handleExport() {
-	const jobId = localStorage.getItem('currentCrawlerJobId');
-	if (!jobId) {
-		alert('Crawler job ID not found.');
-		return;
+		const jobId = localStorage.getItem('currentCrawlerJobId');
+		if (!jobId) {
+			alert('Crawler job ID not found.');
+			return;
+		}
+
+		try {
+			const res = await fetch(`http://localhost:8000/api/crawler/${jobId}/results`);
+			if (!res.ok) throw new Error('Failed to fetch crawler results.');
+
+			const { results = [] } = await res.json();
+
+			// Fields you want to include in the export
+			const exportFields = [
+				'url',
+				'parentUrl',
+				'title',
+				'wordCount',
+				'charCount',
+				'linksFound',
+				'error'
+			];
+
+			// Optional: Human-readable column names
+			const headers = [
+				'URL',
+				'Parent URL',
+				'Title',
+				'Word Count',
+				'Character Count',
+				'Links Found',
+				'Error'
+			];
+
+			// Build CSV content
+			const csvRows = [
+				headers.join(','), // Header row
+				...results.map((row) => exportFields.map((key) => JSON.stringify(row[key] ?? '')).join(','))
+			];
+
+			// Create blob and trigger download
+			const csvContent = csvRows.join('\n');
+			const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+			const url = URL.createObjectURL(blob);
+
+			const a = document.createElement('a');
+			a.href = url;
+			a.download = `crawler_${jobId}_results.csv`;
+			document.body.appendChild(a);
+			a.click();
+			a.remove();
+
+			URL.revokeObjectURL(url);
+		} catch (error) {
+			console.error('[Crawler Export Error]', error);
+			alert('There was an error exporting the crawler results.');
+		}
 	}
 
-	try {
-		const res = await fetch(`http://localhost:8000/api/crawler/${jobId}/results`);
-		if (!res.ok) throw new Error('Failed to fetch crawler results.');
-
-		const { results = [] } = await res.json();
-
-		// Fields you want to include in the export
-		const exportFields = [
-			'url',
-			'parentUrl',
-			'title',
-			'wordCount',
-			'charCount',
-			'linksFound',
-			'error'
-		];
-
-		// Optional: Human-readable column names
-		const headers = [
-			'URL',
-			'Parent URL',
-			'Title',
-			'Word Count',
-			'Character Count',
-			'Links Found',
-			'Error'
-		];
-
-		// Build CSV content
-		const csvRows = [
-			headers.join(','), // Header row
-			...results.map((row) =>
-				exportFields.map((key) => JSON.stringify(row[key] ?? '')).join(',')
-			)
-		];
-
-		// Create blob and trigger download
-		const csvContent = csvRows.join('\n');
-		const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-		const url = URL.createObjectURL(blob);
-
-		const a = document.createElement('a');
-		a.href = url;
-		a.download = `crawler_${jobId}_results.csv`;
-		document.body.appendChild(a);
-		a.click();
-		a.remove();
-
-		URL.revokeObjectURL(url);
-	} catch (error) {
-		console.error('[Crawler Export Error]', error);
-		alert('There was an error exporting the crawler results.');
-	}
-}
-
-
-		
-	// onMount and onDestroy lifecycle hooks
 	onMount(() => {
 		const jobId = localStorage.getItem('currentCrawlerJobId');
 
+		// Restore checkpoint if available
 		if (jobId) {
-			console.log('[Reconnect] Found job ID in localStorage:', jobId);
-			connectToCrawlerWebSocket(jobId);
+			const savedCheckpoint = localStorage.getItem(`checkpoint_${jobId}`);
+			if (savedCheckpoint) {
+				try {
+					const parsed = JSON.parse(savedCheckpoint);
+					if (Array.isArray(parsed) && parsed.length > 0) {
+						serviceResults.update((r) => ({ ...r, crawler: parsed }));
+						console.log('[Restore] Checkpoint loaded for job', jobId);
+					}
+				} catch (err) {
+					console.error('[Restore] Failed to parse checkpoint data:', err);
+				}
+			}
+			connectToCrawlerWebSocket(jobId); // this is your original reconnection logic
 		} else {
 			console.warn('No crawler job ID found in localStorage.');
 		}
+
+		// Set up auto-checkpoint every 30 seconds
+		intervalId = setInterval(() => {
+			const jobId = localStorage.getItem('currentCrawlerJobId');
+			if (!jobId) return;
+
+			const data = get(serviceResults).crawler;
+			if (data.length > 0) {
+				localStorage.setItem(`checkpoint_${jobId}`, JSON.stringify(data));
+				console.log(`[Auto] Checkpoint saved for job ${jobId}`);
+			}
+		}, 30000);
 	});
 
 	onDestroy(() => {
+		clearInterval(intervalId);
 		closeCrawlerWebSocket();
 	});
 </script>
@@ -286,6 +324,17 @@
 					{:else}
 						Pause
 					{/if}
+				</Button>
+
+				<Button
+					onclick={saveCheckpoint()}
+					variant="secondary"
+					size="default"
+					class="save-checkpoint"
+					aria-label="Save checkpoint"
+					title="Click to save checkpoint"
+				>
+					Save Checkpoint
 				</Button>
 
 				<Button
