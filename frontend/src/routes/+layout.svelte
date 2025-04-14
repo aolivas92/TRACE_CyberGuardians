@@ -1,5 +1,6 @@
 <script>
   import Sidebar from "$lib/components/ui/sidebar/Sidebar.svelte";
+  import { Toaster } from "$lib/components/ui/sonner/index.js";
   import { ModeWatcher } from "mode-watcher";
   import "../app.css";
 </script>
@@ -12,6 +13,7 @@
 <div class="app-container">
   <Sidebar />
   <main class="content">
+    <Toaster />
     <slot />
   </main>
 </div>

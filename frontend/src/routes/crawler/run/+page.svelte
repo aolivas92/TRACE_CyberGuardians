@@ -10,6 +10,7 @@
 	import Alert from '$lib/components/ui/alert/Alert.svelte';
 	import { derived, get, writable, readable } from 'svelte/store';
 	import { serviceResults } from '$lib/stores/serviceResultsStore.js';
+	import { toast } from 'svelte-sonner';
 	import { connectToCrawlerWebSocket, closeCrawlerWebSocket } from '$lib/services/crawlerSocket';
 	import {
 		scanProgress,
@@ -66,7 +67,6 @@
 				crawler: parsed
 			}));
 
-			console.log('[Crawler Results]', parsed);
 		} catch (e) {
 			console.error('Failed to fetch crawler results:', e);
 		}
@@ -98,18 +98,21 @@
 	function saveCheckpoint() {
 		const jobId = localStorage.getItem('currentCrawlerJobId');
 		if (!jobId) {
-			console.log('No Crawler Job Id found in local storage');
+			toast.error('No job ID found.');
 			return;
 		}
 
 		const data = get(serviceResults).crawler;
 		if (!data || data.length === 0) {
-			console.log('No data to save as checkpoint');
+			toast.error('No results to checkpoint.');
 			return;
 		}
 
 		localStorage.setItem(`checkpoint_${jobId}`, JSON.stringify(data));
-		console.log('Checkpoint saved:', data);
+		toast.success('Checkpoint saved!', {
+			description: `Saved at ${new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}`
+		});
+		console.log(`[Checkpoint] Saved for job ${jobId}`);
 	}
 
 	async function handleStopConfirm() {
@@ -161,7 +164,7 @@
 	async function handleExport() {
 		const jobId = localStorage.getItem('currentCrawlerJobId');
 		if (!jobId) {
-			alert('Crawler job ID not found.');
+			console.log('Crawler job ID not found.');
 			return;
 		}
 
@@ -214,10 +217,10 @@
 			URL.revokeObjectURL(url);
 		} catch (error) {
 			console.error('[Crawler Export Error]', error);
-			alert('There was an error exporting the crawler results.');
 		}
 	}
 
+	// Restore checkpoint on mount
 	onMount(() => {
 		const jobId = localStorage.getItem('currentCrawlerJobId');
 
@@ -235,22 +238,24 @@
 					console.error('[Restore] Failed to parse checkpoint data:', err);
 				}
 			}
-			connectToCrawlerWebSocket(jobId); // this is your original reconnection logic
+			connectToCrawlerWebSocket(jobId);
 		} else {
 			console.warn('No crawler job ID found in localStorage.');
 		}
 
-		// Set up auto-checkpoint every 30 seconds
 		intervalId = setInterval(() => {
 			const jobId = localStorage.getItem('currentCrawlerJobId');
-			if (!jobId) return;
+			const status = get(serviceStatus);
+
+			// Do not save checkpoints after scan is complete or idle
+			if (!jobId || (status.status !== 'running' && status.status !== 'paused')) return;
 
 			const data = get(serviceResults).crawler;
 			if (data.length > 0) {
 				localStorage.setItem(`checkpoint_${jobId}`, JSON.stringify(data));
 				console.log(`[Auto] Checkpoint saved for job ${jobId}`);
 			}
-		}, 30000);
+		}, 15000);
 	});
 
 	onDestroy(() => {
@@ -327,7 +332,7 @@
 				</Button>
 
 				<Button
-					onclick={saveCheckpoint()}
+					onclick={saveCheckpoint}
 					variant="secondary"
 					size="default"
 					class="save-checkpoint"
