@@ -126,7 +126,7 @@
 
 	let showStopDialog = $state(false);
 
-    /* for backend
+    // for backend
 	onMount(() => {
 		const jobId = localStorage.getItem('currentBruteForceJobId');
 		if (jobId) {
@@ -135,8 +135,9 @@
 			console.warn('No brute force job ID found in localStorage.');
 		}
 	});
-    */
+    
    
+    /*
     // for testing 
     onMount(() => {
 	    const jobId = 'test-job-123'; // mock job ID
@@ -179,6 +180,7 @@
 		    }
 	    }, 600);
     });
+    */
 
 	onDestroy(() => {
 		closeBruteForceWebSocket();
