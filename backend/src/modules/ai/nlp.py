@@ -12,15 +12,53 @@ class NLP:
     by removing commonly occurring words that add little meaning (stopwords).
     """
 
-    def __init__(self, stop_words: Set[str] | None = None) -> None:
+    def __init__(
+        self,
+        stop_words: Set[str] | None = None,
+        compound_words: Dict[str, List[str]] | None = None,
+    ) -> None:
         """
         Initialize the text processor with optional custom stopwords.
 
         Args:
             stop_words (Set[str], optional): A set of words to be removed from the text.
                                             Defaults to {"the", "and", "or"} if not provided.
+
+            compound_words (Dict[str, str], optional): A set of contractions and their equivalent
+                                                    expanded form. Defaults to full set of standard
+                                                    contractions for the English language.
         """
         self.stop_words = stop_words or {"the", "or", "and", "a", "an"}
+        self.compound_words = compound_words or {
+            "i'm": ["i", "am"],
+            "you're": ["you", "are"],
+            "it's": ["it", "is"],
+            "don't": ["do", "not"],
+            "can't": ["can", "not"],
+            "isn't": ["is", "not"],
+            "won't": ["will", "not"],
+            "didn't": ["did", "not"],
+            "we're": ["we", "are"],
+            "they're": ["they", "are"],
+            "i'll": ["i", "will"],
+            "you'll": ["you", "will"],
+            "he'll": ["he", "will"],
+            "she'll": ["she", "will"],
+            "we'll": ["we", "will"],
+            "they'll": ["they", "will"],
+            "i've": ["i", "have"],
+            "you've": ["you", "have"],
+            "we've": ["we", "have"],
+            "they've": ["they", "have"],
+            "he's": ["he", "is"],
+            "she's": ["she", "is"],
+            "that's": ["that", "is"],
+            "what's": ["what", "is"],
+            "let's": ["let", "us"],
+            "there's": ["there", "is"],
+            "who's": ["who", "is"],
+            "how's": ["how", "is"],
+        }
 
     def subroutine(self, csv_path: str) -> None:
         """
@@ -111,10 +149,12 @@ class NLP:
 
     def _process_content(self, data: Dict[str, Any]) -> List[Dict[str, Any]]:
         """
-        Process the content field of each row to remove stopwords.
+        Process the content field of each row to break up any contractions and remove
+        stopwords.
 
         This method takes the rows from a CSV file and processes the 'content' field
-        of each row by removing all occurrences of stopwords defined in self.stop_words.
+        of each row by expanding any contraction and removing all occurrences of
+        stopwords defined in self.stop_words.
 
         Args:
             data (Dict[str, Any]): A dictionary containing:
@@ -130,7 +170,8 @@ class NLP:
             text = row.get("content", "")
             if text:
                 # Tokenize and filter
-                words = re.findall(r"\w+", text, flags=re.IGNORECASE)
+                words = re.findall(r"\b[\w']+\b", text, flags=re.IGNORECASE)
+                self._break_compuound_words(words)
                 filtered_words = [
                     word for word in words if word.lower() not in self.stop_words
                 ]
@@ -166,3 +207,41 @@ class NLP:
             writer = csv.DictWriter(outfile, fieldnames=fieldnames)
             writer.writeheader()
             writer.writerows(rows)
+
+    def _break_compuound_words(self, text: List[str]) -> None:
+        """
+        Splits compound words in the given text list.
+
+        This method modifies the input list in place, breaking apart compound words
+        that are connected with apostrophes. After execution, no apostrophes (')
+        will remain in any strings within the list.
+
+        Args:
+            text (list[str]): A list of strings to be processed. Must not be None
+                and must not be empty.
+
+        Returns:
+            None: This method modifies the input list in place.
+
+        Preconditions:
+            - The input text list must not be None.
+            - The input text list must not be empty.
+
+        Postconditions:
+            - After execution, no string in the text list will contain apostrophes (').
+            - The method does not return a value.
+
+        Raises:
+            ValueError: If the input is None or empty.
+        """
+        if text is None or not text:  # Check for preconditions
+            raise ValueError(f"Input text list expected List[str], got: {type(text)}")
+        uncompounded_text = []
+        text[:] = [word.lower() for word in text]  # May be redundant
+        for word in text:
+            if word in self.compound_words:
+                uncompounded_text.extend(self.compound_words[word])
+            else:
+                uncompounded_text.append(word.replace("'", ""))
+
+        text[:] = uncompounded_text

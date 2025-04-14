@@ -122,7 +122,7 @@ class TestNLP(unittest.TestCase):
         self.assertEqual(
             cleaned_rows[0]["content"], "quick brown fox jumps over lazy dog"
         )
-        self.assertEqual(cleaned_rows[1]["content"], "This is example test")
+        self.assertEqual(cleaned_rows[1]["content"], "this is example test")
 
     def test_write_csv(self):
         """Test writing processed rows to a CSV file."""
@@ -189,6 +189,38 @@ class TestNLP(unittest.TestCase):
 
         # Check the results - missing content should be treated as empty
         self.assertEqual(cleaned_rows[0].get("content", ""), "")
+
+    def test_break_compuound_words_basic(self):
+        """Test splitting known compound words and apostrophes."""
+        self.nlp.compound_words = {
+            "rock'n'roll": ["rock", "and", "roll"],
+            "l'amour": ["l", "amour"],
+        }
+
+        words = ["rock'n'roll", "hello", "it's", "l'amour"]
+        self.nlp._break_compuound_words(words)
+        self.assertEqual(words, ["rock", "and", "roll", "hello", "its", "l", "amour"])
+
+    def test_process_content_with_compound_words(self):
+        """Test processing content that includes compound words."""
+        self.nlp.stop_words.add("is")
+        self.nlp.compound_words = {"rock'n'roll": ["rock", "and", "roll"]}
+
+        test_data = {
+            "fieldnames": ["id", "content", "url"],
+            "rows": [
+                {
+                    "id": "1",
+                    "content": "Rock'n'roll is the best",
+                    "url": "http://music.com",
+                }
+            ],
+        }
+        cleaned_rows = self.nlp._process_content(test_data)
+        self.assertEqual(
+            cleaned_rows[0]["content"], "rock roll best"
+        )  # 'and', 'is', 'the' removed
+        self.nlp.stop_words.remove("is")
 
     @patch("os.path.exists")
     @patch("builtins.open")

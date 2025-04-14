@@ -10,3 +10,4 @@ export const serviceResults = writable({
 	bruteForce: [],
 	fuzzer: [],
 });
+
