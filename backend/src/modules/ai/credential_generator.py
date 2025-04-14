@@ -707,7 +707,6 @@ class Credential_Generator:
         if not os.path.exists(file_path):
             raise FileNotFoundError(f"Wordlist file not found: {file_path}")
         try:
-            # TODO: Update when implementation is updated.
             with open(file_path, "r", encoding="utf-8") as file:
                 words = [line.strip().lower() for line in file if line.strip()]
                 return words
