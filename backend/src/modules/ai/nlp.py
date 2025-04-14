@@ -235,7 +235,7 @@ class NLP:
             ValueError: If the input is None or empty.
         """
         if text is None or not text:  # Check for preconditions
-            raise TypeError(f"Input text list expected List[str], got: {type(text)}")
+            raise ValueError(f"Input text list expected List[str], got: {type(text)}")
         uncompounded_text = []
         text[:] = [word.lower() for word in text]  # May be redundant
         for word in text:
