@@ -10,6 +10,7 @@
 	import Alert from '$lib/components/ui/alert/Alert.svelte';
 	import { derived, get, writable, readable } from 'svelte/store';
 	import { serviceResults } from '$lib/stores/serviceResultsStore.js';
+	import { toast } from 'svelte-sonner';
 	import { connectToCrawlerWebSocket, closeCrawlerWebSocket } from '$lib/services/crawlerSocket';
 	import {
 		scanProgress,
@@ -23,6 +24,7 @@
 	const { data } = $props();
 	let value = $state(15);
 	let showStopDialog = $state(false);
+	let intervalId;
 
 	// Derived stores
 	const crawlerResults = derived(serviceResults, ($serviceResults) => $serviceResults.crawler);
@@ -65,7 +67,6 @@
 				crawler: parsed
 			}));
 
-			console.log('[Crawler Results]', parsed);
 		} catch (e) {
 			console.error('Failed to fetch crawler results:', e);
 		}
@@ -92,6 +93,26 @@
 
 	function handleStopCancel() {
 		showStopDialog = false;
+	}
+
+	function saveCheckpoint() {
+		const jobId = localStorage.getItem('currentCrawlerJobId');
+		if (!jobId) {
+			toast.error('No job ID found.');
+			return;
+		}
+
+		const data = get(serviceResults).crawler;
+		if (!data || data.length === 0) {
+			toast.error('No results to checkpoint.');
+			return;
+		}
+
+		localStorage.setItem(`checkpoint_${jobId}`, JSON.stringify(data));
+		toast.success('Checkpoint saved!', {
+			description: `Saved at ${new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}`
+		});
+		console.log(`[Checkpoint] Saved for job ${jobId}`);
 	}
 
 	async function handleStopConfirm() {
@@ -141,82 +162,104 @@
 	}
 
 	async function handleExport() {
-	const jobId = localStorage.getItem('currentCrawlerJobId');
-	if (!jobId) {
-		alert('Crawler job ID not found.');
-		return;
+		const jobId = localStorage.getItem('currentCrawlerJobId');
+		if (!jobId) {
+			console.log('Crawler job ID not found.');
+			return;
+		}
+
+		try {
+			const res = await fetch(`http://localhost:8000/api/crawler/${jobId}/results`);
+			if (!res.ok) throw new Error('Failed to fetch crawler results.');
+
+			const { results = [] } = await res.json();
+
+			// Fields you want to include in the export
+			const exportFields = [
+				'url',
+				'parentUrl',
+				'title',
+				'wordCount',
+				'charCount',
+				'linksFound',
+				'error'
+			];
+
+			// Optional: Human-readable column names
+			const headers = [
+				'URL',
+				'Parent URL',
+				'Title',
+				'Word Count',
+				'Character Count',
+				'Links Found',
+				'Error'
+			];
+
+			// Build CSV content
+			const csvRows = [
+				headers.join(','), // Header row
+				...results.map((row) => exportFields.map((key) => JSON.stringify(row[key] ?? '')).join(','))
+			];
+
+			// Create blob and trigger download
+			const csvContent = csvRows.join('\n');
+			const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+			const url = URL.createObjectURL(blob);
+
+			const a = document.createElement('a');
+			a.href = url;
+			a.download = `crawler_${jobId}_results.csv`;
+			document.body.appendChild(a);
+			a.click();
+			a.remove();
+
+			URL.revokeObjectURL(url);
+		} catch (error) {
+			console.error('[Crawler Export Error]', error);
+		}
 	}
 
-	try {
-		const res = await fetch(`http://localhost:8000/api/crawler/${jobId}/results`);
-		if (!res.ok) throw new Error('Failed to fetch crawler results.');
-
-		const { results = [] } = await res.json();
-
-		// Fields you want to include in the export
-		const exportFields = [
-			'url',
-			'parentUrl',
-			'title',
-			'wordCount',
-			'charCount',
-			'linksFound',
-			'error'
-		];
-
-		// Optional: Human-readable column names
-		const headers = [
-			'URL',
-			'Parent URL',
-			'Title',
-			'Word Count',
-			'Character Count',
-			'Links Found',
-			'Error'
-		];
-
-		// Build CSV content
-		const csvRows = [
-			headers.join(','), // Header row
-			...results.map((row) =>
-				exportFields.map((key) => JSON.stringify(row[key] ?? '')).join(',')
-			)
-		];
-
-		// Create blob and trigger download
-		const csvContent = csvRows.join('\n');
-		const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-		const url = URL.createObjectURL(blob);
-
-		const a = document.createElement('a');
-		a.href = url;
-		a.download = `crawler_${jobId}_results.csv`;
-		document.body.appendChild(a);
-		a.click();
-		a.remove();
-
-		URL.revokeObjectURL(url);
-	} catch (error) {
-		console.error('[Crawler Export Error]', error);
-		alert('There was an error exporting the crawler results.');
-	}
-}
-
-
-		
-	// onMount and onDestroy lifecycle hooks
+	// Restore checkpoint on mount
 	onMount(() => {
 		const jobId = localStorage.getItem('currentCrawlerJobId');
 
+		// Restore checkpoint if available
 		if (jobId) {
-			console.log('[Reconnect] Found job ID in localStorage:', jobId);
+			const savedCheckpoint = localStorage.getItem(`checkpoint_${jobId}`);
+			if (savedCheckpoint) {
+				try {
+					const parsed = JSON.parse(savedCheckpoint);
+					if (Array.isArray(parsed) && parsed.length > 0) {
+						serviceResults.update((r) => ({ ...r, crawler: parsed }));
+						console.log('[Restore] Checkpoint loaded for job', jobId);
+					}
+				} catch (err) {
+					console.error('[Restore] Failed to parse checkpoint data:', err);
+				}
+			}
 			connectToCrawlerWebSocket(jobId);
 		} else {
 			console.warn('No crawler job ID found in localStorage.');
 		}
+
+		intervalId = setInterval(() => {
+			const jobId = localStorage.getItem('currentCrawlerJobId');
+			const status = get(serviceStatus);
+
+			// Do not save checkpoints after scan is complete or idle
+			if (!jobId || (status.status !== 'running' && status.status !== 'paused')) return;
+
+			const data = get(serviceResults).crawler;
+			if (data.length > 0) {
+				localStorage.setItem(`checkpoint_${jobId}`, JSON.stringify(data));
+				console.log(`[Auto] Checkpoint saved for job ${jobId}`);
+			}
+		}, 15000);
 	});
 
 	onDestroy(() => {
+		clearInterval(intervalId);
 		closeCrawlerWebSocket();
 	});
 </script>
@@ -286,6 +329,17 @@
 					{:else}
 						Pause
 					{/if}
+				</Button>
+
+				<Button
+					onclick={saveCheckpoint}
+					variant="secondary"
+					size="default"
+					class="save-checkpoint"
+					aria-label="Save checkpoint"
+					title="Click to save checkpoint"
+				>
+					Save Checkpoint
 				</Button>
 
 				<Button
