@@ -94,7 +94,7 @@
 			required: false,
 			advanced: true,
 			toolTip: 'Proxy URL to use for the crawl.'
-		}
+		},
 	];
 
 	function handleInputChange(id, value) {

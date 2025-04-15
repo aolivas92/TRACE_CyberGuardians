@@ -70,7 +70,16 @@
 			required: false,
 			advanced: true,
 			toolTip: 'Optional content length filters (>100, <500).'
-		}
+		},
+		{
+			id: 'headers',
+			label: 'Headers',
+			type: 'text',
+			placeholder: 'User-Agent: Mozilla/5.0',
+			required: false,
+			advanced: true,
+			toolTip: 'Custom headers to be included in the request'
+		},
 	];
 
 	function handleInputChange(id, value) {

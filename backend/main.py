@@ -24,6 +24,11 @@ from src.modules.fuzzer.service.fuzzer_service_router import get_websocket_handl
 from src.modules.fuzzer.service.fuzzer_service import job_results as fuzzer_job_results
 from src.modules.fuzzer.service.fuzzer_service import running_jobs as fuzzer_running_jobs
 
+# DBF Routers and Services
+from src.modules.dbf.services.dbf_service_router import get_service_routers as get_dbf_routers
+from src.modules.dbf.services.dbf_service_router import get_websocket_handlers as get_dbf_websocket_handlers
+from src.modules.dbf.services.dbf_service import job_results as dbf_job_results, running_jobs as dbf_running_jobs
+
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -38,6 +43,15 @@ class CrawlerResultType:
     wordCount: int
     charCount: int
     linksFound: int
+    error: bool
+
+@strawberry.type
+class DBFResultType:
+    id: int
+    url: str
+    status: int
+    payload: str
+    length: int
     error: bool
 
 @strawberry.type
@@ -97,6 +111,30 @@ class Query:
                         ]
                 except Exception as e:
                     logger.error(f'Error reading crawler results: {e}')
+                    return []
+        return []
+    
+    @strawberry.field
+    def get_dbf_results(self, job_id: str) -> List[DBFResultType]:
+        if job_id in dbf_job_results and 'results_file' in dbf_job_results[job_id]:
+            results_file = dbf_job_results[job_id]['results_file']
+
+            if os.path.exists(results_file):
+                try:
+                    with open(results_file, 'r') as file:
+                        data = json.load(file)
+                        return [
+                            DBFResultType(
+                                id=item.get('id', index),
+                                url=item['url'],
+                                status=item['status'],
+                                payload=item['payload'],
+                                length=item['length'],
+                                error=item['erro']
+                            ) for index, item in enumerate(data)
+                        ]
+                except Exception as e:
+                    logger.error(f'Error reading DBF results: {e}')
                     return []
         return []
     
@@ -161,6 +199,14 @@ class Query:
         return 'not found'
     
     @strawberry.field
+    def get_dbf_job_status(self, job_id: str) -> str:
+        if job_id in dbf_running_jobs:
+            return dbf_running_jobs[job_id]['status']
+        if job_id in dbf_job_results:
+            return 'completed'
+        return 'not found'
+    
+    @strawberry.field
     def get_ml_job_status(self, job_id: str) -> str:
         if job_id in ml_running_jobs:
             return ml_running_jobs[job_id]['status']
@@ -199,6 +245,10 @@ app.include_router(graphql_app, prefix='/graphql')
 for router in get_crawler_routers():
     app.include_router(router)
 
+# DBF routers
+for router in get_dbf_routers():
+    app.include_router(router)
+
 # ML router
 for router in get_ml_router():
     app.include_router(router)
@@ -209,6 +259,7 @@ for router in gett_fuzzer_routers():
 
 # Register WebSocket handlers
 crawler_websocket_handlers = get_crawler_websocket_handlers()
+dbf_websocket_handlers = get_dbf_websocket_handlers()
 ml_websocket_handlers = get_ml_websocket_handlers()
 fuzzer_websocket_handlers = get_fuzzer_websocket_handlers()
 
@@ -216,6 +267,10 @@ fuzzer_websocket_handlers = get_fuzzer_websocket_handlers()
 @app.websocket('/ws/crawler/{job_id}')
 async def crawler_socket(websocket: WebSocket, job_id: str):
     await crawler_websocket_handlers["crawler"](websocket, job_id)
+
+@app.websocket('/ws/dbf/{job_id}')
+async def dbf_socket(websocket: WebSocket, job_id: str):
+    await dbf_websocket_handlers['dbf'](websocket, job_id)
 
 @app.websocket('/ws/ml/{job_id}')
 async def ml_socket(websocket: WebSocket, job_id: str):
