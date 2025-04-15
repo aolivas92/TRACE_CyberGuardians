@@ -10,6 +10,7 @@
 	import Alert from '$lib/components/ui/alert/Alert.svelte';
 	import { derived, get, writable } from 'svelte/store';
 	import { serviceResults } from '$lib/stores/serviceResultsStore.js';
+	import { toast } from 'svelte-sonner';
 	import { connectToBruteForceWebSocket, closeBruteForceWebSocket } from '$lib/services/bruteForceSocket.js';
 	import {
 		scanProgress,
@@ -20,12 +21,15 @@
 		resumeScan
 	} from '$lib/stores/scanProgressStore.js';
 
-	const exporting = writable(false);
+	const { data } = $props();
+	let showStopDialog = $state(false);
+	let intervalId;
 
+	// Derived stores
 	const bruteForceResults = derived(serviceResults, ($serviceResults) => $serviceResults.bruteForce);
-	const dynamicColumns = derived(bruteForceResults, ($results) =>
-		$results.length > 0
-			? Object.keys($results[0]).map((key) => ({
+	const dynamicColumns = derived(bruteForceResults, ($bruteForceResults) =>
+		$bruteForceResults.length > 0
+			? Object.keys($bruteForceResults[0]).map((key) => ({
 					key,
 					label: key
 						.replace(/([a-z])([A-Z])/g, '$1 $2')
@@ -35,154 +39,226 @@
 				}))
 			: []
 	);
-
 	const showProgress = derived(
 		[serviceStatus, bruteForceResults],
-		([$status, $results]) => $status.status === 'running' && $results.length > 0
+		([$serviceStatus, $bruteForceResults]) =>
+			$serviceStatus.status === 'running' && $bruteForceResults.length > 0
 	);
 
-	const currentStep = derived(serviceStatus, ($status) =>
-		$status.status === 'running' || $status.status === 'paused'
+	const currentStep = derived(serviceStatus, ($serviceStatus) =>
+		$serviceStatus.status === 'running' || $serviceStatus.status === 'paused'
 			? 'running'
-			: $status.status === 'complete'
+			: $serviceStatus.status === 'complete'
 				? 'results'
 				: 'config'
 	);
 
-	function togglePause() {
-		if ($scanPaused) {
-			resumeScan('bruteForce');
-		} else {
-			pauseScan('bruteForce');
+	// Fetch results from the server
+	async function fetchResults(jobId) {
+		try {
+			const res = await fetch(`http://localhost:8000/api/dbf/${jobId}/results`);
+			const response = await res.json();
+			const parsed = Array.isArray(response) ? response : (response.results ?? []);
+
+			// Set into shared store under "bruteForce"
+			serviceResults.update((r) => ({
+				...r,
+				bruteForce: parsed
+			}));
+
+		} catch (e) {
+			console.error('Failed to fetch bruteForce results:', e);
 		}
 	}
 
+	// WebSocket connection
+	$effect(() => {
+		if ($currentStep === 'results' && $bruteForceResults.length === 0) {
+			const jobId = localStorage.getItem('currentBruteForceJobId');
+			if (jobId) {
+				console.log('[Fetcher] Fetching results for job:', jobId);
+				fetchResults(jobId);
+			}
+		}
+	});
+
+	const togglePause = async () => {
+		if ($scanPaused) {
+			await resumeScan('bruteForce');
+		} else {
+			await pauseScan('bruteForce');
+		}
+	};
+
 	function handleStopCancel() {
 		showStopDialog = false;
+	}
+
+	function saveCheckpoint() {
+		const jobId = localStorage.getItem('currentBruteForceJobId');
+		if (!jobId) {
+			toast.error('No job ID found.');
+			return;
+		}
+
+		const data = get(serviceResults).bruteForce;
+		if (!data || data.length === 0) {
+			toast.error('No results to checkpoint.');
+			return;
+		}
+
+		localStorage.setItem(`checkpoint_${jobId}`, JSON.stringify(data));
+		toast.success('Checkpoint saved!', {
+			description: `Saved at ${new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}`
+		});
+		console.log(`[Checkpoint] Saved for job ${jobId}`);
 	}
 
 	async function handleStopConfirm() {
 		showStopDialog = false;
 		stopScanProgress();
 		closeBruteForceWebSocket();
-		const jobId = localStorage.getItem('currentBruteForceJobId');
-		if (!jobId) return;
 
-		// Clear state
+		// Get the job id
+		const jobId = localStorage.getItem('currentBruteForceJobId');
+		if (!jobId) {
+			console.error('No BruteForce Job Id found in local storage');
+		}
+
+		// Clear app state
 		serviceResults.update((r) => ({ ...r, bruteForce: [] }));
 		serviceStatus.set({ status: 'idle', serviceType: null, startTime: null });
 		localStorage.removeItem('currentBruteForceJobId');
 
-		// Send stop to backend (if needed)
+		// Tell the backend to stop
 		try {
-			await fetch(`http://localhost:8000/api/bruteForce/${jobId}/stop`, { method: 'POST' });
+			const res = await fetch(`http://localhost:8000/api/dbf/${jobId}/stop`, {
+				method: 'POST'
+			});
+			if (res.ok) {
+				console.log('BruteForce job stopped.');
+			} else {
+				console.error('Failed to stop bruteForce job:', await res.test());
+			}
 		} catch (e) {
-			console.error('Failed to stop brute force:', e);
+			console.error('Failed to stop bruteForce:', e);
 		}
 
+		console.log('[Stop] Service state');
 		goto('/dashboard');
 	}
 
 	function handleRestart() {
 		stopScanProgress();
+
+		// Reset the service results and status
 		serviceResults.update((r) => ({ ...r, bruteForce: [] }));
 		serviceStatus.set({ status: 'idle', serviceType: null, startTime: null });
-        scanProgress.set(0);
 		localStorage.removeItem('currentBruteForceJobId');
+
+		console.log('[Restart] Service state');
 		goto('/bruteForce/config');
 	}
 
 	async function handleExport() {
-		exporting.set(true);
+		const jobId = localStorage.getItem('currentBruteForceJobId');
+		if (!jobId) {
+			console.log('BruteForce job ID not found.');
+			return;
+		}
+
 		try {
-			const results = get(bruteForceResults);
-			const headers = ["Path", "Status Code", "Response Length"];
-			const csvRows = [
-				headers.join(','),
-				...results.map(entry => [
-					`"${entry.path}"`,
-					entry.status,
-					entry.length
-				].join(','))
+			const res = await fetch(`http://localhost:8000/api/dbf/${jobId}/results`);
+			if (!res.ok) throw new Error('Failed to fetch bruteForce results.');
+
+			const { results = [] } = await res.json();
+
+			// Fields you want to include in the export
+			const exportFields = [
+				'url',
+				'parentUrl',
+				'title',
+				'wordCount',
+				'charCount',
+				'linksFound',
+				'error'
 			];
 
-			const csvContent = csvRows.join("\n");
-			const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-			const url = window.URL.createObjectURL(blob);
+			// Optional: Human-readable column names
+			const headers = [
+				'URL',
+				'Parent URL',
+				'Title',
+				'Word Count',
+				'Character Count',
+				'Links Found',
+				'Error'
+			];
+
+			// Build CSV content
+			const csvRows = [
+				headers.join(','), // Header row
+				...results.map((row) => exportFields.map((key) => JSON.stringify(row[key] ?? '')).join(','))
+			];
+
+			// Create blob and trigger download
+			const csvContent = csvRows.join('\n');
+			const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+			const url = URL.createObjectURL(blob);
+
 			const a = document.createElement('a');
 			a.href = url;
-			a.download = `brute_force_results.csv`;
+			a.download = `bruteForce_${jobId}_results.csv`;
 			document.body.appendChild(a);
 			a.click();
 			a.remove();
-			window.URL.revokeObjectURL(url);
-		} catch (err) {
-			alert('Failed to export results');
-			console.error(err);
-		} finally {
-			exporting.set(false);
+
+			URL.revokeObjectURL(url);
+		} catch (error) {
+			console.error('[BruteForce Export Error]', error);
 		}
 	}
 
-	let showStopDialog = $state(false);
-
-    // for backend
+	// Restore checkpoint on mount
 	onMount(() => {
 		const jobId = localStorage.getItem('currentBruteForceJobId');
+
+		// Restore checkpoint if available
 		if (jobId) {
+			const savedCheckpoint = localStorage.getItem(`checkpoint_${jobId}`);
+			if (savedCheckpoint) {
+				try {
+					const parsed = JSON.parse(savedCheckpoint);
+					if (Array.isArray(parsed) && parsed.length > 0) {
+						serviceResults.update((r) => ({ ...r, bruteForce: parsed }));
+						console.log('[Restore] Checkpoint loaded for job', jobId);
+					}
+				} catch (err) {
+					console.error('[Restore] Failed to parse checkpoint data:', err);
+				}
+			}
 			connectToBruteForceWebSocket(jobId);
 		} else {
-			console.warn('No brute force job ID found in localStorage.');
+			console.warn('No bruteForce job ID found in localStorage.');
 		}
+
+		intervalId = setInterval(() => {
+			const jobId = localStorage.getItem('currentBruteForceJobId');
+			const status = get(serviceStatus);
+
+			// Do not save checkpoints after scan is complete or idle
+			if (!jobId || (status.status !== 'running' && status.status !== 'paused')) return;
+
+			const data = get(serviceResults).bruteForce;
+			if (data.length > 0) {
+				localStorage.setItem(`checkpoint_${jobId}`, JSON.stringify(data));
+				console.log(`[Auto] Checkpoint saved for job ${jobId}`);
+			}
+		}, 15000);
 	});
-    
-   
-    /*
-    // for testing 
-    onMount(() => {
-	    const jobId = 'test-job-123'; // mock job ID
-	    localStorage.setItem('currentBruteForceJobId', jobId);
-
-        	// Init state
-	    serviceResults.set({ bruteForce: [] });
-	    serviceStatus.set({ status: 'running', serviceType: 'bruteForce', startTime: Date.now() });
-	    startScanProgress();
-
-	    // Simulate progress
-	    let progress = 0;
-	    const interval = setInterval(() => {
-		    if (progress < 100) {
-			    progress += 10;
-			    scanProgress.set(progress);
-		    } else {
-			    clearInterval(interval);
-			    serviceStatus.set({ status: 'complete', serviceType: 'bruteForce', startTime: null });
-			    stopScanProgress(true);
-		    }
-	    }, 500);
-
-	    // Simulate pushing new results to the store
-	    const mockResults = [
-		    { path: '/admin', status: 200, length: 532 },
-		    { path: '/login', status: 401, length: 430 },
-		    { path: '/secret', status: 403, length: 390 }
-	    ];
-
-	    let i = 0;
-	    const resultInterval = setInterval(() => {
-		    if (i < mockResults.length) {
-			    serviceResults.update((r) => ({
-				    ...r,
-				    bruteForce: [...(r.bruteForce || []), mockResults[i++]]
-			    }));
-		    } else {
-			    clearInterval(resultInterval);
-		    }
-	    }, 600);
-    });
-    */
 
 	onDestroy(() => {
+		clearInterval(intervalId);
 		closeBruteForceWebSocket();
 	});
 </script>
@@ -234,7 +310,7 @@
 					size="default"
 					class="view-all-results"
 					aria-label="Export results"
-					title="Click to export brute force results"
+					title="Click to export crawler results"
 				>
 					Export Results
 				</Button>
@@ -252,6 +328,17 @@
 					{:else}
 						Pause
 					{/if}
+				</Button>
+
+				<Button
+					onclick={saveCheckpoint}
+					variant="secondary"
+					size="default"
+					class="save-checkpoint"
+					aria-label="Save checkpoint"
+					title="Click to save checkpoint"
+				>
+					Save Checkpoint
 				</Button>
 
 				<Button

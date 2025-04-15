@@ -16,7 +16,6 @@ export const actions = {
 
 		const fieldErrors = {};
 
-		// Validate all input fields
 		for (const [id, value] of Object.entries(formData)) {
 			const { error, message } = validateField(id, value);
 			if (error) {
@@ -24,7 +23,6 @@ export const actions = {
 			}
 		}
 
-		// Validate wordlist
 		const fileValidation = validateField('wordlist', wordlist);
 		if (fileValidation.error) {
 			fieldErrors.wordlist = {
@@ -33,7 +31,6 @@ export const actions = {
 			};
 		}
 
-		// Validate presence of required fields
 		const requiredFields = ['target-url', 'attempt-limit'];
 		for (const field of requiredFields) {
 			if (!formData[field]) {
@@ -44,7 +41,6 @@ export const actions = {
 			}
 		}
 
-		// If any validation errors, return
 		if (Object.keys(fieldErrors).length > 0) {
 			console.warn('Validation errors:', fieldErrors);
 			return fail(400, {
@@ -54,40 +50,72 @@ export const actions = {
 			});
 		}
 
-		// Map input field names to backend keys
-		const transformedData = {
-			target_url: formData["target-url"],
-			attempt_limit: formData["attempt-limit"] ? Number(formData["attempt-limit"]) : undefined,
-			top_level_directory: formData["top-level-directory"] ? formData["top-level-directory"] : undefined,
-			hide_status_codes: formData["hide-status-codes"] ? formData["hide-status-codes"] : undefined,
-			show_status_codes: formData["show-status-codes"] ? formData["show-status-codes"] : undefined,
-			filter_content_length: formData["filter-content-length"] ? formData["filter-content-length"] : undefined,
-			wordlist
-		};
+		// ✅ Convert wordlist file to array of strings
+		let wordlistContents = [];
+		if (wordlist) {
+			const text = await wordlist.text();
+			wordlistContents = text
+				.split('\n')
+				.map((line) => line.trim())
+				.filter(Boolean);
+		}
 
-		const bruteForcePayload = new FormData();
-		for (const [key, value] of Object.entries(transformedData)) {
-			if (value !== undefined && key !== 'wordlist') {
-				bruteForcePayload.append(key, value);
+		// ✅ Convert headers from "Key: Value, ..." string to object
+		let parsedHeaders = {};
+		if (formData['headers']) {
+			try {
+				const entries = formData['headers']
+					.split(',')
+					.map((pair) => pair.split(':').map((s) => s.trim()))
+					.filter(([k, v]) => k && v);
+				parsedHeaders = Object.fromEntries(entries);
+			} catch {
+				return fail(400, {
+					error: true,
+					message: 'Invalid headers format. Use "Key: Value, Key2: Value2"',
+					values: formData
+				});
 			}
 		}
-		bruteForcePayload.append('wordlist', wordlist);
+
+		// ✅ Convert show/hide status to arrays of integers
+		const toIntArray = (val) =>
+			val
+				.split(',')
+				.map((s) => parseInt(s.trim()))
+				.filter((n) => !isNaN(n));
+
+		const transformedData = {
+			target_url: formData['target-url'],
+			wordlist: wordlistContents,
+			top_dir: formData['top-level-directory'] || '',
+			hide_status: formData['hide-status-codes'] ? toIntArray(formData['hide-status-codes']) : [],
+			show_only_status: formData['show-status-codes'] ? toIntArray(formData['show-status-codes']) : [],
+			length_filter: formData['filter-content-length']
+				? parseInt(formData['filter-content-length'], 10)
+				: null,
+			headers: parsedHeaders,
+			attempt_limit: formData['attempt-limit']
+				? parseInt(formData['attempt-limit'], 10)
+				: -1
+		};
 
 		try {
-			const response = await fetch('http://127.0.0.1:8000/api/bruteForce', {
+			const response = await fetch('http://127.0.0.1:8000/api/dbf', {
 				method: 'POST',
 				headers: {
+					'Content-Type': 'application/json',
 					Accept: 'application/json'
 				},
-				body: bruteForcePayload
+				body: JSON.stringify(transformedData)
 			});
 
 			let json;
 			try {
 				json = await response.json();
-				console.log("Backend response:", json);
-			} catch (e) {
-				console.warn("Could not parse JSON:", e.message);
+				console.log('Backend response:', json);
+			} catch {
+				console.warn('Could not parse JSON');
 			}
 
 			if (!response.ok) {
@@ -112,16 +140,5 @@ export const actions = {
 				values: formData
 			});
 		}
-
-		
-		// FOR TESTING ONLY
-		// console.log('Skipping actual backend request for testing...');
-		// console.log('Payload that would have been sent:', bruteForcePayload);
-		
-		// return {
-		// 	success: true,
-		// 	message: 'Simulated brute force launch successful (no backend call made).',
-		// 	values: formData
-		// };
 	}
 };

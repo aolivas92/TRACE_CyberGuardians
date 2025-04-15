@@ -22,7 +22,6 @@
 	} from '$lib/stores/scanProgressStore.js';
 
 	const { data } = $props();
-	let value = $state(15);
 	let showStopDialog = $state(false);
 	let intervalId;
 

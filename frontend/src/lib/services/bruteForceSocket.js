@@ -19,7 +19,7 @@ export function connectToBruteForceWebSocket(jobId, retry = 0) {
   }
 
   // Open a WebSocket connection to the backend endpoint
-  socket = new WebSocket(`ws://localhost:8000/ws/bruteForce/${jobId}`);
+  socket = new WebSocket(`ws://localhost:8000/ws/dbf/${jobId}`);
 
   // Triggered when the connection is successfully established
   socket.onopen = () => {

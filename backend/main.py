@@ -210,7 +210,7 @@ ml_websocket_handlers = get_ml_websocket_handlers()
 async def crawler_socket(websocket: WebSocket, job_id: str):
     await crawler_websocket_handlers["crawler"](websocket, job_id)
 
-@app.websocket('/ws/dbs/{job_id}')
+@app.websocket('/ws/dbf/{job_id}')
 async def dbf_socket(websocket: WebSocket, job_id: str):
     await dbf_websocket_handlers['dbf'](websocket, job_id)
 
