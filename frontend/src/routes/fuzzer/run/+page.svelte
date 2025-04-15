@@ -9,6 +9,7 @@
 	import Alert from '$lib/components/ui/alert/Alert.svelte';
 	import { derived, get, writable, readable } from 'svelte/store';
 	import { onMount, onDestroy } from 'svelte';
+	import { toast } from 'svelte-sonner';
 	import { serviceResults } from '$lib/stores/serviceResultsStore.js';
 	import { connectToFuzzerWebSocket, closeFuzzerWebSocket } from '$lib/services/fuzzerSocket.js';
 	import {
@@ -22,7 +23,7 @@
 
 	const { data } = $props();
 	let showStopDialog = $state(false);
-	let paused = $state(false);
+	let intervalId;
 
 	// Derived stores
 	const fuzzerResults = derived(serviceResults, ($serviceResults) => $serviceResults.fuzzer);
@@ -93,6 +94,27 @@
 	function handleStopCancel() {
 		showStopDialog = false;
 	}
+
+	function saveCheckpoint() {
+		const jobId = localStorage.getItem('currentFuzzerJobId');
+		if (!jobId) {
+			toast.error('No job ID found.');
+			return;
+		}
+
+		const data = get(serviceResults).fuzzer;
+		if (!data || data.length === 0) {
+			toast.error('No results to checkpoint.');
+			return;
+		}
+
+		localStorage.setItem(`checkpoint_${jobId}`, JSON.stringify(data));
+		toast.success('Checkpoint saved!', {
+			description: `Saved at ${new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}`
+		});
+		console.log(`[Checkpoint] Saved for job ${jobId}`);
+	}
+
 
 	async function handleStopConfirm() {
 		showStopDialog = false;
@@ -183,15 +205,42 @@
 	onMount(() => {
 		const jobId = localStorage.getItem('currentFuzzerJobId');
 
+		// Restore checkpoint if available
 		if (jobId) {
-			console.log('[Reconnect] Found job ID in localStorage:', jobId);
+			const savedCheckpoint = localStorage.getItem(`checkpoint_${jobId}`);
+			if (savedCheckpoint) {
+				try {
+					const parsed = JSON.parse(savedCheckpoint);
+					if (Array.isArray(parsed) && parsed.length > 0) {
+						serviceResults.update((r) => ({ ...r, fuzzer: parsed }));
+						console.log('[Restore] Checkpoint loaded for job', jobId);
+					}
+				} catch (err) {
+					console.error('[Restore] Failed to parse checkpoint data:', err);
+				}
+			}
 			connectToFuzzerWebSocket(jobId);
 		} else {
 			console.warn('No fuzzer job ID found in localStorage.');
 		}
+
+		intervalId = setInterval(() => {
+			const jobId = localStorage.getItem('currentFuzzerJobId');
+			const status = get(serviceStatus);
+
+			// Do not save checkpoints after scan is complete or idle
+			if (!jobId || (status.status !== 'running' && status.status !== 'paused')) return;
+
+			const data = get(serviceResults).fuzzer;
+			if (data.length > 0) {
+				localStorage.setItem(`checkpoint_${jobId}`, JSON.stringify(data));
+				console.log(`[Auto] Checkpoint saved for job ${jobId}`);
+			}
+		}, 15000);
 	});
 
 	onDestroy(() => {
+		clearInterval(intervalId);
 		closeFuzzerWebSocket();
 	});
 </script>
@@ -257,6 +306,17 @@
 					{:else}
 						Pause
 					{/if}
+				</Button>
+				
+				<Button
+					onclick={saveCheckpoint}
+					variant="secondary"
+					size="default"
+					class="save-checkpoint"
+					aria-label="Save checkpoint"
+					title="Checkpoint"
+				>
+					Save Checkpoint
 				</Button>
 
 				<Button

@@ -22,7 +22,6 @@
 	} from '$lib/stores/scanProgressStore.js';
 
 	const { data } = $props();
-	let value = $state(15);
 	let showStopDialog = $state(false);
 	let intervalId;
 
@@ -337,7 +336,7 @@
 					size="default"
 					class="save-checkpoint"
 					aria-label="Save checkpoint"
-					title="Click to save checkpoint"
+					title="Checkpoint"
 				>
 					Save Checkpoint
 				</Button>
