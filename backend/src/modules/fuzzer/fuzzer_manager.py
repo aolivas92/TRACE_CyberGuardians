@@ -220,6 +220,10 @@ class FuzzerManager:
 
                     logging.info(f'Recieve response {response['status']} from {response['url']}')
                     self.request_count += 1
+
+                    if callable(self.progress_callback):
+                        total_count = len(parameters) * len(payloads)
+                        self.progress_callback(self.request_count, total_count, f'{param}={payload}')
                 except Exception as e:
                     print(f"[!] Request error {e}")
                     error_response = MockResponse(target_url, 0, str(e))
