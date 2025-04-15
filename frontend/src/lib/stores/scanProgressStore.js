@@ -38,7 +38,7 @@ export function stopScanProgress(markComplete = false) {
 
 	if (markComplete && service) {
 		serviceStatus.set({
-			status: 'complete',
+			status: 'completed',
 			serviceType: service,
 			startTime: null
 		});

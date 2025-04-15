@@ -47,7 +47,7 @@
 	const currentStep = derived(serviceStatus, ($serviceStatus) =>
 		$serviceStatus.status === 'running' || $serviceStatus.status === 'paused'
 			? 'running'
-			: $serviceStatus.status === 'complete'
+			: $serviceStatus.status === 'completed'
 				? 'results'
 				: 'config'
 	);
@@ -234,7 +234,7 @@
 	</div>
 
 	<div class="table">
-		{#if $showProgress || $serviceStatus.status === 'complete' || $serviceStatus.status === 'paused'}
+		{#if $showProgress || $serviceStatus.status === 'completed' || $serviceStatus.status === 'paused'}
 			<div class="progress-bar-container">
 				<div class="progress-info">
 					<div class="text-sm font-medium">Progress</div>
@@ -251,7 +251,7 @@
 
 	<div class="button-section">
 		<div class="button-group">
-			{#if $serviceStatus.status === 'complete'}
+			{#if $serviceStatus.status === 'completed'}
 				<Button
 					onclick={handleRestart}
 					variant="default"

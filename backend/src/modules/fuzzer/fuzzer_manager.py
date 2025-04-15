@@ -199,8 +199,25 @@ class FuzzerManager:
                     )
                     mock = MockResponse(response["url"], response["status"], response["text"])
                     mock.payload = payload
-                    mock.error = response["status"] not in [200]  # You can customize this logic
+                    mock.error = response["status"] not in [200]
+
+                    # Convert this into a table row format
+                    row = {
+                        "id": self.request_count + 1,
+                        "url": response["url"],
+                        "response": response["status"],
+                        "payload": payload,
+                        "length": len(response["text"]),
+                        "error": mock.error
+                    }
+
+                    # Emit the row immediately
+                    if callable(self.on_new_row):
+                        self.last_row = row
+                        self.on_new_row(row)
+
                     self.response_processor.process_response(mock)
+
                     logging.info(f'Recieve response {response['status']} from {response['url']}')
                     self.request_count += 1
                 except Exception as e:
@@ -208,6 +225,20 @@ class FuzzerManager:
                     error_response = MockResponse(target_url, 0, str(e))
                     error_response.payload = payload
                     error_response.error = True
+
+                    error_row = {
+                        "id": self.request_count + 1,
+                        "url": target_url,
+                        "response": 0,
+                        "payload": payload,
+                        "length": len(str(e)),
+                        "error": True
+                    }
+
+                    if callable(self.on_new_row):
+                        self.last_row = error_row
+                        self.on_new_row(error_row)
+
                     self.response_processor.process_response(error_response)
         self.end_time = time.perf_counter()
     

@@ -76,7 +76,7 @@ class CrawlerResultItem(BaseModel):
 
 class CrawlerResults(BaseModel):
     """
-    Model for the complete crawler results
+    Model for the completed crawler results
     """
     results: List[CrawlerResultItem]
 
@@ -270,7 +270,7 @@ async def run_crawler_task(job_id: str, config: CrawlerConfig):
             }
 
             # Broadcast completion message
-            tracker._broadcast_message('complete', {
+            tracker._broadcast_message('completed', {
                 'urls_processed': len(table_data),
                 'total_urls': len(table_data),
                 'progress': 100,
@@ -288,7 +288,7 @@ async def run_crawler_task(job_id: str, config: CrawlerConfig):
             }
 
             # Broadcast message with error
-            tracker._broadcast_message('complete', {
+            tracker._broadcast_message('completed', {
                 'urls_processed': tracker.total_processed,
                 'total_urls': tracker.total_processed,
                 'progress': 100,

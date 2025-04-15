@@ -58,7 +58,7 @@ class TestNLP(unittest.TestCase):
     @patch("os.path.exists")
     @patch("builtins.open")
     def test_subroutine_integration(self, mock_open_file, mock_exists):
-        """Test the complete subroutine flow with mocked file operations."""
+        """Test the completed subroutine flow with mocked file operations."""
         mock_exists.return_value = True
 
         # Mock the file operations

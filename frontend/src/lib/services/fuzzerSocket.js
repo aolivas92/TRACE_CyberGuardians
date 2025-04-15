@@ -36,7 +36,7 @@ export function connectToFuzzerWebSocket(jobId, retry = 0) {
       case 'status': {
         const mappedStatus = data.status;
         switch (mappedStatus) {
-          case 'complete': {
+          case 'completed': {
             break;
           }
           case 'paused': {
@@ -58,12 +58,12 @@ export function connectToFuzzerWebSocket(jobId, retry = 0) {
       }
       
       // Updates the fuzzer result table with a new scanned row
-      case 'new_row':
-        serviceResults.update((r) => ({
-          ...r,
-          fuzzer: [...r.fuzzer, data.row]
-        }));
-        break;
+			case 'new_row':
+				serviceResults.update((r) => ({
+					...r,
+					fuzzer: [...r.fuzzer, data.row]
+				}));
+				break;
 
       // Updates the progress of the fuzzer job
       case 'progress':
@@ -73,12 +73,12 @@ export function connectToFuzzerWebSocket(jobId, retry = 0) {
         }
         break;
 
-      // Marks the scan as complete and finalizes UI
-      case 'complete':
+      // Marks the scan as completed and finalizes UI
+      case 'completed':
         scanProgress.set(100);
         stopScanProgress(true);
         serviceStatus.set({
-          status: 'complete',
+          status: 'completed',
           serviceType: 'fuzzer',
           startTime: null
         });

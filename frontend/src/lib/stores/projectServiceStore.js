@@ -12,7 +12,7 @@ function createServiceStatusStore() {
 	const initial = stored
 		? JSON.parse(stored)
 		: {
-				status: 'idle',        // "idle" | "running" | "complete"
+				status: 'idle',        // "idle" | "running" | "completed"
 				serviceType: null,     // "crawler", "fuzzer", etc.
 				startTime: null        // ISO string of when the service started
 			};

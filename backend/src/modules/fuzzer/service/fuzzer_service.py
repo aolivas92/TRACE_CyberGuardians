@@ -82,7 +82,7 @@ class FuzzerResultItem(BaseModel):
 
 class FuzzerResults(BaseModel):
     """
-    Model for the complete fuzzer results
+    Model for the completed fuzzer results
     """
     results: List[FuzzerResultItem]
 
@@ -195,7 +195,7 @@ async def run_fuzzer_task(job_id: str, config: FuzzerConfig):
         def handle_new_row(row):
             print(f'[Backend] Broadcasting new row for {job_id}: {row['payload']}')
             running_jobs[job_id]['last_row'] = row
-            tracker._broadcast_message('new_row', {'row', row})
+            tracker._broadcast_message('new_row', {'row': row})
         fuzzer.on_new_row = handle_new_row
 
         # Prepare the payloads
@@ -295,7 +295,7 @@ async def run_fuzzer_task(job_id: str, config: FuzzerConfig):
         }
 
         # Broadcast the completed status
-        tracker._broadcast_message('complete', {
+        tracker._broadcast_message('completed', {
             'processed_requests': fuzzer.request_count,
             'total_requests': total_requests,
             'progress': 100,
