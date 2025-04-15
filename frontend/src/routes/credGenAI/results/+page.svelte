@@ -47,7 +47,7 @@
 	const currentStep = derived(serviceStatus, ($serviceStatus) =>
 		$serviceStatus.status === 'running' || $serviceStatus.status === 'paused'
 			? 'running'
-			: $serviceStatus.status === 'complete'
+			: $serviceStatus.status === 'completed'
 				? 'results'
 				: 'config'
 	);

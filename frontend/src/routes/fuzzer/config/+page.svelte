@@ -63,6 +63,15 @@
 			required: false,
 			advanced: true,
 			toolTip: 'Template for the body of POST requests'
+		},
+		{
+			id: 'cookies',
+			label: 'Cookies',
+			type: 'text',
+			placeholder: 'sessionId=abc123',
+			required: false,
+			advanced: true,
+			toolTip: 'Cookies to be included in the request'
 		}
 	];
 
