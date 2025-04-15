@@ -32,14 +32,24 @@
 			label: 'Username Length',
 			type: 'number',
 			placeholder: '12',
-			required: false
+			required: false,
+			toolTip: 'Length of the generated username.'
 		},
 		{
 			id: 'password-length',
 			label: 'Password Length',
 			type: 'number',
 			placeholder: '12',
-			required: false
+			required: false,
+			toolTip: 'Length of the generated password.'
+		},
+		{
+			id: 'credential-count',
+			label: 'Credential Count',
+			type: 'number',
+			placeholder: '10',
+			required: false,
+			toolTip: 'Number of credentials to generate.'
 		}
 	];
 
@@ -141,22 +151,41 @@
 		use:enhance={onSubmitHandler}
 		class="input-container"
 	>
-		{#each inputFields.filter((f) => f.id === 'wordlist') as field}
-			<FormField
-				{field}
-				value={formData[field.id] || ''}
-				error={fieldErrors[field.id]?.error || false}
-				errorText={fieldErrors[field.id]?.message || ''}
-				onInput={(e) => handleInputChange(e.target.files?.[0] ?? null)}
-				onBlur={() => handleInputChange(selectedFile)}
-			/>
-		{/each}
+		<div class="form-sections">
+			<div class="card">
+				<div class="field-group">
+					<div class="field-title">Wordlist Upload</div>
+
+					{#each inputFields.filter((f) => f.id === 'wordlist') as field}
+						<FormField
+							{field}
+							value={formData[field.id] || ''}
+							error={fieldErrors[field.id]?.error || false}
+							errorText={fieldErrors[field.id]?.message || ''}
+							onInput={(e) => handleInputChange(e.target.files?.[0] ?? null)}
+							onBlur={() => handleInputChange(selectedFile)}
+						/>
+					{/each}
+
+					{#each inputFields.filter((f) => f.id === 'credential-count') as field}
+						<FormField
+							{field}
+							value={formData[field.id] || ''}
+							error={fieldErrors[field.id]?.error || false}
+							errorText={fieldErrors[field.id]?.message || ''}
+							onInput={(e) => handleInputChange(e.target.files?.[0] ?? null)}
+							onBlur={() => handleInputChange(selectedFile)}
+						/>
+					{/each}
+				</div>
+			</div>
+		</div>
 
 		<div class="toggle-container">
 			<!-- Username Toggle Section -->
 			<div class="toggle-section">
 				<div class="flex items-center gap-2">
-					<div class="toggle-title">Username</div>
+					<div class="toggle-title">Username Rules</div>
 					<Tooltip.Provider>
 						<Tooltip.Root>
 							<Tooltip.Trigger asChild>
@@ -206,7 +235,7 @@
 			<!-- Password Toggle Section -->
 			<div class="toggle-section">
 				<div class="flex items-center gap-2">
-					<div class="toggle-title">Password</div>
+					<div class="toggle-title">Password Rules</div>
 					<Tooltip.Provider>
 						<Tooltip.Root>
 							<Tooltip.Trigger asChild>
@@ -291,6 +320,27 @@
 		padding-left: 3rem;
 		padding-top: 3rem;
 	}
+
+	.field-group {
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
+		width: 100%;
+	}
+
+	.field-title {
+		font-size: 1.2rem;
+		font-weight: bold;
+		padding-bottom: 0.5rem;
+	}
+	.form-sections {
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		width: 100%;
+		gap: 3rem;
+		margin-bottom: 2rem;
+	}
 	.input-container {
 		display: flex;
 		flex-direction: column;
@@ -309,7 +359,7 @@
 		justify-content: center;
 		align-items: center;
 		width: 100%;
-		gap: 7rem;
+		gap: 3rem;
 	}
 	.toggle-section {
 		padding-top: 1rem;
