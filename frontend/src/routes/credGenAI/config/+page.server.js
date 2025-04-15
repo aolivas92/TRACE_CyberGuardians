@@ -49,7 +49,7 @@ export const actions = {
 
 		const jsonPayload = {
 			target_urls: ['https://crawler-test.com/'],
-			credential_count: 10,
+			credential_count: formData['credential-count'] ? Number(formData['credential-count']) : undefined,
 			wordlist: wordlistText,
 			min_username_length: formData['username-length'] ? Number(formData['username-length']) : undefined,
 			min_password_length: formData['password-length'] ? Number(formData['password-length']) : undefined,

@@ -156,25 +156,26 @@
 				<div class="field-group">
 					<div class="field-title">Wordlist Upload</div>
 
-					{#each inputFields.filter((f) => f.id === 'wordlist') as field}
+					{#each inputFields.filter((f) => ['wordlist', 'credential-count'].includes(f.id)) as field}
 						<FormField
 							{field}
 							value={formData[field.id] || ''}
 							error={fieldErrors[field.id]?.error || false}
 							errorText={fieldErrors[field.id]?.message || ''}
-							onInput={(e) => handleInputChange(e.target.files?.[0] ?? null)}
-							onBlur={() => handleInputChange(selectedFile)}
-						/>
-					{/each}
-
-					{#each inputFields.filter((f) => f.id === 'credential-count') as field}
-						<FormField
-							{field}
-							value={formData[field.id] || ''}
-							error={fieldErrors[field.id]?.error || false}
-							errorText={fieldErrors[field.id]?.message || ''}
-							onInput={(e) => handleInputChange(e.target.files?.[0] ?? null)}
-							onBlur={() => handleInputChange(selectedFile)}
+							onInput={(e) => {
+								if (field.id === 'wordlist') {
+									handleInputChange(e.target.files?.[0] ?? null);
+								} else {
+									handleLengthChange(field.id, e.target.value);
+								}
+							}}
+							onBlur={() => {
+								if (field.id === 'wordlist') {
+									handleInputChange(selectedFile);
+								} else {
+									handleLengthChange(field.id, formData[field.id]);
+								}
+							}}
 						/>
 					{/each}
 				</div>
