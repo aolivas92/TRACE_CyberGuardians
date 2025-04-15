@@ -35,5 +35,9 @@ class RealHTTPClient:
         @ensures response == string.
         """
         async with aiohttp.ClientSession(headers=headers) as session:
-            async with session.get(url) as response:
-                return await response.text()
+            if proxy:
+                async with session.get(url, proxy=proxy) as response:
+                    return await response.text()
+            else:
+                async with session.get(url) as response:
+                    return await response.text()
