@@ -217,7 +217,7 @@ class FuzzerManager:
                     if callable(self.on_new_row):
                         self.last_row = row
                         self.on_new_row(row)
-                        time.sleep(1)
+                        time.sleep(0.3)
 
                     self.response_processor.process_response(mock)
 

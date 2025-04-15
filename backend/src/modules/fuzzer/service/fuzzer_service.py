@@ -125,7 +125,7 @@ class FuzzerProgressTracker:
             
             if 'progress_start_time' not in running_jobs[self.job_id]:
                 running_jobs[self.job_id]['progress_start_time'] = time.time()
-                running_jobs[self.job_id]['progress_duration'] = random.uniform(5.0, 15.0)
+                running_jobs[self.job_id]['progress_duration'] = random.uniform(5.0, 10.0)
             
             start_time = running_jobs[self.job_id]['progress_start_time']
             duration = running_jobs[self.job_id]['progress_duration']
@@ -199,7 +199,6 @@ async def run_fuzzer_task(job_id: str, config: FuzzerConfig):
 
         def handle_new_row(row):
             print(f'[Backend] Broadcasting new row for {job_id}: {row['payload']}')
-            running_jobs[job_id]['last_row'] = row
             tracker._broadcast_message('new_row', {'row': row})
         fuzzer.on_new_row = handle_new_row
 
