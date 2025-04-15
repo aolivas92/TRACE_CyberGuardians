@@ -18,6 +18,12 @@ from src.modules.ai.ml_service_router import get_service_routers as get_ml_route
 from src.modules.ai.ml_service_router import get_websocket_handlers as get_ml_websocket_handlers
 from src.modules.ai.ml_service import job_results as ml_job_results, running_jobs as ml_running_jobs
 
+# Fuzzer Routers and Services
+from src.modules.fuzzer.service.fuzzer_service_router import get_service_routers as gett_fuzzer_routers
+from src.modules.fuzzer.service.fuzzer_service_router import get_websocket_handlers as get_fuzzer_websocket_handlers
+from src.modules.fuzzer.service.fuzzer_service import job_results as fuzzer_job_results
+from src.modules.fuzzer.service.fuzzer_service import running_jobs as fuzzer_running_jobs
+
 # DBF Routers and Services
 from src.modules.dbf.services.dbf_service_router import get_service_routers as get_dbf_routers
 from src.modules.dbf.services.dbf_service_router import get_websocket_handlers as get_dbf_websocket_handlers
@@ -56,6 +62,17 @@ class CredentialType:
     password: str
     is_secure: bool
     password_evaluation: str
+
+@strawberry.type
+class FuzzerResultType:
+    id: int
+    response: int
+    lines: int
+    words: int
+    chars: int
+    payload: str
+    length: int
+    error: bool
 
 @strawberry.type
 class JobStatus:
@@ -146,6 +163,34 @@ class Query:
         return []
     
     @strawberry.field
+    def get_fuzzer_results(self, job_id: str) -> List[FuzzerResultType]:
+        if job_id in fuzzer_job_results and 'results_file' in fuzzer_job_results[job_id]:
+            results_file = fuzzer_job_results[job_id]['results_file']
+
+            if os.path.exists(results_file):
+                try:
+                    with open(results_file, 'r') as file:
+                        data = json.load(file)
+                        return [
+                            FuzzerResultType(
+                                id=item['id'],
+                                response=item['response'],
+                                lines=item['lines'],
+                                words=item['words'],
+                                chars=item['chars'],
+                                payload=item['payload'],
+                                length=item['length'],
+                                error=item['error'],
+                            ) for item in data
+                        ]
+                
+                except Exception as e:
+                    logger.error(f'Error reading fuzzer results: {e}')
+                    return []
+                
+        return []
+    
+    @strawberry.field
     def get_crawler_job_status(self, job_id: str) -> str:
         if job_id in crawler_running_jobs:
             return crawler_running_jobs[job_id]['status']
@@ -166,6 +211,14 @@ class Query:
         if job_id in ml_running_jobs:
             return ml_running_jobs[job_id]['status']
         if job_id in ml_job_results:
+            return 'completed'
+        return 'not found'
+
+    @strawberry.field
+    def get_fuzzer_job_status(self, job_id: str) -> str:
+        if job_id in fuzzer_running_jobs:
+            return fuzzer_running_jobs[job_id]['status']
+        if job_id in fuzzer_job_results:
             return 'completed'
         return 'not found'
     
@@ -200,10 +253,15 @@ for router in get_dbf_routers():
 for router in get_ml_router():
     app.include_router(router)
 
+# Fuzzer router
+for router in gett_fuzzer_routers():
+    app.include_router(router)
+
 # Register WebSocket handlers
 crawler_websocket_handlers = get_crawler_websocket_handlers()
 dbf_websocket_handlers = get_dbf_websocket_handlers()
 ml_websocket_handlers = get_ml_websocket_handlers()
+fuzzer_websocket_handlers = get_fuzzer_websocket_handlers()
 
 # WebSocket endpoint for crawler updates
 @app.websocket('/ws/crawler/{job_id}')
@@ -217,6 +275,10 @@ async def dbf_socket(websocket: WebSocket, job_id: str):
 @app.websocket('/ws/ml/{job_id}')
 async def ml_socket(websocket: WebSocket, job_id: str):
     await ml_websocket_handlers['ml'](websocket, job_id)
+
+@app.websocket('/ws/fuzzer/{job_id}')
+async def fuzzer_socket(websocket: WebSocket, job_id: str):
+    await fuzzer_websocket_handlers['fuzzer'](websocket, job_id)
 
 # Root endpoint
 @app.get("/")

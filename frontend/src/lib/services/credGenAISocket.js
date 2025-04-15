@@ -61,11 +61,11 @@ export function connectToCredGenAIWebSocket(jobId, retry = 0) {
 				}
 				break;
 
-			case 'complete': {
+			case 'completed': {
 				scanProgress.set(100);
 				stopScanProgress(true);
 				serviceStatus.set({
-					status: 'complete',
+					status: 'completed',
 					serviceType: 'credGenAI',
 					startTime: null
 				});
@@ -80,7 +80,7 @@ export function connectToCredGenAIWebSocket(jobId, retry = 0) {
 							serviceResults.update((r) => ({ ...r, credGenAI: parsed }));
 							console.log('[WebSocket] Results set into store:', parsed);
 						})
-						.catch((err) => console.error('Failed to fetch results after complete:', err));
+						.catch((err) => console.error('Failed to fetch results after completed:', err));
 				}
 				break;
 			}

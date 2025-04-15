@@ -64,7 +64,7 @@ class CredentialItem(BaseModel):
 
 class CredentialResults(BaseModel):
     """
-    Model for the complete credential results
+    Model for the completed credential results
     """
     results: List[CredentialItem]
 
@@ -244,7 +244,7 @@ async def run_ml_task(job_id: str, config: MLConfig):
         
         # Broadcast completion message
         await asyncio.sleep(1)  # short pause to ensure frontend is in ready state
-        tracker._broadcast_message('complete', {
+        tracker._broadcast_message('completed', {
             'progress': 100,
             'message': 'ML job completed successfully',
             'credentials_count': len(credentials)

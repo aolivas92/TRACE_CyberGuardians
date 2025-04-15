@@ -1,5 +1,5 @@
 export async function load({ fetch, url }) {
-	let jobId = url.searchParams.get('jobId');
+	const jobId = url.searchParams.get('jobId');  
 
 	if (!jobId) {
 		return {

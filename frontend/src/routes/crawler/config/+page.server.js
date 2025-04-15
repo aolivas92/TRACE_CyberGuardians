@@ -34,7 +34,7 @@ export const actions = {
 			target_url: formData["target-url"],
 			depth: formData["depth"] ? Number(formData["depth"]) : undefined,
 			max_pages: formData["max-pages"] ? Number(formData["max-pages"]) : undefined,
-			delay: formData["delay"] ? Number(formData["delay"]) : undefined,
+			limit: formData["max-pages"] ? Number(formData["max-pages"]) : undefined,
 			proxy: formData["proxy"] ? Number(formData["proxy"]) : undefined,
 			user_agent: formData["user-agent"] ? formData["user-agent"] : undefined,
 			excluded_urls: formData["excluded-urls"] ? formData["excluded-urls"] : undefined,

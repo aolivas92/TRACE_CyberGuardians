@@ -25,7 +25,7 @@
 		const toolType = tool.name.toLowerCase();
 
 		if (
-			['running', 'paused', 'complete'].includes($serviceStatus.status) &&
+			['running', 'paused', 'completed'].includes($serviceStatus.status) &&
 			$serviceStatus.serviceType === toolType
 		) {
 			goto(`/${toolType}/run`);
@@ -43,7 +43,7 @@
 					return 'In Progress';
 				case 'paused':
 					return 'Paused';
-				case 'complete':
+				case 'completed':
 					return 'Finished';
 				default:
 					return 'Not Started';
@@ -58,7 +58,7 @@
 		if ($serviceStatus.serviceType === type) {
 			if ($serviceStatus.status === 'running') return 'View';
 			if ($serviceStatus.status === 'paused') return 'Resume';
-			if ($serviceStatus.status === 'complete') return 'View Results';
+			if ($serviceStatus.status === 'completed') return 'View Results';
 		}
 		return 'Start';
 	}
