@@ -142,7 +142,7 @@ class Query:
                                 chars=item['chars'],
                                 payload=item['payload'],
                                 length=item['length'],
-                                error=['error'],
+                                error=item['error'],
                             ) for item in data
                         ]
                 
