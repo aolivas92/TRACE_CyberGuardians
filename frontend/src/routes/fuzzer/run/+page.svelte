@@ -204,7 +204,9 @@
 	// onMount and onDestroy lifecycle hooks
 	onMount(() => {
 		const jobId = localStorage.getItem('currentFuzzerJobId');
-
+		if (jobId && get(serviceStatus).status !== 'completed') {
+			connectToFuzzerWebSocket(jobId);
+		}
 		// Restore checkpoint if available
 		if (jobId) {
 			const savedCheckpoint = localStorage.getItem(`checkpoint_${jobId}`);

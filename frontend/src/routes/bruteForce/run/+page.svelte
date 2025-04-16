@@ -205,6 +205,9 @@
 	// Restore checkpoint on mount
 	onMount(() => {
 		const jobId = localStorage.getItem('currentDbfJobId');
+		if (jobId && get(serviceStatus).status !== 'completed') {
+			connectToBruteForceWebSocket(jobId);
+		}
 
 		// Restore checkpoint if available
 		if (jobId) {

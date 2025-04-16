@@ -71,6 +71,10 @@ export function connectToCrawlerWebSocket(jobId, retry = 0) {
 
 			// Updates the progress of the crawler job
 			case 'progress':
+				if (get(serviceStatus).status === 'completed') {
+					console.warn('[Crawler] Ignoring late progress update');
+					return;
+				}
 				if (!get(scanPaused)) {
 					startScanProgress('crawler');
 					scanProgress.set(Math.min(data.progress, 99));
