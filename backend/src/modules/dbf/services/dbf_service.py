@@ -47,8 +47,8 @@ class DBFConfig(BaseModel):
     # Log the received data from frontend
     def debug_request(cls, data: dict):
         logger.info(f'Raw request data: {data}')
-        for key, value in data.time():
-            logger.info(f'Field: {key}, Value: {value}, Tpe: {type(value)}')
+        for key, value in data.items():
+            logger.info(f'Field: {key}, Value: {value}, Type: {type(value)}')
         return data
     
 class DBFJobResponse(BaseModel):
@@ -61,7 +61,7 @@ class DBFJobResponse(BaseModel):
     filtered_requests: Optional[int] = 0
     requests_per_second: Optional[float] = 0
 
-class DBFResultitem(BaseModel):
+class DBFResultItem(BaseModel):
     """
     Model for a single DBF result item.
     """
@@ -76,7 +76,7 @@ class DBFResults(BaseModel):
     """
     Model for the completed DBF results
     """
-    results: List[DBFResultitem]
+    results: List[DBFResultItem]
 
 class DBFProgressTracker:
     """
@@ -93,8 +93,8 @@ class DBFProgressTracker:
         """
         Add a log message and broadcast it to the connected clients
         """
-        timestap = datetime.now().isoformat()
-        log_entry = f'[{timestap}] {message}'
+        timestamp = datetime.now().isoformat()
+        log_entry = f'[{timestamp}] {message}'
         self.logs.append(log_entry)
 
         # Update the logs in running_jobs 
@@ -232,22 +232,22 @@ async def run_dbf_task(job_id: str, config: DBFConfig):
                 await asyncio.sleep(1)
         
         # Start the progress monitoring
-        montior_task = asyncio.create_task(update_progress())
+        monitor_task = asyncio.create_task(update_progress())
 
         # Start the scan
         tracker.add_log('Starting Directory Brute Force scan.')
         await dbf_manager.start_scan()
 
         # Wait for the monitor to finish
-        montior_task.cancel()
+        monitor_task.cancel()
 
         # Get the final metrics
         metrics = dbf_manager.get_metrics()
 
         # Get filtered results
         results = dbf_manager.get_filtered_results()
-        results_file = f'dbf_results_{job_id}.json'
 
+        results_file = f'dbf_results_{job_id}.json'
         with open(results_file, 'w') as file:
             json.dump(results, file)
 
@@ -259,7 +259,7 @@ async def run_dbf_task(job_id: str, config: DBFConfig):
             'results_file': results_file,
             'processed_requests': metrics['processed_requests'],
             'filtered_requests': metrics['filtered_requests'],
-            'requests_per_send': metrics['requests_per_second'],
+            'requests_per_second': metrics['requests_per_second'],
             'running_time': metrics['running_time'],
             'completed_at': datetime.now().isoformat(),
             'logs': tracker.logs
@@ -288,7 +288,7 @@ async def run_dbf_task(job_id: str, config: DBFConfig):
         job_results[job_id] = {
             'status': 'stopped',
             'processed_requests': tracker.processed_count,
-            'filtered-requests': tracker.filtered_count,
+            'filtered_requests': tracker.filtered_count,
             'completed_at': datetime.now().isoformat(),
             'logs': tracker.logs
         }
@@ -370,7 +370,7 @@ def get_job_status_message(job_id: str) -> Dict[str, Any]:
                 'filtered_requests': job.get('filtered_requests', 0),
                 'requests_per_second': job.get('requests_per_second', 0),
                 'created_at': job.get('created_at', ''),
-                'started_at': job.et('started_at', '')
+                'started_at': job.get('started_at', '')
             }
         }
     else:

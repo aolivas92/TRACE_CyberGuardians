@@ -228,7 +228,7 @@
 			const jobId = localStorage.getItem('currentFuzzerJobId');
 			const status = get(serviceStatus);
 
-			// Do not save checkpoints after scan is complete or idle
+			// Do not save checkpoints after scan is completed or idle
 			if (!jobId || (status.status !== 'running' && status.status !== 'paused')) return;
 
 			const data = get(serviceResults).fuzzer;

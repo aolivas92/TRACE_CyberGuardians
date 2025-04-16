@@ -58,6 +58,7 @@ export function stopScanProgress(markComplete = false) {
 
 export async function pauseScan(service) {
 	const jobId = localStorage.getItem(`current${capitalize(service)}JobId`);
+	console.log('[CAPALIZE]', capitalize(service), jobId, get(serviceStatus).status);
 	if (!jobId || get(serviceStatus).status !== 'running') return false;
 
 	try {

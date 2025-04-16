@@ -35,18 +35,22 @@ export function connectToFuzzerWebSocket(jobId, retry = 0) {
       // Updates job status in the serviceStatus store
       case 'status': {
         const mappedStatus = data.status;
+        const current = get(serviceStatus);
+      
+        // Ignore downgrades from completed → idle
+        if (current.status === 'completed' && mappedStatus === 'idle') {
+          console.warn('[Fuzzer] Ignoring idle status after completion');
+          return;
+        }
+      
+        // handle pause/resume toggling
         switch (mappedStatus) {
-          case 'completed': {
-            break;
-          }
-          case 'paused': {
+          case 'paused':
             scanPaused.set(true);
             break;
-          }
-          case 'running': {
+          case 'running':
             scanPaused.set(false);
             break;
-          }
         }
       
         serviceStatus.set({
