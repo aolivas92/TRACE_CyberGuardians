@@ -190,8 +190,13 @@ class DirectoryBruteForceManager:
         return filtered_results
     
     def save_results_to_txt(self, filename: str = "dbf_results.txt") -> None:
+        output_folder = os.path.join("src", "database", "dbf_results")
+        os.makedirs(output_folder, exist_ok=True)
+
+        full_path = os.path.join(output_folder, filename)
+
         results = self.get_filtered_results()
-        with open(filename, "w", encoding="utf-8") as f:
+        with open(full_path, "w", encoding="utf-8") as f:
             for entry in results:
                 f.write(f"URL: {entry['url']}\n")
                 f.write(f"Status: {entry['status']}\n")
