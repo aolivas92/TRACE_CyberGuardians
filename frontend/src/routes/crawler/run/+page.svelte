@@ -222,7 +222,9 @@
 	// Restore checkpoint on mount
 	onMount(() => {
 		const jobId = localStorage.getItem('currentCrawlerJobId');
-
+		if (jobId && get(serviceStatus).status !== 'completed') {
+			connectToCrawlerWebSocket(jobId);
+		}
 		// Restore checkpoint if available
 		if (jobId) {
 			const savedCheckpoint = localStorage.getItem(`checkpoint_${jobId}`);

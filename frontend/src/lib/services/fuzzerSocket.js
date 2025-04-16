@@ -71,6 +71,10 @@ export function connectToFuzzerWebSocket(jobId, retry = 0) {
 
       // Updates the progress of the fuzzer job
       case 'progress':
+        if (get(serviceStatus).status === 'completed') {
+          console.warn('[Fuzzer] Ignoring late progress update');
+          return;
+        }
         if (!get(scanPaused)) {
           startScanProgress('fuzzer');
           scanProgress.set(Math.min(data.progress, 99));

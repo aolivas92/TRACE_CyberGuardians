@@ -71,6 +71,10 @@ export function connectToBruteForceWebSocket(jobId, retry = 0) {
 
       // Updates the progress of the bruteForce job
       case 'progress':
+        if (get(serviceStatus).status === 'completed') {
+          console.warn('[dbf] Ignoring late progress update');
+          return;
+        }
         if (!get(scanPaused)) {
           startScanProgress('dbf');
           scanProgress.set(Math.min(data.progress, 99));
