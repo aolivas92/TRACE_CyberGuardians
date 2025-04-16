@@ -280,7 +280,7 @@ async def run_fuzzer_task(job_id: str, config: FuzzerConfig):
             })
 
         # Save the results
-        results_file = f'Fuzzer_results_{job_id}.json' 
+        results_file = f'src/database/fuzzer/Fuzzer_results_{job_id}.json' 
         with open(results_file, 'w') as file:
             json.dump(formatted_results, file)
         

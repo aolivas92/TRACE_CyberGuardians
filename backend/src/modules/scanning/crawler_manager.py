@@ -231,7 +231,7 @@ class crawler_manager:
         """
         await self.crawl_recursive(self.config.get("target_url"), self.config.get("depth"))
 
-        os.makedirs("src/database/scanning_results", exist_ok=True)
+        os.makedirs("src/database/crawler", exist_ok=True)
         with open("src/database/crawler/crawler_table_data.json", "w", encoding="utf-8") as f:
             json.dump(self.table_data, f, indent=1)
 
