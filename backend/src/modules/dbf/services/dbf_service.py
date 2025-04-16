@@ -105,13 +105,15 @@ class DBFProgressTracker:
         # Broadcast the log message to the connected websockets
         self.broadcast_message('log', {'message': log_entry})
 
-    def update_progress(self, processed, filtered=None):
+    def update_progress_from_callback(self, processed, total, current_payload=None, error=None):
         """
-        Update job progess metrics and broadcast to clients
+        Update job progress metrics and broadcast to clients - called from the DBF manager callback
         """
         self.processed_count = processed
-        if filtered is not None:
-            self.filtered_count = filtered
+        
+        if self.job_id in running_jobs and 'last_row' in running_jobs[self.job_id]:
+            last_row = running_jobs[self.job_id]['last_row']
+            self.broadcast_message('new_row', {'row': last_row})
 
         # Update the job status of the current running job
         if self.job_id in running_jobs:
@@ -136,6 +138,7 @@ class DBFProgressTracker:
             except Exception:
                 rps = 0
             
+            # Update the metrics in running_jobs
             running_jobs[self.job_id].update({
                 'processed_requests': self.processed_count,
                 'filtered_requests': self.filtered_count,
@@ -148,12 +151,16 @@ class DBFProgressTracker:
                 'processed_requests': self.processed_count,
                 'filtered_requests': self.filtered_count,
                 'progress': progress,
-                'requests_per_second': rps
+                'requests_per_second': rps,
+                'current_payload': current_payload
             })
         
-        self.add_log(f'Processed: {self.processed_count}, Filtered: {self.filtered_count}')
+        # Log the progress
+        if error:
+            self.add_log(f'Error processing {current_payload}: {error}')
+        elif current_payload:
+            self.add_log(f'Processed: {self.processed_count}/{total}, Current: {current_payload}')
                 
-
     def set_status(self, status):
         """
         Set job status and broadcast to connected clients.
@@ -176,7 +183,7 @@ class DBFProgressTracker:
 
         # Send it to all the connected clients
         if self.job_id in active_connections:
-            for websocket  in active_connections[self.job_id]:
+            for websocket in active_connections[self.job_id]:
                 asyncio.create_task(websocket.send_json(message))
 
     def handle_new_result(self, result):
@@ -202,11 +209,29 @@ async def run_dbf_task(job_id: str, config: DBFConfig):
         dbf_manager = DirectoryBruteForceManager()
         dbf_instances[job_id] = dbf_manager
 
-        # Attach the row broadcast callback AFTER crawler is initialized
+        # Attach the row broadcast callback
         def handle_new_row(row):
-            print(f'[Backend] Broadcasting new for {job_id}: {row["url"]}')
+            logger.info(f'[Backend] Broadcasting new row for {job_id}: {row["url"]}')
             tracker.broadcast_message('new_row', {'row': row})
         dbf_manager.on_new_row = handle_new_row
+
+        # Attach the progress callback
+        def progress_callback(processed, total, current_payload=None, error=None):
+            if job_id in running_jobs:
+                job_status = running_jobs[job_id].get('status', '')
+                if job_status == 'stopped':
+                    dbf_manager.stop()
+                    raise asyncio.CancelledError('Job stopped by user')
+                elif job_status == 'paused':
+                    dbf_manager.pause()
+                    asyncio.create_task(wait_for_resume(job_id, dbf_manager))
+            
+            metrics = dbf_manager.get_metrics()
+            tracker.filtered_count = metrics['filtered_requests']
+            
+            tracker.update_progress_from_callback(processed, total, current_payload, error)
+            
+        dbf_manager.progress_callback = progress_callback
 
         # Configure the DBF manager
         tracker.add_log('Configuring Directory Brute Force Scan')
@@ -221,25 +246,9 @@ async def run_dbf_task(job_id: str, config: DBFConfig):
             attempt_limit=config.attempt_limit or -1
         )
 
-        # Add functin to periodically update progress during scan
-        async def update_progress():
-            while job_id in running_jobs and running_jobs[job_id].get('status') == 'running':
-                metrics = dbf_manager.get_metrics()
-                tracker.update_progress(
-                    processed=metrics['processed_requests'],
-                    filtered=metrics['filtered_requests']
-                )
-                await asyncio.sleep(1)
-        
-        # Start the progress monitoring
-        monitor_task = asyncio.create_task(update_progress())
-
         # Start the scan
         tracker.add_log('Starting Directory Brute Force scan.')
         await dbf_manager.start_scan()
-
-        # Wait for the monitor to finish
-        monitor_task.cancel()
 
         # Get the final metrics
         metrics = dbf_manager.get_metrics()
@@ -367,10 +376,11 @@ def get_job_status_message(job_id: str) -> Dict[str, Any]:
             'data': {
                 'status': job.get('status', 'completed'),
                 'progress': 100 if job.get('status') == 'completed' else 0,
+                'processed_requests': job.get('processed_requests', 0),
                 'filtered_requests': job.get('filtered_requests', 0),
                 'requests_per_second': job.get('requests_per_second', 0),
-                'created_at': job.get('created_at', ''),
-                'started_at': job.get('started_at', '')
+                'completed_at': job.get('completed_at', ''),
+                'error': job.get('error', None)
             }
         }
     else:
