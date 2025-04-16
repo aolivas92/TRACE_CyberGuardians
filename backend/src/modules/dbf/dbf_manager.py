@@ -35,7 +35,9 @@ class DirectoryBruteForceManager:
         self._stopped = False
         self.wordlist = []
         self.current_index = 0
-        self.on_new_row = None
+        self.on_new_row = None 
+        self.progress_callback = None
+        self.last_row = None
 
     def configure_scan(
         self,
@@ -64,10 +66,11 @@ class DirectoryBruteForceManager:
         self.attempt_limit = attempt_limit
         self.response_processor.set_filters(show_only_status or [200], hide_status or [], length_filter)
         
-        # Reset control flags
+        # Reset control flags and counters
         self._paused = False
         self._stopped = False
         self.current_index = 0
+        self.request_count = 0
 
     async def start_scan(self) -> None:
         self.start_time = time.perf_counter()
@@ -75,14 +78,15 @@ class DirectoryBruteForceManager:
         top = self.config["top_dir"]
         wordlist = self.config["wordlist"]
         headers = self.config["headers"]
+        total_requests = len(wordlist)
 
         for i, word in enumerate(wordlist):
+            # Store current position
             self.current_index = i
-            
+                
             while self._paused and not self._stopped:
                 await self._wait_pause()
                 
-            # Check if we should stop after pause
             if self._stopped:
                 logging.info("Scan stopped after pause.")
                 break
@@ -110,12 +114,18 @@ class DirectoryBruteForceManager:
                     "error": mock.error
                 }
                 
-                # Call the callback if it exists
+                self.last_row = result_item
                 if callable(self.on_new_row):
                     self.on_new_row(result_item)
                     
                 logging.info("Scanned %s [%d]", full_url, response["status"])
                 self.request_count += 1
+                
+                self.progress_callback(self.request_count, total_requests, word, None)
+                
+                # Add a small delay to avoid overwhelming the server
+                await asyncio.sleep(0.1)
+                
             except Exception as e:
                 logging.error("Request error for %s: %s", full_url, str(e))
                 error_response = MockResponse(full_url, 0, str(e))
@@ -133,11 +143,13 @@ class DirectoryBruteForceManager:
                     "error": True
                 }
                 
-                # Call the callback if it exists
+                self.last_row = error_item
                 if callable(self.on_new_row):
                     self.on_new_row(error_item)
                     
                 self.request_count += 1
+                
+                self.progress_callback(self.request_count, total_requests, word, str(e))
         
         # Set end time if not stopped
         if not self._stopped:
@@ -168,6 +180,7 @@ class DirectoryBruteForceManager:
             self.end_time = time.perf_counter()
 
     def get_metrics(self) -> Dict[str, float]:
+        """Get metrics about the scan progress and results"""
         current_time = time.perf_counter()
         total_time = (self.end_time or current_time) - (self.start_time or current_time) if self.start_time else 0
         rps = self.request_count / total_time if total_time > 0 else 0
