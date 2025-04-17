@@ -37,21 +37,43 @@
 		}
 	});
 
+	function getServiceType(tool) {
+		const name = tool.name.toLowerCase();
+		if (name.includes('brute')) return 'dbf';
+		if (name.includes('crawler')) return 'crawler';
+		if (name.includes('fuzzer')) return 'fuzzer';
+		return null;
+	}
+
+	function getToolRouteSegment(serviceType) {
+		switch (serviceType) {
+			case 'dbf':
+				return 'bruteForce';
+			case 'crawler':
+				return 'crawler';
+			case 'fuzzer':
+				return 'fuzzer';
+			default:
+				return serviceType;
+		}
+	}
+
 	function handleToolClick(tool) {
-		const toolType = tool.name.toLowerCase();
+		const type = getServiceType(tool);
+		const routeSegment = getToolRouteSegment(type);
 
 		if (
 			['running', 'paused', 'completed'].includes($serviceStatus.status) &&
-			$serviceStatus.serviceType === toolType
+			$serviceStatus.serviceType === type
 		) {
-			goto(`/${toolType}/run`);
+			goto(`/${routeSegment}/run`);
 		} else {
 			goto(tool.route);
 		}
 	}
 
 	function getToolStatus(tool) {
-		const type = tool.name.toLowerCase();
+		const type = getServiceType(tool);
 
 		if ($serviceStatus.serviceType === type) {
 			switch ($serviceStatus.status) {
@@ -69,7 +91,7 @@
 	}
 
 	function getButtonLabel(tool) {
-		const type = tool.name.toLowerCase();
+		const type = getServiceType(tool);
 
 		if ($serviceStatus.serviceType === type) {
 			if ($serviceStatus.status === 'running') return 'View';
