@@ -45,7 +45,8 @@ class WebScraper:
         Public main method to run the async scraping from sync code.
         """
         data = await self._scrape_pages_async()
-
+        filename = "src/database/ai/" + filename
+ 
         # Save the results
         with open(filename, 'w', newline='', encoding='utf-8') as csvfile:
             csv_writer = csv.writer(csvfile)
@@ -75,6 +76,7 @@ class WebScraper:
             print(f"[ERROR] Could not fetch {url}")
             return ""
         """
+        # TODO: Update path when fixed.
         parsed_url = urllib.parse.urlparse(url)
         if parsed_url.scheme == "file":
             local_path = os.path.normpath(parsed_url.path)

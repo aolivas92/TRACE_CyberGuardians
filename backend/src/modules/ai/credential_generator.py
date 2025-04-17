@@ -3,7 +3,7 @@ import time
 import os
 import ollama
 import csv
-from typing import Dict, List, Tuple, Set
+from typing import List, Tuple, Set
 import re
 
 from .credential_mdp import CredentialMDP
@@ -374,9 +374,9 @@ class Credential_Generator:
         if not os.path.exists(file_path):
             raise FileNotFoundError(f'Wordlist file not found: {file_path}')
         try:
+            # TODO: Update when implementation is updated.
             with open(file_path, 'r', encoding='utf-8') as file:
                 words = [line.strip().lower() for line in file if line.strip()]
                 return words
-        # TODO: updated to have a more specific catch
         except Exception as e:
             raise ValueError(f'Error reading wordlist file: {e}')

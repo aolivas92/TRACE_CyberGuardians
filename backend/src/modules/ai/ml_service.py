@@ -187,7 +187,7 @@ async def run_ml_task(job_id: str, config: MLConfig):
         tracker.add_log('Starting credential generation')
 
         if config.wordlist:
-            wordlist_path = f'temp_wordlist_{job_id}.txt'
+            wordlist_path = f'src/database/ai/temp_wordlist_{job_id}.txt'
             with open(wordlist_path, 'w') as f:
                 f.write(config.wordlist)
         else:
@@ -210,7 +210,7 @@ async def run_ml_task(job_id: str, config: MLConfig):
         cred_gen.process_ai_wordlist(credentials)
         
         # Save results to a JSON file for API access
-        results_file = f'ml_credentials_{job_id}.json'
+        results_file = f'src/database/ai/ml_credentials_{job_id}.json'
         
         # Convert credentials to a list of dictionaries
         credential_dicts = []
