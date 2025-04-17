@@ -45,14 +45,28 @@
 		return null;
 	}
 
+	function getToolRouteSegment(serviceType) {
+		switch (serviceType) {
+			case 'dbf':
+				return 'bruteForce';
+			case 'crawler':
+				return 'crawler';
+			case 'fuzzer':
+				return 'fuzzer';
+			default:
+				return serviceType;
+		}
+	}
+
 	function handleToolClick(tool) {
-		const toolType = tool.name.toLowerCase();
+		const type = getServiceType(tool);
+		const routeSegment = getToolRouteSegment(type);
 
 		if (
 			['running', 'paused', 'completed'].includes($serviceStatus.status) &&
-			$serviceStatus.serviceType === toolType
+			$serviceStatus.serviceType === type
 		) {
-			goto(`/${toolType}/run`);
+			goto(`/${routeSegment}/run`);
 		} else {
 			goto(tool.route);
 		}
