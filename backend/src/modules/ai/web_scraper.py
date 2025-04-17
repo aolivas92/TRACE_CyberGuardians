@@ -45,9 +45,8 @@ class WebScraper:
         Public main method to run the async scraping from sync code.
         """
         data = await self._scrape_pages_async()
-        filename = "/src/database/ai/" + filename
-
-        print(f'HERE IS THE ISSUES!')
+        filename = "src/database/ai/" + filename
+ 
         # Save the results
         with open(filename, 'w', newline='', encoding='utf-8') as csvfile:
             csv_writer = csv.writer(csvfile)

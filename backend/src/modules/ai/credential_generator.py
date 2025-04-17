@@ -3,7 +3,7 @@ import time
 import os
 import ollama
 import csv
-from typing import Dict, List, Tuple, Set
+from typing import List, Tuple, Set
 import re
 
 from .credential_mdp import CredentialMDP
