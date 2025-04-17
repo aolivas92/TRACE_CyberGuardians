@@ -37,6 +37,14 @@
 		}
 	});
 
+	function getServiceType(tool) {
+		const name = tool.name.toLowerCase();
+		if (name.includes('brute')) return 'dbf';
+		if (name.includes('crawler')) return 'crawler';
+		if (name.includes('fuzzer')) return 'fuzzer';
+		return null;
+	}
+
 	function handleToolClick(tool) {
 		const toolType = tool.name.toLowerCase();
 
@@ -51,7 +59,7 @@
 	}
 
 	function getToolStatus(tool) {
-		const type = tool.name.toLowerCase();
+		const type = getServiceType(tool);
 
 		if ($serviceStatus.serviceType === type) {
 			switch ($serviceStatus.status) {
@@ -69,7 +77,7 @@
 	}
 
 	function getButtonLabel(tool) {
-		const type = tool.name.toLowerCase();
+		const type = getServiceType(tool);
 
 		if ($serviceStatus.serviceType === type) {
 			if ($serviceStatus.status === 'running') return 'View';
