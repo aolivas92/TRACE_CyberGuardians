@@ -203,11 +203,7 @@ class DirectoryBruteForceManager:
         return filtered_results
     
     def save_results_to_txt(self, filename: str = "dbf_results.txt") -> None:
-        output_folder = "src/database/dbf/"
-        os.makedirs(output_folder, exist_ok=True)
-
-        full_path = os.path.join(output_folder, filename)
-
+        """Save the filtered results to a text file"""
         results = self.get_filtered_results()
         with open(full_path, "w", encoding="utf-8") as f:
             for entry in results:

@@ -256,7 +256,7 @@ async def run_dbf_task(job_id: str, config: DBFConfig):
         # Get filtered results
         results = dbf_manager.get_filtered_results()
 
-        results_file = f'src/database/dbf/dbf_results_{job_id}.json'
+        results_file = f'dbf_results_{job_id}.json'
         with open(results_file, 'w') as file:
             json.dump(results, file)
 
