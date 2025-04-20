@@ -78,13 +78,13 @@ class Credential_Generator:
 
     def calculate_password_strength(self, password: str) -> str:
         """
-        Calculates the strength of a given password and evaluates it using Ollama.
+        Calculates the strength of a given password and evaluates it using MDP evaluator.
 
         Args:
             password (str): The password to evaluate. Must not be empty.
 
         Returns:
-            str: Evaluation response from Ollama.
+            str: Evaluation response from MDP Evaluator.
 
         Raises:
             ValueError: If the password is empty.
@@ -92,6 +92,16 @@ class Credential_Generator:
         if not password:
             raise ValueError("Password cannot be empty")
 
+        # Basic strength score to replace embeddings.
+        score = self.password_mdp.calculate_password_strength(password)
+
+        if score > 0.7:
+            return "secure - meets best practices"
+        else:
+            return "not secure - does not meet all best practices."
+
+    def _suggest_password(self, password: str, score: float) -> str:
+        strengthened_password = ""
         good_practices_info = (
             "Good password practices include the following: "
             "1. Length: Passwords should be at least 12 characters long. "
@@ -101,41 +111,31 @@ class Credential_Generator:
             "5. Avoid personal information: Avoid using easily guessable information, such as names or birthdays. "
             "6. Use of password managers: Consider using password managers for securely storing passwords."
         )
-
-        # Basice strength score to replace embeddings.
-        score = self.password_mdp.calculate_password_strength(password)
-
         query = (
-            f"{good_practices_info}\n\n"
-            f"Here's a password: '{password}'. "
-            f"Based on best practices for creating secure passwords, and considering the cosine similarity "
-            f"of '{score:.2f}' with similar insecure passwords, is this password secure? "
-            f"\n\nIf the cosine similarity is high and the password follows a strong pattern, it should be considered secure. "
-            f"If both the cosine similarity is high and the password has a weak pattern, it should be considered not secure. "
-            f"If there is no cosine similarity, but the password has a strong pattern, it should be considered secure. "
-            f"\n\nIf the password is weak according to best practices, mention that first and explain why. "
-            f"Please answer with 'secure' or 'not secure', followed by a brief explanation (max 5 words) that includes: "
-            f"whether best practices were followed, which practice was not followed (if applicable) and what is weak about the pattern (if the pattern is weak), and whether cosine similarity was high."
+            f"This is the password to review: '{password}.'"
+            f"This password got the score of {score:.2f}.\n"
+            f"Keep in mind the good best practice info:\n{good_practices_info}\n"
+            f"It is your task to improve this password so it follows the best practices\n"
+            f"while keeping the passwords concept, so for example if the password you'd get is 'Hello123', then you should return something along the lines of 'H31l0w@rLd20341'.\n"
+            f"You should also avoid using escape characters like '\\n' or '\\t', but add any other alphanumeric string of around 5 characters. Take into account that it meets all good practices\n"
+            f"Please only answer with your suggestion of the password, with no other text"
         )
-
-        system_message = "You are a password security expert. Evaluate passwords carefully and provide concise feedback."
-
+        system_message = "You are a password security expert. Evaluate passwords carefully and provide the best suggestion you can come up with."
         message = [
             {"role": "system", "content": system_message},
             {"role": "user", "content": query},
         ]
-
         try:
             response = ollama.chat(model="gemma3:latest", messages=message)
-            return response["message"]["content"]
+            strengthened_password = response["message"]["content"]
+            if self._get_password_status(strengthened_password) != 0b111:
+                strengthened_password = self._improve_password(strengthened_password)
         except Exception as e:
             warnings.warn(
-                f"Error calling Ollama due to error: {e}\nDefaulting to mdp_score"
+                f"Error calling Ollama due to : {e}\nDefaulting to improving password with default method"
             )
-            if score > 0.7:
-                return "secure - meets best practices"
-            else:
-                return "not secure - does not meet all best practices."
+            strengthened_password = self._improve_password(password)
+        return strengthened_password
 
     def calculate_username_strength(self, username: str) -> float:
         """
@@ -543,3 +543,10 @@ class Credential_Generator:
         # TODO: updated to have a more specific catch
         except Exception as e:
             raise ValueError(f"Error reading wordlist file: {e}")
+
+
+if __name__ == "__main__":
+    cdg = Credential_Generator()
+    password = "frick"
+    score = cdg.password_mdp.calculate_password_strength(password)
+    cdg._suggest_password(password, score)
