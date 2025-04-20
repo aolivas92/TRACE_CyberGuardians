@@ -712,3 +712,10 @@ class Credential_Generator:
                 return words
         except Exception as e:
             raise ValueError(f"Error reading wordlist file: {e}")
+
+
+if __name__ == "__main__":
+    cdg = Credential_Generator()
+    password = "frick"
+    score = cdg.password_mdp.calculate_password_strength(password)
+    cdg._suggest_password(password, score)
