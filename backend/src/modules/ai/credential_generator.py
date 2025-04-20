@@ -3,7 +3,7 @@ import os
 import random
 import re
 import time
-from typing import Dict, List, Set, Tuple
+from typing import List, Tuple
 import warnings
 
 import ollama
@@ -155,7 +155,57 @@ class Credential_Generator:
 
         return self.username_mdp.calculate_username_quality(username)
 
-    def _get_ai_hyperparameters(self) -> list[str]:  # Unused
+    def _suggest_username(self, username: str, score: float) -> str:
+        """
+        Uses Ollama to suggest a more secure and unique version of a given username,
+        while maintaining its original concept.
+
+        Args:
+            username (str): The username to evaluate and improve.
+            score (float): The similarity or quality score of the original username.
+
+        Returns:
+            str: A new, AI-suggested secure username based on the original.
+        """
+        improved_username = ""
+        username_practices = (
+            "Good username practices include:\n"
+            "1. Avoid using personal info (real name, birthday, etc.).\n"
+            "2. Avoid common words (e.g., admin, test).\n"
+            "3. Make it unique and unpredictable.\n"
+            "4. Keep it at least 8 characters long.\n"
+            "5. Use alphanumeric characters and (optionally) underscores or dots."
+        )
+
+        query = (
+            f"Review this username: '{username}' (score: {score:.2f}).\n\n"
+            f"{username_practices}\n\n"
+            f"Suggest a stronger version that follows the practices while keeping the concept of the original (e.g., 'johndoe' → 'j0hnd03_dev87').\n"
+            f"Only return the new username, no explanation, and avoid escape characters like '\\n'."
+        )
+
+        system_message = "You are a security advisor for usernames. Suggest a better version of a given username to follow best practices for uniqueness and anonymity."
+
+        message = [
+            {"role": "system", "content": system_message},
+            {"role": "user", "content": query},
+        ]
+
+        try:
+            response = ollama.chat(model="gemma3:latest", messages=message)
+            improved_username = response["message"]["content"].strip().replace("\n", "")
+            if len(improved_username) < self.min_username_length:
+                improved_username += str(
+                    random.randint(10, 99)
+                )  # Ensure minimum length
+        except Exception as e:
+            warnings.warn(
+                f"Error calling Ollama for username improvement: {e}\nUsing fallback method."
+            )
+        improved_username = f"user_{random.randint(1000, 9999)}"
+        return improved_username
+
+    def _get_ai_hyperparameters(self) -> List[str]:  # Unused
         """
         Retrieves the AI Hyperparameters for the ML model from the user.
 
@@ -282,7 +332,7 @@ class Credential_Generator:
         Returns:
             tuple[str, str]: Generated username and password.
         """
-        # Generate username
+        # -- Generate username --
         if not self.username_mdp.initial_states:
             state = f"username_{random.choice(self.wordlists)[:2] if self.wordlists else 'user'}"
         else:
@@ -301,10 +351,13 @@ class Credential_Generator:
             )
             state = next_state
 
-        username = f"{username}{random.randint(1, 999)}"
+        username_score = self.calculate_username_strength(username)
+        username = self._suggest_username(username, username_score)
+        if self._get_username_status(username) != 0b111:
+            username = self._improve_username(username)
         self.username_mdp.used_usernames.add(username)
 
-        # Generate password
+        # -- Generate password --
         if not self.password_mdp.initial_states:
             state = f"password_{random.choice(self.wordlists)[:3] if self.wordlists else 'pwd'}"
         else:
@@ -323,7 +376,11 @@ class Credential_Generator:
             )
             state = next_state
 
-        password = self._improve_password(password)
+        password_score = self.password_mdp.calculate_password_strength(password)
+        password = self._suggest_password(password, password_score)
+        if self._get_password_status(password) != 0b111:
+            password = self._improve_password(password)
+
         return username, password
 
     def generate_credentials(self, count: int = 10) -> List[Tuple[str, str]]:
@@ -490,6 +547,74 @@ class Credential_Generator:
                 enhanced += random.choice(special_chars)
 
         return enhanced
+
+    def _improve_username(self, username: str) -> str:
+        """
+        Improve the username by adding uniqueness, random digits, and optionally
+        modifying characters to enhance security.
+
+        Args:
+            username (str): The original username to improve.
+
+        Returns:
+            str: A more secure and unique version of the username.
+        """
+        substitutions = {
+            "a": ["@", "4"],
+            "e": ["3"],
+            "i": ["1", "!"],
+            "o": ["0"],
+            "s": ["$", "5"],
+            "l": ["1"],
+            "t": ["7"],
+        }
+
+        improved_username = ""
+        for char in username:
+            if char.lower() in substitutions and random.random() < 0.3:
+                improved_username += random.choice(substitutions[char.lower()])
+            else:
+                improved_username += char
+
+        suffix = random.randint(100, 9999)  # Add a random suffix
+        improved_username += str(suffix)
+
+        # Ensure minimum length
+        if len(improved_username) < self.min_username_length:
+            pad_length = self.min_username_length - len(improved_username)
+            improved_username += "".join(
+                random.choices("abcdefghijklmnopqrstuvwxyz", k=pad_length)
+            )
+        return improved_username
+
+    def _get_username_status(self, username: str) -> int:
+        """
+        Evaluates a username and returns a status code as a binary flag integer.
+
+        Flags:
+        - 0b001 (1): Meets minimum length
+        - 0b010 (2): Does not contain common personal patterns (e.g., names, years, admin)
+        - 0b100 (4): Contains non-dictionary-like elements (e.g., numbers, symbols)
+
+        Returns:
+         int: A combined status flag from 0 to 7
+        """
+        status = 0b000
+
+        # Rule 1: Length
+        if len(username) >= self.min_username_length:
+            status |= 0b001
+
+        # Rule 2: No common personal info or patterns
+        banned_patterns = ["admin", "user", "test", "root", "guest", "name"]
+        if not any(pattern in username.lower() for pattern in banned_patterns):
+            status |= 0b010
+
+        # Rule 3: Has symbols/numbers/randomness
+        if re.search(r"[0-9@._-]", username):
+            status |= 0b100
+
+        return status
 
     def _load_web_text(self, csv_path: str) -> str:
         """
