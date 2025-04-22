@@ -6,17 +6,13 @@ export const actions = {
 	default: async ({ request }) => {
 		const rawFormData = await request.formData();
 
-		const wordlist = rawFormData.get('wordlist');
+		const wordlist = rawFormData.get('wordlist'); // File
 		const formData = Object.fromEntries(rawFormData.entries());
 		delete formData.wordlist;
 
-		console.log('📥 Received wordlist:', wordlist?.name);
-		console.log('📦 File size:', wordlist?.size);
-		console.log('🧾 Form fields:', formData);
-
 		const fieldErrors = {};
 
-		// Validate fields
+		// Validate all inputs
 		for (const [id, value] of Object.entries(formData)) {
 			const result = validateField(id, value);
 			if (result.error) {
@@ -24,7 +20,7 @@ export const actions = {
 			}
 		}
 
-		// Validate wordlist
+		// Validate the uploaded wordlist
 		const fileValidation = validateField('wordlist', wordlist);
 		if (fileValidation.error) {
 			fieldErrors.wordlist = {
@@ -33,7 +29,7 @@ export const actions = {
 			};
 		}
 
-		// Required field fallback
+		// Check required fields
 		const requiredFields = ['target-url', 'parameters', 'http-method'];
 		for (const field of requiredFields) {
 			if (!formData[field]) {
@@ -45,7 +41,6 @@ export const actions = {
 		}
 
 		if (Object.keys(fieldErrors).length > 0) {
-			console.warn('Validation errors:', fieldErrors);
 			return fail(400, {
 				error: true,
 				fieldErrors,
@@ -53,47 +48,65 @@ export const actions = {
 			});
 		}
 
-		// Transform data to match backend keys, set undefined for unfilled fields
-		const transformedData = {
-			target_url: formData['target-url'],
-			parameters: formData['parameters'],
-			http_method: formData['http-method'] || undefined,
-			headers: formData['headers'] || undefined,
-			proxy: formData['proxy'] || undefined,
-			body_template: formData['body-template'] || undefined,
-			wordlist
+		// Convert wordlist file to payload array
+		let payloads = [];
+		if (wordlist) {
+			const fileText = await wordlist.text();
+			payloads = fileText
+				.split('\n')
+				.map((line) => line.trim())
+				.filter((line) => line.length > 0);
+		}
+
+		let parsedHeaders = {
+			"Content-Type": "application/json",
+			"User-Agent": "TRACE-Fuzzer/1.0"
 		};
 
-		// Construct FormData for backend, only including defined values
-		const fuzzerPayload = new FormData();
-		for (const [key, value] of Object.entries(transformedData)) {
-			if (value !== undefined && key !== 'wordlist') {
-				fuzzerPayload.append(key, value);
+		if (formData['headers']) {
+			try {
+				const entries = formData['headers']
+					.split(',')
+					.map((pair) => pair.split(':').map((s) => s.trim()))
+					.filter(([key, val]) => key && val);
+				parsedHeaders = Object.fromEntries(entries);
+			} catch {
+				return fail(400, {
+					error: true,
+					message: 'Invalid headers format. Use "key: value, key2: value2"',
+					values: formData
+				});
 			}
 		}
-		fuzzerPayload.append('wordlist', wordlist);
+
+		// Construct final config object
+		const configForBackend = {
+			"target-url": formData['target-url'],
+			"http-method": formData['http-method'],
+			"headers": parsedHeaders,
+			"parameters": formData['parameters'].split(',').map((p) => p.trim()),
+			"payloads": payloads,
+			"show-status": [],
+			"hide-status": [],
+			"proxy": formData['proxy'] || ""
+		};
 
 		try {
 			const response = await fetch('http://127.0.0.1:8000/api/fuzzer', {
 				method: 'POST',
 				headers: {
-					Accept: "application/json"
+					'Content-Type': 'application/json',
+					Accept: 'application/json'
 				},
-				body: fuzzerPayload
+				body: JSON.stringify(configForBackend)
 			});
 
-			let json;
-			try {
-				json = await response.json();
-				console.log("Backend response:", json);
-			} catch (e) {
-				console.warn("Could not parse JSON:", e.message);
-			}
+			const json = await response.json();
 
 			if (!response.ok) {
 				return fail(response.status, {
 					error: true,
-					message: `Backend error: ${response.statusText}`,
+					message: `Backend error: ${json?.detail || response.statusText}`,
 					values: formData
 				});
 			}
@@ -112,15 +125,5 @@ export const actions = {
 				values: formData
 			});
 		}
-
-		// FOR TESTING ONLY
-		// console.log('Skipping actual backend request for testing...');
-		// console.log('Payload that would have been sent:', transformedData);
-
-		// return {
-		// 	success: true,
-		// 	message: 'Simulated fuzzer launch successful (no backend call made).',
-		// 	values: formData
-		// };
 	}
 };

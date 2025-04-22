@@ -4,38 +4,76 @@
 	import { serviceStatus } from '$lib/stores/projectServiceStore.js';
 	import { onMount } from 'svelte';
 	import { get } from 'svelte/store';
+
 	import { connectToCrawlerWebSocket } from '$lib/services/crawlerSocket';
+	import { connectToFuzzerWebSocket } from '$lib/services/fuzzerSocket';
+	import { connectToBruteForceWebSocket } from '$lib/services/bruteForceSocket';
 
 	export let data;
-
-	// Reactively get the service status from the store
 	$: $serviceStatus;
 
 	onMount(() => {
-		const jobId = localStorage.getItem('currentCrawlerJobId');
 		const status = get(serviceStatus).status;
+		const type = get(serviceStatus).serviceType;
 
-		if ((status === 'running' || status === 'paused') && jobId) {
-			console.log('[Dashboard] Reconnecting to WebSocket...');
-			connectToCrawlerWebSocket(jobId);
+		if (status === 'running' || status === 'paused') {
+			switch (type) {
+				case 'crawler': {
+					const jobId = localStorage.getItem('currentCrawlerJobId');
+					if (jobId) connectToCrawlerWebSocket(jobId);
+					break;
+				}
+				case 'fuzzer': {
+					const jobId = localStorage.getItem('currentFuzzerJobId');
+					if (jobId) connectToFuzzerWebSocket(jobId);
+					break;
+				}
+				case 'dbf': {
+					const jobId = localStorage.getItem('currentDbfJobId');
+					if (jobId) connectToBruteForceWebSocket(jobId);
+					break;
+				}
+			}
 		}
 	});
 
+	function getServiceType(tool) {
+		const name = tool.name.toLowerCase();
+		if (name.includes('brute')) return 'dbf';
+		if (name.includes('crawler')) return 'crawler';
+		if (name.includes('fuzzer')) return 'fuzzer';
+		return null;
+	}
+
+	function getToolRouteSegment(serviceType) {
+		switch (serviceType) {
+			case 'dbf':
+				return 'bruteForce';
+			case 'crawler':
+				return 'crawler';
+			case 'fuzzer':
+				return 'fuzzer';
+			default:
+				return serviceType;
+		}
+	}
+
 	function handleToolClick(tool) {
-		const toolType = tool.name.toLowerCase();
+		const type = getServiceType(tool);
+		const routeSegment = getToolRouteSegment(type);
 
 		if (
-			['running', 'paused', 'complete'].includes($serviceStatus.status) &&
-			$serviceStatus.serviceType === toolType
+			['running', 'paused', 'completed'].includes($serviceStatus.status) &&
+			$serviceStatus.serviceType === type
 		) {
-			goto(`/${toolType}/run`);
+			goto(`/${routeSegment}/run`);
 		} else {
 			goto(tool.route);
 		}
 	}
 
 	function getToolStatus(tool) {
-		const type = tool.name.toLowerCase();
+		const type = getServiceType(tool);
 
 		if ($serviceStatus.serviceType === type) {
 			switch ($serviceStatus.status) {
@@ -43,7 +81,7 @@
 					return 'In Progress';
 				case 'paused':
 					return 'Paused';
-				case 'complete':
+				case 'completed':
 					return 'Finished';
 				default:
 					return 'Not Started';
@@ -53,12 +91,12 @@
 	}
 
 	function getButtonLabel(tool) {
-		const type = tool.name.toLowerCase();
+		const type = getServiceType(tool);
 
 		if ($serviceStatus.serviceType === type) {
 			if ($serviceStatus.status === 'running') return 'View';
 			if ($serviceStatus.status === 'paused') return 'Resume';
-			if ($serviceStatus.status === 'complete') return 'View Results';
+			if ($serviceStatus.status === 'completed') return 'View Results';
 		}
 		return 'Start';
 	}

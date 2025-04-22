@@ -3,7 +3,8 @@
 import os
 import time
 import logging
-from typing import List, Dict
+from typing import List, Dict, Any, Callable
+import asyncio
 from src.modules.fuzzer.fuzzer_response_processor import FuzzerResponseProcessor
 from src.modules.fuzzer.http_client import AsyncHttpClient
 
@@ -40,24 +41,53 @@ class FuzzerManager:
         Use this class to automate black box fuzz testing of web applications or APIs.
     """
 
-    def __init__(self, http_client: [AsyncHttpClient] = None) -> None:
+    def __init__(self, http_client: AsyncHttpClient = None) -> None:
         self.config = {}
         self.response_processor = FuzzerResponseProcessor()
         self.http_client = http_client or AsyncHttpClient()
         self.request_count = 0
         self.start_time = None
         self.end_time = None
+        self._paused = False
+        self._stopped = False
+        self.progress_callback = None
+        self.on_new_row = None
+        self.last_row = None
+
+    def set_progress_callback(self, callback: Callable):
+        """
+        Sets a callback function that will be called whenever a request is processed.
+        """
+        self.progress_callback = callback
+
+    def stop(self):
+        """
+        Signal the fuzzer to stop processing further requests.
+        """
+        self._stopped = True
+
+    def pause(self):
+        """
+        Pauses the fuzzer, causing it to wait until resumed.
+        """
+        self._paused = True
+
+    def resume(self):
+        """
+        Resumes a paused fuzzer
+        """
+        self._paused = False
 
     def configure_fuzzing(
         self,
         target_url: str,
         http_method: str,
-        headers: [Dict] = None,
-        cookies: [Dict] = None,
-        proxy: [str] = None,
-        body_template: [Dict] = None,
+        headers: Dict = None,
+        cookies: Dict = None,
+        proxy: str = None,
+        body_template: Dict = None,
         parameters: List[str] = None,
-        payloads: [str, List[str]] = None
+        payloads: List[str] = None
     ) -> None:
         """
         configure_fuzzing accepts and stores the configuration required for the fuzzing session.
@@ -103,6 +133,13 @@ class FuzzerManager:
             "payloads": payloads
         }
 
+        # Reset status flags
+        self._paused = False
+        self._stopped = False
+        self.request_count = 0
+
+        self.processed_ids = set()
+
     async def start_fuzzing(self) -> None:
         self.start_time = time.perf_counter()
         """
@@ -130,13 +167,27 @@ class FuzzerManager:
         body_template = self.config.get("body_template", {})
         parameters = self.config.get("parameters", [])
         payloads = self.config.get("payloads", [])
-        logging.info("Fuzzing started with %d payloads across %d parameter(s)", len(payloads), len(parameters))
+        logging.info(f"Fuzzing started with {len(payloads)} payloads across {len(parameters)} parameter(s)")
         proxies = {"http": proxy, "https": proxy} if proxy else None
         for payload in payloads:
+            # Check if paused or stopped
+            while self._paused and not self._stopped:
+                await asyncio.sleep(0.5)
+            if self._stopped:
+                logging.info(f'Fuzzing stopped after {self.request_count} requests')
+                break
+
             for param in parameters:
+                # Check if paused or stopped
+                while self._paused and not self._stopped:
+                    await asyncio.sleep(0.5)
+                if self._stopped:
+                    logging.info(f'Fuzzing stopped after {self.request_count} requests')
+                    break
+
                 modified_body = body_template.copy()
                 modified_body[param] = payload
-                logging.info("Sending %s request to %s with %s=%s", http_method, target_url, param, payload)
+                logging.info(f"Sending {http_method} request to {target_url} with {param}={payload}")
                 try:
                     response = await self.http_client.send(
                         method=http_method,
@@ -150,19 +201,54 @@ class FuzzerManager:
                     )
                     mock = MockResponse(response["url"], response["status"], response["text"])
                     mock.payload = payload
-                    mock.error = response["status"] not in [200]  # You can customize this logic
+                    mock.error = response["status"] not in [200]
+
+                    # Convert this into a table row format
+                    row = {
+                        "id": self.request_count + 1,
+                        "url": response["url"],
+                        "response": response["status"],
+                        "payload": payload,
+                        "length": len(response["text"]),
+                        "error": mock.error
+                    }
+
+                    # Emit the row immediately
+                    if callable(self.on_new_row):
+                        self.last_row = row
+                        self.on_new_row(row)
+                        time.sleep(0.3)
+
                     self.response_processor.process_response(mock)
-                    logging.info("Received response %d from %s", response["status"], response["url"])
+
+                    logging.info(f'Recieve response {response['status']} from {response['url']}')
                     self.request_count += 1
+                    
+                    total_count = len(parameters) * len(payloads)
+                    self.progress_callback(self.request_count, total_count, f'{param}={payload}')
                 except Exception as e:
                     print(f"[!] Request error {e}")
                     error_response = MockResponse(target_url, 0, str(e))
                     error_response.payload = payload
                     error_response.error = True
+
+                    error_row = {
+                        "id": self.request_count + 1,
+                        "url": target_url,
+                        "response": 0,
+                        "payload": payload,
+                        "length": len(str(e)),
+                        "error": True
+                    }
+
+                    if callable(self.on_new_row):
+                        self.last_row = error_row
+                        self.on_new_row(error_row)
+
                     self.response_processor.process_response(error_response)
         self.end_time = time.perf_counter()
     
-    def get_metrics(self) -> Dict[str, [int, float]]:
+    def get_metrics(self) -> Dict[str, Any]:
         """
         get_metrics returns performance metrics for the fuzzing session.
 

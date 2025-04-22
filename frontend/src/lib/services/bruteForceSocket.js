@@ -19,7 +19,7 @@ export function connectToBruteForceWebSocket(jobId, retry = 0) {
   }
 
   // Open a WebSocket connection to the backend endpoint
-  socket = new WebSocket(`ws://localhost:8000/ws/bruteForce/${jobId}`);
+  socket = new WebSocket(`ws://localhost:8000/ws/dbf/${jobId}`);
 
   // Triggered when the connection is successfully established
   socket.onopen = () => {
@@ -35,23 +35,27 @@ export function connectToBruteForceWebSocket(jobId, retry = 0) {
       // Updates job status in the serviceStatus store
       case 'status': {
         const mappedStatus = data.status;
+        const current = get(serviceStatus);
+      
+        // Ignore downgrades from completed → idle
+        if (current.status === 'completed' && mappedStatus === 'idle') {
+          console.warn('[BruteForce] Ignoring idle status after completion');
+          return;
+        }
+      
+        // handle pause/resume toggling
         switch (mappedStatus) {
-          case 'complete': {
-            break;
-          }
-          case 'paused': {
+          case 'paused':
             scanPaused.set(true);
             break;
-          }
-          case 'running': {
+          case 'running':
             scanPaused.set(false);
             break;
-          }
         }
       
         serviceStatus.set({
           status: mappedStatus,
-          serviceType: 'bruteForce',
+          serviceType: 'dbf',
           startTime: data.started_at || new Date().toISOString()
         });
         break;
@@ -67,19 +71,23 @@ export function connectToBruteForceWebSocket(jobId, retry = 0) {
 
       // Updates the progress of the bruteForce job
       case 'progress':
+        if (get(serviceStatus).status === 'completed') {
+          console.warn('[dbf] Ignoring late progress update');
+          return;
+        }
         if (!get(scanPaused)) {
-          startScanProgress('bruteForce');
+          startScanProgress('dbf');
           scanProgress.set(Math.min(data.progress, 99));
         }
         break;
 
-      // Marks the scan as complete and finalizes UI
-      case 'complete':
+      // Marks the scan as completed and finalizes UI
+      case 'completed':
         scanProgress.set(100);
         stopScanProgress(true);
         serviceStatus.set({
-          status: 'complete',
-          serviceType: 'bruteForce',
+          status: 'completed',
+          serviceType: 'dbf',
           startTime: null
         });
         break;
@@ -88,7 +96,7 @@ export function connectToBruteForceWebSocket(jobId, retry = 0) {
       case 'error':
         serviceStatus.set({
           status: 'idle',
-          serviceType: 'bruteForce',
+          serviceType: 'dbf',
           startTime: null
         });
         console.error('[bruteForce Error]', data.message);

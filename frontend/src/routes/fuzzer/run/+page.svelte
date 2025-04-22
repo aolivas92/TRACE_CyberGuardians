@@ -2,47 +2,249 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { goto } from '$app/navigation';
 	import { Progress } from '$lib/components/ui/progress/index.js';
-	import { onMount } from 'svelte';
 	import { serviceStatus } from '$lib/stores/projectServiceStore.js';
 	import StepIndicator from '$lib/components/ui/progressStep/ProgressStep.svelte';
+	import Spinner from '$lib/components/ui/spinner/Spinner.svelte';
 	import Table from '$lib/components/ui/table/Table.svelte';
 	import Alert from '$lib/components/ui/alert/Alert.svelte';
-	import { derived } from 'svelte/store';
-	import { get } from 'svelte/store';
-	import { onDestroy } from 'svelte';
-	import { scanProgress, stopScanProgress, scanPaused } from '$lib/stores/scanProgressStore.js';
+	import { derived, get, writable, readable } from 'svelte/store';
+	import { onMount, onDestroy } from 'svelte';
+	import { toast } from 'svelte-sonner';
+	import { serviceResults } from '$lib/stores/serviceResultsStore.js';
+	import { connectToFuzzerWebSocket, closeFuzzerWebSocket } from '$lib/services/fuzzerSocket.js';
+	import {
+		scanProgress,
+		scanPaused,
+		startScanProgress,
+		stopScanProgress,
+		pauseScan,
+		resumeScan
+	} from '$lib/stores/scanProgressStore.js';
 
 	const { data } = $props();
 	let showStopDialog = $state(false);
-	let paused = $state(false);
+	let intervalId;
+
+	// Derived stores
+	const fuzzerResults = derived(serviceResults, ($serviceResults) => $serviceResults.fuzzer);
+	const dynamicColumns = derived(fuzzerResults, ($fuzzerResults) =>
+		$fuzzerResults.length > 0
+			? Object.keys($fuzzerResults[0]).map((key) => ({
+					key,
+					label: key
+						.replace(/([a-z])([A-Z])/g, '$1 $2')
+						.split('_')
+						.map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+						.join(' ')
+				}))
+			: []
+	);
+	const showProgress = derived(
+		[serviceStatus, fuzzerResults],
+		([$serviceStatus, $fuzzerResults]) =>
+			$serviceStatus.status === 'running' && $fuzzerResults.length > 0
+	);
 
 	const currentStep = derived(serviceStatus, ($serviceStatus) =>
-		$serviceStatus.status === 'running'
+		$serviceStatus.status === 'running' || $serviceStatus.status === 'paused'
 			? 'running'
-			: $serviceStatus.status === 'complete'
+			: $serviceStatus.status === 'completed'
 				? 'results'
 				: 'config'
 	);
+
+	// Fetch results from the server
+	async function fetchResults(jobId) {
+		try {
+			const res = await fetch(`http://localhost:8000/api/fuzzer/${jobId}/results`);
+			const response = await res.json();
+			const parsed = Array.isArray(response) ? response : (response.results ?? []);
+
+			// Set into shared store under "fuzzer"
+			serviceResults.update((r) => ({
+				...r,
+				fuzzer: parsed
+			}));
+
+			console.log('[Fuzzer Results]', parsed);
+		} catch (e) {
+			console.error('Failed to fetch fuzzer results:', e);
+		}
+	}
+
+	// WebSocket connection
+	$effect(() => {
+		if ($currentStep === 'results' && $fuzzerResults.length === 0) {
+			const jobId = localStorage.getItem('currentFuzzerJobId');
+			if (jobId) {
+				console.log('[Fetcher] Fetching results for job:', jobId);
+				fetchResults(jobId);
+			}
+		}
+	});
+
+	const togglePause = async () => {
+		if ($scanPaused) {
+			await resumeScan('fuzzer');
+		} else {
+			await pauseScan('fuzzer');
+		}
+	};
 
 	function handleStopCancel() {
 		showStopDialog = false;
 	}
 
-	function handleStopConfirm() {
+	function saveCheckpoint() {
+		const jobId = localStorage.getItem('currentFuzzerJobId');
+		if (!jobId) {
+			toast.error('No job ID found.');
+			return;
+		}
+
+		const data = get(serviceResults).fuzzer;
+		if (!data || data.length === 0) {
+			toast.error('No results to checkpoint.');
+			return;
+		}
+
+		localStorage.setItem(`checkpoint_${jobId}`, JSON.stringify(data));
+		toast.success('Checkpoint saved!', {
+			description: `Saved at ${new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}`
+		});
+		console.log(`[Checkpoint] Saved for job ${jobId}`);
+	}
+
+
+	async function handleStopConfirm() {
 		showStopDialog = false;
 		stopScanProgress();
+		closeFuzzerWebSocket();
 
-		console.log('Fuzzer stopped');
-		console.log('Current service status:', get(serviceStatus));
+		// Get the job id
+		const jobId = localStorage.getItem('currentFuzzerJobId');
+		if (!jobId) {
+			console.error('No Fuzzer Job Id found in local storage');
+		}
+
+		// Clear app state
+		serviceResults.update((r) => ({ ...r, fuzzer: [] }));
+		serviceStatus.set({ status: 'idle', serviceType: null, startTime: null });
+		localStorage.removeItem('currentFuzzerJobId');
+
+		// Tell the backend to stop
+		try {
+			const res = await fetch(`http://localhost:8000/api/fuzzer/${jobId}/stop`, {
+				method: 'POST'
+			});
+			if (res.ok) {
+				console.log('Fuzzer job stopped.');
+			} else {
+				console.error('Failed to stop fuzzer job:', await res.test());
+			}
+		} catch (e) {
+			console.error('Failed to stop fuzzer:', e);
+		}
+
+		console.log('[Stop] Service state');
 		goto('/dashboard');
 	}
 
 	function handleRestart() {
 		stopScanProgress();
-		
-		console.log('Restarting at', new Date().toISOString());
+
+		// Reset the service results and status
+		serviceResults.update((r) => ({ ...r, fuzzer: [] }));
+		serviceStatus.set({ status: 'idle', serviceType: null, startTime: null });
+		localStorage.removeItem('currentFuzzerJobId');
+
+		console.log('[Restart] Service state');
 		goto('/fuzzer/config');
 	}
+
+	async function handleExport() {
+		const jobId = localStorage.getItem('currentFuzzerJobId');
+		if (!jobId) {
+			alert('Fuzzer job ID not found.');
+			return;
+		}
+
+		try {
+			const res = await fetch(`http://localhost:8000/api/fuzzer/${jobId}/results`);
+			if (!res.ok) throw new Error('Failed to fetch fuzzer results.');
+
+			const { results = [] } = await res.json();
+
+			const exportFields = ['id', 'response', 'payload', 'length', 'error'];
+			const headers = ['ID', 'Response', 'Payload', 'Length', 'Error'];
+
+			const csvRows = [
+				headers.join(','),
+				...results.map((row) => exportFields.map((key) => JSON.stringify(row[key] ?? '')).join(','))
+			];
+
+			const csvContent = csvRows.join('\n');
+			const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+			const url = URL.createObjectURL(blob);
+
+			const a = document.createElement('a');
+			a.href = url;
+			a.download = `fuzzer_${jobId}_results.csv`;
+			document.body.appendChild(a);
+			a.click();
+			a.remove();
+
+			URL.revokeObjectURL(url);
+		} catch (error) {
+			console.error('[Fuzzer Export Error]', error);
+			alert('There was an error exporting the fuzzer results.');
+		}
+	}
+
+	// onMount and onDestroy lifecycle hooks
+	onMount(() => {
+		const jobId = localStorage.getItem('currentFuzzerJobId');
+		if (jobId && get(serviceStatus).status !== 'completed') {
+			connectToFuzzerWebSocket(jobId);
+		}
+		// Restore checkpoint if available
+		if (jobId) {
+			const savedCheckpoint = localStorage.getItem(`checkpoint_${jobId}`);
+			if (savedCheckpoint) {
+				try {
+					const parsed = JSON.parse(savedCheckpoint);
+					if (Array.isArray(parsed) && parsed.length > 0) {
+						serviceResults.update((r) => ({ ...r, fuzzer: parsed }));
+						console.log('[Restore] Checkpoint loaded for job', jobId);
+					}
+				} catch (err) {
+					console.error('[Restore] Failed to parse checkpoint data:', err);
+				}
+			}
+			connectToFuzzerWebSocket(jobId);
+		} else {
+			console.warn('No fuzzer job ID found in localStorage.');
+		}
+
+		intervalId = setInterval(() => {
+			const jobId = localStorage.getItem('currentFuzzerJobId');
+			const status = get(serviceStatus);
+
+			// Do not save checkpoints after scan is completed or idle
+			if (!jobId || (status.status !== 'running' && status.status !== 'paused')) return;
+
+			const data = get(serviceResults).fuzzer;
+			if (data.length > 0) {
+				localStorage.setItem(`checkpoint_${jobId}`, JSON.stringify(data));
+				console.log(`[Auto] Checkpoint saved for job ${jobId}`);
+			}
+		}, 15000);
+	});
+
+	onDestroy(() => {
+		clearInterval(intervalId);
+		closeFuzzerWebSocket();
+	});
 </script>
 
 <div class="fuzzer-run">
@@ -54,28 +256,69 @@
 	</div>
 
 	<div class="table">
-		<div class="progress-bar-container">
-			<div class="progress-info">
-				<div class="text-sm font-medium">Progress</div>
-				<div class="text-2xl font-bold">{$scanProgress}% scanned</div>
+		{#if $showProgress || $serviceStatus.status === 'completed' || $serviceStatus.status === 'paused'}
+			<div class="progress-bar-container">
+				<div class="progress-info">
+					<div class="text-sm font-medium">Progress</div>
+					<div class="text-2xl font-bold">{$scanProgress}% scanned</div>
+				</div>
+				<Progress value={$scanProgress} max={100} class="w-[100%]" />
 			</div>
-			<Progress value={$scanProgress} max={100} class="w-[100%]" />
-		</div>
-		<Table data={data.tableData} columns={data.tableColumns} currentStep={$currentStep} />
+		{:else}
+			<Spinner />
+		{/if}
+
+		<Table data={$fuzzerResults} columns={$dynamicColumns} />
 	</div>
 
 	<div class="button-section">
 		<div class="button-group">
-			{#if $currentStep === 'running'}
+			{#if $serviceStatus.status === 'completed'}
 				<Button
-					onclick={() => scanPaused.set(!$scanPaused)}
+					onclick={handleRestart}
 					variant="default"
 					size="default"
-					class="pause-button"
-					aria-label={$scanPaused ? 'Resume scanning' : 'Pause scanning'}
-					title={$scanPaused ? 'Resume scanning' : 'Pause scanning'}
+					class="restart-button"
+					aria-label="Restart the scan"
+					title="Click to restart the scan"
 				>
-					{$scanPaused ? 'Resume' : 'Pause'}
+					Restart
+				</Button>
+				<Button
+					onclick={handleExport}
+					variant="secondary"
+					size="default"
+					class="view-all-results"
+					aria-label="Export results"
+					title="Click to export fuzzer results"
+				>
+					Export Results
+				</Button>
+			{:else if $serviceStatus.status === 'running' || $serviceStatus.status === 'paused'}
+				<Button
+					onclick={togglePause}
+					variant="secondary"
+					size="default"
+					class="pause-button"
+					aria-label={$scanPaused ? 'Resume the scan' : 'Pause the scan'}
+					title={$scanPaused ? 'Click to resume the scan' : 'Click to pause the scan'}
+				>
+					{#if $scanPaused}
+						Resume
+					{:else}
+						Pause
+					{/if}
+				</Button>
+				
+				<Button
+					onclick={saveCheckpoint}
+					variant="secondary"
+					size="default"
+					class="save-checkpoint"
+					aria-label="Save checkpoint"
+					title="Checkpoint"
+				>
+					Save Checkpoint
 				</Button>
 
 				<Button
@@ -83,44 +326,12 @@
 					variant="destructive"
 					size="default"
 					class="stop-button"
-					aria-label="Stop scanning"
-					title="Stop scanning"
+					aria-label="Stop the scan"
+					title="Click to stop the scan"
 				>
 					Stop
 				</Button>
-			{:else}
-				<Button
-					onclick={handleRestart}
-					variant="default"
-					size="default"
-					class="restart-button"
-					aria-label="Restart scanning"
-					title="Restart scanning"
-				>
-					Restart
-				</Button>
-				<Button
-					onclick={handleRestart}
-					variant="default"
-					size="default"
-					class="view-all-results"
-					aria-label="View all results"
-					title="View all results"
-				>
-					View All Results
-				</Button>
 			{/if}
-		</div>
-		<div class="single-button">
-			<Button 
-				variant="secondary" 
-				size="default" 
-				class="terminal-button" 
-				aria-label="Open terminal" 
-				title="Open terminal"
-			>
-				Terminal
-			</Button>
 		</div>
 	</div>
 
@@ -134,7 +345,7 @@
 </div>
 
 <svelte:head>
-  <title>Fuzzer Run | TRACE</title>
+	<title>Fuzzer Run | TRACE</title>
 </svelte:head>
 
 <style>
@@ -177,10 +388,6 @@
 		display: flex;
 		flex-direction: row;
 		gap: 1rem;
-	}
-	.single-button {
-		display: flex;
-		flex-direction: row;
 	}
 	.progress-bar-container {
 		display: flex;

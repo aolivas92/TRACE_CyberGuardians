@@ -1,0 +1,1 @@
+This folder stores the result of dbf_manager runs.

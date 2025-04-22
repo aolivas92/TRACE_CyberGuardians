@@ -76,7 +76,7 @@ class CrawlerResultItem(BaseModel):
 
 class CrawlerResults(BaseModel):
     """
-    Model for the complete crawler results
+    Model for the completed crawler results
     """
     results: List[CrawlerResultItem]
 
@@ -247,13 +247,13 @@ async def run_crawler_task(job_id: str, config: CrawlerConfig):
 
         # Save the results with the job id so it can be identified
         # TODO: update this to work correctly
-        if os.path.exists("./crawler_table_data.json"):
-            with open("crawler_table_data.json", 'r') as file:
+        if os.path.exists("src/database/crawler/crawler_table_data.json"):
+            with open("src/database/crawler/crawler_table_data.json", 'r') as file:
                 table_data = json.load(file)
 
 
             # Save the results in a new location with id
-            results_file = f'crawler_results_{job_id}.json'
+            results_file = f'src/database/crawler/crawler_results_{job_id}.json'
             with open(results_file, 'w') as file:
                 json.dump(table_data, file, indent=2)
 
@@ -270,7 +270,7 @@ async def run_crawler_task(job_id: str, config: CrawlerConfig):
             }
 
             # Broadcast completion message
-            tracker._broadcast_message('complete', {
+            tracker._broadcast_message('completed', {
                 'urls_processed': len(table_data),
                 'total_urls': len(table_data),
                 'progress': 100,
@@ -288,7 +288,7 @@ async def run_crawler_task(job_id: str, config: CrawlerConfig):
             }
 
             # Broadcast message with error
-            tracker._broadcast_message('complete', {
+            tracker._broadcast_message('completed', {
                 'urls_processed': tracker.total_processed,
                 'total_urls': tracker.total_processed,
                 'progress': 100,

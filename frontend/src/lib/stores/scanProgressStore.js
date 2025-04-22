@@ -9,6 +9,10 @@ let intervalId = null;
 let alreadyStopped = false;
 
 export function startScanProgress(service) {
+	if (get(serviceStatus).status === 'completed') {
+		console.warn(`[${service}] Skipping scanProgress start – job already completed`);
+		return;
+	}
 	if (intervalId !== null || get(serviceStatus).status === 'running') return;
 
 	alreadyStopped = false;
@@ -38,7 +42,7 @@ export function stopScanProgress(markComplete = false) {
 
 	if (markComplete && service) {
 		serviceStatus.set({
-			status: 'complete',
+			status: 'completed',
 			serviceType: service,
 			startTime: null
 		});
@@ -48,7 +52,6 @@ export function stopScanProgress(markComplete = false) {
 			serviceType: null,
 			startTime: null
 		});
-		scanProgress.set(0);
 	}
 
 	scanPaused.set(false);
@@ -58,6 +61,7 @@ export function stopScanProgress(markComplete = false) {
 
 export async function pauseScan(service) {
 	const jobId = localStorage.getItem(`current${capitalize(service)}JobId`);
+	console.log('[CAPALIZE]', capitalize(service), jobId, get(serviceStatus).status);
 	if (!jobId || get(serviceStatus).status !== 'running') return false;
 
 	try {

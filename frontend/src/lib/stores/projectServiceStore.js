@@ -12,12 +12,11 @@ function createServiceStatusStore() {
 	const initial = stored
 		? JSON.parse(stored)
 		: {
-				status: 'idle',        // "idle" | "running" | "complete"
-				serviceType: null,     // "crawler", "fuzzer", etc.
+				status: 'idle',        // "idle" | "running" | "completed"
+				serviceType: null,     // "crawler", "fuzzer", "bruteForce", etc.
 				startTime: null        // ISO string of when the service started
 			};
 
-	// Create a writable Svelte store with the initial value
 	const store = writable(initial);
 
 	// Whenever the store changes, update localStorage
