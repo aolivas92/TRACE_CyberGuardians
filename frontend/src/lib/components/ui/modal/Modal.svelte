@@ -1,7 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import { mode, toggleMode } from 'mode-watcher';
-  import Button from '$lib/components/ui/button/Button.svelte';
+  import Button from '$lib/components/ui/button/button.svelte';
   import { Switch } from '$lib/components/ui/switch/index.js';
 
   export let isOpen = false;
