@@ -7,6 +7,7 @@ import csv
 import os 
 import urllib.parse
 #import aiofiles
+import glob
 
 class WebScraper:
     """
@@ -27,7 +28,7 @@ class WebScraper:
         async _scrape_pages_async(self) -> List
     """
     
-    def __init__(self, urls: List, concurrency: int=5):
+    def __init__(self, concurrency: int=5, folder_path: str="database/ai/"):
         """
         Initialize with list of URLs and optional concurrency limit.
         
@@ -35,7 +36,9 @@ class WebScraper:
             urls (list): List of URLs to scrape.
             concurrency (int): Max number of parallel fetches.
         """
-        self.urls = urls
+        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        self.folder_path = os.path.join(base_dir, folder_path)
+        self.files = glob.glob(f"{self.folder_path}*.txt") + glob.glob(f"{self.folder_path}*.html")
         self.concurrency = concurrency
         self.filename = None
         
@@ -45,7 +48,7 @@ class WebScraper:
         Public main method to run the async scraping from sync code.
         """
         data = await self._scrape_pages_async()
-        filename = "src/database/ai/" + filename
+        filename = self.folder_path + filename
  
         # Save the results
         with open(filename, 'w', newline='', encoding='utf-8') as csvfile:
@@ -57,7 +60,7 @@ class WebScraper:
         self.filename = filename
         return filename
 
-    async def _fetch_url(self, url: str) -> str:
+    async def _fetch_file(self, file_path: str) -> str:
         """
         Fetch the HTML content of a single URL asynchronously.
 
@@ -77,7 +80,8 @@ class WebScraper:
             return ""
         """
         # TODO: Update path when fixed.
-        parsed_url = urllib.parse.urlparse(url)
+        """
+        parsed_url = urllib.parse.urlparse(file_path)
         if parsed_url.scheme == "file":
             local_path = os.path.normpath(parsed_url.path)
             try:
@@ -90,12 +94,19 @@ class WebScraper:
         else:
             try:
                 async with aiohttp.ClientSession() as session:
-                    async with session.get(url) as response:
+                    async with session.get(file_path) as response:
                         response.raise_for_status()
                         return await response.text()
             except aiohttp.ClientError as e:
-                print(f"[ERROR] Could not fetch {url}: {e}")
-                return ""
+                print(f"[ERROR] Could not fetch {file_path}: {e}")
+                return 
+                """
+        try:
+            with open(file_path, "r", encoding="utf-8") as f:
+                return f.read()
+        except Exception as e:
+            print(f"[ERROR] Could not open local file: {e}")
+            return ""     
         """
 
         try:
@@ -168,19 +179,24 @@ class WebScraper:
         """
         results = []
         sem = asyncio.Semaphore(self.concurrency)
-
         async with aiohttp.ClientSession() as session:
-            async def scrape_page(i, url):
-                async with sem:
-                    html = await self._fetch_url(url)
-                    if html:
-                        text_content = self._extract_text_content(html)
-                    else:
-                        text_content = ""
-                    results.append((i, text_content, url))
+            async def scrape_page(i, file_path):
 
+                print("file_path: ", file_path)
+                async with sem:
+                    content = await self._fetch_file(file_path)
+                    if content:
+                        if file_path.endswith('.html'):
+                            text_content = self._extract_text_content(content)
+                            results.append((i, text_content, file_path))
+                        elif file_path.endswith('.txt'):
+                            text_content = content
+                            results.append((i, text_content, file_path))
+                    else:
+                        results.append((i, "", file_path))
+                    
             tasks = []
-            for i, url in enumerate(self.urls, start=1):
+            for i, url in enumerate(self.files, start=1):
                 tasks.append(scrape_page(i, url))
 
             await asyncio.gather(*tasks)
@@ -191,3 +207,12 @@ class WebScraper:
     
     
         print(f"CSV file '{filename}' has been generated.")
+
+
+async def test_scraper():
+    scraper = WebScraper()
+    test = await scraper.scrape_pages("scraped_output_test.csv")
+
+
+if __name__ == "__main__":
+    asyncio.run(test_scraper())

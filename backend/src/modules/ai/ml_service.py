@@ -29,7 +29,8 @@ class MLConfig(BaseModel):
     Configuration model for ML jobs
     """
     # TODO: get rid of the target_urls field
-    target_urls: List[str]
+    #target_urls: List[str]
+    folder_path: str = "src/database/ai/"
     wordlist_path: Optional[str] = None
     credential_count: Optional[int] = 10
     # TODO: add the toggle fields
@@ -162,10 +163,12 @@ async def run_ml_task(job_id: str, config: MLConfig):
         tracker.add_log('Starting web scraping')
         
         # Convert target_urls to a list if it's not already
+        """
         if not isinstance(config.target_urls, list):
             config.target_urls = [config.target_urls]
-        
-        scraper = WebScraper(config.target_urls)
+        """
+
+        scraper = WebScraper(config.folder_path)
         csv_file = await scraper.scrape_pages()
         
         if not csv_file:
