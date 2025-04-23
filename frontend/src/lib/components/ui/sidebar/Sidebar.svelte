@@ -8,6 +8,7 @@
 
 	let selectedIndex;
 	let showSettingsModal = false;
+	let allScansComplete = false;
 
 	function isSelected(index, route) {
 		selectedIndex = index;
@@ -19,7 +20,7 @@
 		{ icon: Hammer, tooltip: 'Tools', route: '/dashboard' },
 		{ icon: Network, tooltip: 'Network' },
 		{ icon: FileCheck, tooltip: 'Results' },
-		{ icon: Brain, tooltip: 'AI Model', route: '/credGenAI/config' },
+		{ icon: Brain, tooltip: 'AI Model', route: '/credGenAI/config', requiresScan: true },
 	];
 
 	onMount(() => {
@@ -27,6 +28,12 @@
 		if (savedIndex !== null) {
 			selectedIndex = parseInt(savedIndex, 10);
 		}
+
+		// Check if all scans are complete
+		const crawler = localStorage.getItem('crawlerComplete') === 'true';
+		const fuzzer = localStorage.getItem('fuzzerComplete') === 'true';
+		const bruteForce = localStorage.getItem('bruteForceComplete') === 'true';
+		allScansComplete = crawler && fuzzer && bruteForce;
 	});
 
 	beforeUpdate(() => {
@@ -72,9 +79,14 @@
 				variant="circle"
 				size="circle"
 				type="button"
-				onclick={() => isSelected(index, item.route)}
+				onclick={() => {
+					if (!item.requiresScan || allScansComplete) {
+						isSelected(index, item.route);
+					}
+				}}
+				disabled={item.requiresScan && !allScansComplete}
 				data-active={selectedIndex === index}
-				title={item.tooltip}
+				title={item.requiresScan && !allScansComplete ? "Run all scans to unlock" : item.tooltip}
 			>
 				<item.icon style="width: 20px; height: 20px;" />
 			</Button>
