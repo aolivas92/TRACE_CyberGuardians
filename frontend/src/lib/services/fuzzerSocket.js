@@ -112,6 +112,7 @@ export function connectToFuzzerWebSocket(jobId, retry = 0) {
 					serviceType: 'fuzzer',
 					startTime: null
 				});
+				localStorage.setItem('fuzzerComplete', 'true');
 				break;
 
 			// Handles errors and resets UI state

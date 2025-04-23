@@ -8,8 +8,7 @@
 
 	let selectedIndex;
 	let showSettingsModal = false;
-	let allScansComplete = false;
-
+	
 	function isSelected(index, route) {
 		selectedIndex = index;
 		localStorage.setItem('selectedIndex', index);
@@ -23,18 +22,43 @@
 		{ icon: Brain, tooltip: 'AI Model', route: '/credGenAI/config', requiresScan: true },
 	];
 
-	onMount(() => {
-		const savedIndex = localStorage.getItem('selectedIndex');
-		if (savedIndex !== null) {
-			selectedIndex = parseInt(savedIndex, 10);
-		}
+	let completedScans = [];
 
-		// Check if all scans are complete
-		const crawler = localStorage.getItem('crawlerComplete') === 'true';
-		const fuzzer = localStorage.getItem('fuzzerComplete') === 'true';
-		const bruteForce = localStorage.getItem('bruteForceComplete') === 'true';
-		allScansComplete = crawler && fuzzer && bruteForce;
-	});
+function checkCompletedScans() {
+	const newScans = [];
+
+	if (localStorage.getItem('crawlerComplete') === 'true') {
+		newScans.push('crawler');
+	}
+	if (localStorage.getItem('fuzzerComplete') === 'true') {
+		newScans.push('fuzzer');
+	}
+	if (localStorage.getItem('bruteForceComplete') === 'true') {
+		newScans.push('bruteForce');
+	}
+
+	if (newScans.length !== completedScans.length) {
+		completedScans = newScans;
+		console.log(`Completed scans updated: ${completedScans.length}/3`);
+	}
+}
+
+onMount(() => {
+	const savedIndex = localStorage.getItem('selectedIndex');
+	if (savedIndex !== null) {
+		selectedIndex = parseInt(savedIndex, 10);
+	}
+
+	// Initial check
+	checkCompletedScans();
+
+	// Check every 2 seconds
+	const interval = setInterval(checkCompletedScans, 2000);
+
+	return () => {
+		clearInterval(interval);
+	};
+});
 
 	beforeUpdate(() => {
 		if (selectedIndex === undefined) {
@@ -80,13 +104,14 @@
 				size="circle"
 				type="button"
 				onclick={() => {
-					if (!item.requiresScan || allScansComplete) {
+					if (!item.requiresScan || completedScans.length > 0) {
 						isSelected(index, item.route);
 					}
 				}}
-				disabled={item.requiresScan && !allScansComplete}
-				data-active={selectedIndex === index}
-				title={item.requiresScan && !allScansComplete ? "Run all scans to unlock" : item.tooltip}
+				disabled={item.requiresScan && completedScans.length === 0}
+				title={item.requiresScan && completedScans.length === 0 
+					? "Run at least one scan to unlock" 
+					: item.tooltip}
 			>
 				<item.icon style="width: 20px; height: 20px;" />
 			</Button>
