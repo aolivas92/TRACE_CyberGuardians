@@ -184,38 +184,51 @@
 			return;
 		}
 
-		try {
-			const res = await fetch(`http://localhost:8000/api/dbf/${jobId}/results`);
-			if (!res.ok) throw new Error('Failed to fetch brute force results.');
+		// First, check if we already have results in store
+		let data = get(serviceResults).bruteForce;
 
-			const { results = [] } = await res.json();
-
-			// These are the fields expected by the UI
-			const exportFields = ['id', 'url', 'status', 'payload', 'length', 'error'];
-			const headers = ['ID', 'URL', 'Status Code', 'Payload', 'Length', 'Error'];
-
-			// Build CSV content
-			const csvRows = [
-				headers.join(','),
-				...results.map((row) => exportFields.map((key) => JSON.stringify(row[key] ?? '')).join(','))
-			];
-
-			const csvContent = csvRows.join('\n');
-			const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-			const url = URL.createObjectURL(blob);
-
-			const a = document.createElement('a');
-			a.href = url;
-			a.download = `bruteForce_${jobId}_results.csv`;
-			document.body.appendChild(a);
-			a.click();
-			a.remove();
-
-			URL.revokeObjectURL(url);
-		} catch (error) {
-			console.error('[Brute Force Export Error]', error);
+		// If not, try fetching from server
+		if (!data || data.length === 0) {
+			console.log('[Export] No results found in store. Fetching from API...');
+			try {
+				const res = await fetch(`http://localhost:8000/api/dbf/${jobId}/results`);
+				if (!res.ok) throw new Error('Failed to fetch brute force results.');
+				const { results = [] } = await res.json();
+				data = results;
+			} catch (error) {
+				console.error('[Brute Force Export Error]', error);
+				return;
+			}
 		}
-	}
+
+		if (!data || data.length === 0) {
+			toast.error('No results available for export.');
+			return;
+		}
+
+	// These are the fields expected by the UI
+	const exportFields = ['id', 'url', 'status', 'payload', 'length', 'error'];
+	const headers = ['ID', 'URL', 'Status Code', 'Payload', 'Length', 'Error'];
+
+	// Build CSV content
+	const csvRows = [
+		headers.join(','),
+		...data.map((row) => exportFields.map((key) => JSON.stringify(row[key] ?? '')).join(','))
+	];
+
+	const csvContent = csvRows.join('\n');
+	const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+	const url = URL.createObjectURL(blob);
+
+	const a = document.createElement('a');
+	a.href = url;
+	a.download = `bruteForce_${jobId}_results.csv`;
+	document.body.appendChild(a);
+	a.click();
+	a.remove();
+
+	URL.revokeObjectURL(url);
+}
 
 	// Restore checkpoint on mount
 	onMount(() => {
