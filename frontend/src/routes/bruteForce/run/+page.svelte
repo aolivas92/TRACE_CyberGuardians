@@ -11,7 +11,10 @@
 	import { derived, get, writable } from 'svelte/store';
 	import { serviceResults } from '$lib/stores/serviceResultsStore.js';
 	import { toast } from 'svelte-sonner';
-	import { connectToBruteForceWebSocket, closeBruteForceWebSocket } from '$lib/services/bruteForceSocket.js';
+	import {
+		connectToBruteForceWebSocket,
+		closeBruteForceWebSocket
+	} from '$lib/services/bruteForceSocket.js';
 	import {
 		scanProgress,
 		scanPaused,
@@ -162,6 +165,18 @@
 		goto('/bruteForce/config');
 	}
 
+	function handleClearJob() {
+		const jobId = localStorage.getItem('currentDbfJobId');
+		if (jobId) {
+			localStorage.removeItem(`checkpoint_${jobId}`);
+			localStorage.removeItem('currentDbfJobId');
+		}
+		serviceResults.update((r) => ({ ...r, bruteForce: [] }));
+		serviceStatus.set({ status: 'idle', serviceType: null, startTime: null });
+		goto('/bruteForce/config');
+		console.log('[Clear Job] Service state and local storage cleared');
+	}
+
 	async function handleExport() {
 		const jobId = localStorage.getItem('currentDbfJobId');
 		if (!jobId) {
@@ -207,25 +222,6 @@
 		const jobId = localStorage.getItem('currentDbfJobId');
 		if (jobId && get(serviceStatus).status !== 'completed') {
 			connectToBruteForceWebSocket(jobId);
-		}
-
-		// Restore checkpoint if available
-		if (jobId) {
-			const savedCheckpoint = localStorage.getItem(`checkpoint_${jobId}`);
-			if (savedCheckpoint) {
-				try {
-					const parsed = JSON.parse(savedCheckpoint);
-					if (Array.isArray(parsed) && parsed.length > 0) {
-						serviceResults.update((r) => ({ ...r, bruteForce: parsed }));
-						console.log('[Restore] Checkpoint loaded for job', jobId);
-					}
-				} catch (err) {
-					console.error('[Restore] Failed to parse checkpoint data:', err);
-				}
-			}
-			connectToBruteForceWebSocket(jobId);
-		} else {
-			console.warn('No bruteForce job ID found in localStorage.');
 		}
 
 		intervalId = setInterval(() => {
@@ -296,7 +292,7 @@
 					size="default"
 					class="view-all-results"
 					aria-label="Export results"
-					title="Click to export crawler results"
+					title="Click to export brute force results"
 				>
 					Export Results
 				</Button>
@@ -336,6 +332,17 @@
 					title="Click to stop the scan"
 				>
 					Stop
+				</Button>
+			{:else if $serviceStatus.status === 'error'}
+				<Button
+					onclick={handleClearJob}
+					variant="destructive"
+					size="default"
+					class="clear-button"
+					aria-label="Clear error state"
+					title="Clear scan state and try again"
+				>
+					Clear Job
 				</Button>
 			{/if}
 		</div>

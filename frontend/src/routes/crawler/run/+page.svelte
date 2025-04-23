@@ -65,7 +65,6 @@
 				...r,
 				crawler: parsed
 			}));
-
 		} catch (e) {
 			console.error('Failed to fetch crawler results:', e);
 		}
@@ -160,6 +159,18 @@
 		goto('/crawler/config');
 	}
 
+	function handleClearJob() {
+		const jobId = localStorage.getItem('currentCrawlerJobId');
+		if (jobId) {
+			localStorage.removeItem(`checkpoint_${jobId}`);
+			localStorage.removeItem('currentCrawlerJobId');
+		}
+		serviceResults.update((r) => ({ ...r, crawler: [] }));
+		serviceStatus.set({ status: 'idle', serviceType: null, startTime: null });
+		goto('/crawler/config');
+		console.log('[Clear Job] Service state and local storage cleared');
+	}
+
 	async function handleExport() {
 		const jobId = localStorage.getItem('currentCrawlerJobId');
 		if (!jobId) {
@@ -224,24 +235,6 @@
 		const jobId = localStorage.getItem('currentCrawlerJobId');
 		if (jobId && get(serviceStatus).status !== 'completed') {
 			connectToCrawlerWebSocket(jobId);
-		}
-		// Restore checkpoint if available
-		if (jobId) {
-			const savedCheckpoint = localStorage.getItem(`checkpoint_${jobId}`);
-			if (savedCheckpoint) {
-				try {
-					const parsed = JSON.parse(savedCheckpoint);
-					if (Array.isArray(parsed) && parsed.length > 0) {
-						serviceResults.update((r) => ({ ...r, crawler: parsed }));
-						console.log('[Restore] Checkpoint loaded for job', jobId);
-					}
-				} catch (err) {
-					console.error('[Restore] Failed to parse checkpoint data:', err);
-				}
-			}
-			connectToCrawlerWebSocket(jobId);
-		} else {
-			console.warn('No crawler job ID found in localStorage.');
 		}
 
 		intervalId = setInterval(() => {
@@ -352,6 +345,17 @@
 					title="Click to stop the scan"
 				>
 					Stop
+				</Button>
+			{:else if $serviceStatus.status === 'error'}
+				<Button
+					onclick={handleClearJob}
+					variant="destructive"
+					size="default"
+					class="clear-button"
+					aria-label="Clear error state"
+					title="Clear scan state and try again"
+				>
+					Clear Job
 				</Button>
 			{/if}
 		</div>
