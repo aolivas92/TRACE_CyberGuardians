@@ -1,2 +1,0 @@
-2025-04-22 21:53:34,029 [INFO] Scanned http://localhost:5002/ [200]
-2025-04-22 21:53:34,030 [ERROR] Request error for http://localhost:5002/: 'NoneType' object is not callable
