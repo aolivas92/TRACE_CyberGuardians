@@ -112,7 +112,6 @@ export function connectToBruteForceWebSocket(jobId, retry = 0) {
 					serviceType: 'dbf',
 					startTime: null
 				});
-				localStorage.setItem('bruteForceComplete', 'true');
 				break;
 
 			// Handles errors and resets UI state
