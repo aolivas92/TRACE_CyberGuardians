@@ -265,7 +265,7 @@
 	</div>
 
 	<div class="button-section">
-		<div class="left-buttons">
+		<div class="button-group">
 			{#if $serviceStatus.status === 'completed'}
 				<Button
 					onclick={handleRestart}
@@ -283,7 +283,7 @@
 					size="default"
 					class="view-all-results"
 					aria-label="Export results"
-					title="Click to export crawler results"
+					title="Click to export fuzzer results"
 				>
 					Export Results
 				</Button>
@@ -313,11 +313,7 @@
 				>
 					Save Checkpoint
 				</Button>
-			{/if}
-		</div>
 
-		<div class="right-buttons">
-			{#if $serviceStatus.status === 'running' || $serviceStatus.status === 'paused'}
 				<Button
 					onclick={() => (showStopDialog = true)}
 					variant="destructive"
@@ -387,14 +383,12 @@
 	}
 	.button-section {
 		display: flex;
+		flex-direction: row;
 		justify-content: space-between;
-		align-items: center;
 		width: 100%;
 		padding: 0rem 8rem 3rem 8rem;
 	}
-
-	.left-buttons,
-	.right-buttons {
+	.button-group {
 		display: flex;
 		flex-direction: row;
 		gap: 1rem;
