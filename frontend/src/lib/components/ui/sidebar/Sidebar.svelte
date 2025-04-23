@@ -8,7 +8,7 @@
 
 	let selectedIndex;
 	let showSettingsModal = false;
-	
+
 	function isSelected(index, route) {
 		selectedIndex = index;
 		localStorage.setItem('selectedIndex', index);
@@ -19,46 +19,15 @@
 		{ icon: Hammer, tooltip: 'Tools', route: '/dashboard' },
 		{ icon: Network, tooltip: 'Network' },
 		{ icon: FileCheck, tooltip: 'Results' },
-		{ icon: Brain, tooltip: 'AI Model', route: '/credGenAI/config', requiresScan: true },
+		{ icon: Brain, tooltip: 'AI Model', route: '/credGenAI/config' },
 	];
 
-	let completedScans = [];
-
-function checkCompletedScans() {
-	const newScans = [];
-
-	if (localStorage.getItem('crawlerComplete') === 'true') {
-		newScans.push('crawler');
-	}
-	if (localStorage.getItem('fuzzerComplete') === 'true') {
-		newScans.push('fuzzer');
-	}
-	if (localStorage.getItem('bruteForceComplete') === 'true') {
-		newScans.push('bruteForce');
-	}
-
-	if (newScans.length !== completedScans.length) {
-		completedScans = newScans;
-		console.log(`Completed scans updated: ${completedScans.length}/3`);
-	}
-}
-
-onMount(() => {
-	const savedIndex = localStorage.getItem('selectedIndex');
-	if (savedIndex !== null) {
-		selectedIndex = parseInt(savedIndex, 10);
-	}
-
-	// Initial check
-	checkCompletedScans();
-
-	// Check every 2 seconds
-	const interval = setInterval(checkCompletedScans, 2000);
-
-	return () => {
-		clearInterval(interval);
-	};
-});
+	onMount(() => {
+		const savedIndex = localStorage.getItem('selectedIndex');
+		if (savedIndex !== null) {
+			selectedIndex = parseInt(savedIndex, 10);
+		}
+	});
 
 	beforeUpdate(() => {
 		if (selectedIndex === undefined) {
@@ -103,15 +72,9 @@ onMount(() => {
 				variant="circle"
 				size="circle"
 				type="button"
-				onclick={() => {
-					if (!item.requiresScan || completedScans.length > 0) {
-						isSelected(index, item.route);
-					}
-				}}
-				disabled={item.requiresScan && completedScans.length === 0}
-				title={item.requiresScan && completedScans.length === 0 
-					? "Run at least one scan to unlock" 
-					: item.tooltip}
+				onclick={() => isSelected(index, item.route)}
+				data-active={selectedIndex === index}
+				title={item.tooltip}
 			>
 				<item.icon style="width: 20px; height: 20px;" />
 			</Button>

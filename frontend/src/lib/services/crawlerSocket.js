@@ -112,7 +112,6 @@ export function connectToCrawlerWebSocket(jobId, retry = 0) {
 					serviceType: 'crawler',
 					startTime: null
 				});
-				localStorage.setItem('crawlerComplete', 'true');
 				break;
 
 			// Handles errors and resets UI state
