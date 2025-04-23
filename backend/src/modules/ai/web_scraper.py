@@ -28,7 +28,7 @@ class WebScraper:
         async _scrape_pages_async(self) -> List
     """
     
-    def __init__(self, concurrency: int=5, folder_path: str="src/test/raw_html/"):
+    def __init__(self, concurrency: int=5, folder_path: str="src/database/raw_html/"):
         """
         Initialize with list of URLs and optional concurrency limit.
         
@@ -50,8 +50,10 @@ class WebScraper:
         """
         Public main method to run the async scraping from sync code.
         """
+        base_dir = Path(__file__).resolve().parents[3]
         data = await self._scrape_pages_async()
-        filename = self.folder_path + filename
+        filename = "src/database/ai/" + filename
+        filename = os.path.join(base_dir, filename)
  
         # Save the results
         with open(filename, 'w', newline='', encoding='utf-8') as csvfile:
