@@ -30,7 +30,7 @@ class MLConfig(BaseModel):
     """
     # TODO: get rid of the target_urls field
     #target_urls: List[str]
-    folder_path: str = "src/database/ai/raw_html/"
+    folder_path: str = "src/database/raw_html/"
     wordlist_path: Optional[str] = None
     credential_count: Optional[int] = 10
     # TODO: add the toggle fields

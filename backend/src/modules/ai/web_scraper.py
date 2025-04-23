@@ -28,7 +28,7 @@ class WebScraper:
         async _scrape_pages_async(self) -> List
     """
     
-    def __init__(self, concurrency: int=5, folder_path: str="src/database/ai/raw_html/"):
+    def __init__(self, concurrency: int=5, folder_path: str="src/database/raw_html/"):
         """
         Initialize with list of URLs and optional concurrency limit.
         
