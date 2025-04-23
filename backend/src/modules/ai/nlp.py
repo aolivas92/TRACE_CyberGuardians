@@ -203,7 +203,6 @@ class NLP:
         if not fieldnames:
             fieldnames = list(rows[0].keys()) if rows else ["id", "content", "url"]
 
-        # TODO: Update when implementation is fixed.
         with open(csv_path, "w", newline="", encoding="utf-8") as outfile:
             writer = csv.DictWriter(outfile, fieldnames=fieldnames)
             writer.writeheader()
