@@ -8,7 +8,7 @@ import os
 import urllib.parse
 #import aiofiles
 import glob
-
+from pathlib import Path
 class WebScraper:
     """
     Asynchronous web scraper to extract text content from web pages,
@@ -28,7 +28,7 @@ class WebScraper:
         async _scrape_pages_async(self) -> List
     """
     
-    def __init__(self, concurrency: int=5, folder_path: str="database/ai/"):
+    def __init__(self, concurrency: int=5, folder_path: str="src/database/ai/"):
         """
         Initialize with list of URLs and optional concurrency limit.
         
@@ -36,8 +36,11 @@ class WebScraper:
             urls (list): List of URLs to scrape.
             concurrency (int): Max number of parallel fetches.
         """
-        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        base_dir = Path(__file__).resolve().parents[3]
+        print("Base dir: ", base_dir)
         self.folder_path = os.path.join(base_dir, folder_path)
+        print("Folder path: ", self.folder_path)
+        
         self.files = glob.glob(f"{self.folder_path}*.txt") + glob.glob(f"{self.folder_path}*.html")
         self.concurrency = concurrency
         self.filename = None
@@ -182,7 +185,7 @@ class WebScraper:
         async with aiohttp.ClientSession() as session:
             async def scrape_page(i, file_path):
 
-                print("file_path: ", file_path)
+                
                 async with sem:
                     content = await self._fetch_file(file_path)
                     if content:
@@ -211,7 +214,7 @@ class WebScraper:
 
 async def test_scraper():
     scraper = WebScraper()
-    test = await scraper.scrape_pages("scraped_output_test.csv")
+    await scraper.scrape_pages("scraped_output_test.csv")
 
 
 if __name__ == "__main__":
