@@ -28,7 +28,7 @@ class WebScraper:
         async _scrape_pages_async(self) -> List
     """
     
-    def __init__(self, concurrency: int=5, folder_path: str="src/database/ai/"):
+    def __init__(self, concurrency: int=5, folder_path: str="src/database/ai/raw_html/"):
         """
         Initialize with list of URLs and optional concurrency limit.
         
@@ -39,7 +39,7 @@ class WebScraper:
         base_dir = Path(__file__).resolve().parents[3]
         print("Base dir: ", base_dir)
         self.folder_path = os.path.join(base_dir, folder_path)
-        print("Folder path: ", self.folder_path)
+        
         
         self.files = glob.glob(f"{self.folder_path}*.txt") + glob.glob(f"{self.folder_path}*.html")
         self.concurrency = concurrency
@@ -73,53 +73,15 @@ class WebScraper:
         Returns:
             str: The raw HTML text is successful, or an empty string if an error occurs.
         """
-        # TODO: Update to fetch the URLs from the database.
-        """
-        try:
-            async with aiofiles.open(url, 'r', encoding='utf-8') as f:
-                return await f.read()
-        except Exception as e:
-            print(f"[ERROR] Could not fetch {url}")
-            return ""
-        """
-        # TODO: Update path when fixed.
-        """
-        parsed_url = urllib.parse.urlparse(file_path)
-        if parsed_url.scheme == "file":
-            local_path = os.path.normpath(parsed_url.path)
-            try:
-                with open(local_path, "r", encoding="utf-8") as f:
-                    return f.read()
-                
-            except Exception as e:
-                print(f"[ERROR] Could not open local file: {e}")
-                return ""
-        else:
-            try:
-                async with aiohttp.ClientSession() as session:
-                    async with session.get(file_path) as response:
-                        response.raise_for_status()
-                        return await response.text()
-            except aiohttp.ClientError as e:
-                print(f"[ERROR] Could not fetch {file_path}: {e}")
-                return 
-                """
+        # TODO: Update function to work with raw_html database folder
+        # instead of checking urls.
         try:
             with open(file_path, "r", encoding="utf-8") as f:
                 return f.read()
         except Exception as e:
             print(f"[ERROR] Could not open local file: {e}")
             return ""     
-        """
-
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(url) as response:
-                    response.raise_for_status()
-                    return await response.text()
-        except aiohttp.ClientError as e:
-            print(f"[ERROR] Could not fetch {url}: {e}")
-        """
+       
 
     def _extract_text_content(self, html: str) -> str:
         """
@@ -182,9 +144,11 @@ class WebScraper:
         """
         results = []
         sem = asyncio.Semaphore(self.concurrency)
+        print(f"[INFO] Scraping {len(self.files)} files with concurrency {self.concurrency}.")
+        for file in self.files:
+            print(f"[INFO] Scraping file: {file}")
         async with aiohttp.ClientSession() as session:
             async def scrape_page(i, file_path):
-
                 
                 async with sem:
                     content = await self._fetch_file(file_path)
@@ -213,8 +177,21 @@ class WebScraper:
 
 
 async def test_scraper():
+    start = time.time()
     scraper = WebScraper()
-    await scraper.scrape_pages("scraped_output_test.csv")
+    output = await scraper.scrape_pages("scraped_output_test.csv")
+    end = time.time()
+    assert os.path.exists(scraper.filename), "CSV file was not created."
+    with open(scraper.filename, 'r', encoding='utf-8') as f:
+        reader = csv.reader(f)
+        header = next(reader)  
+        rows =  list(reader)
+        
+        content = [row[1] for row in rows]
+        print(content)
+        assert len(content) == 2, "CSV file does not contain the expected number of columns."
+        assert any(c.strip() for c in content), "CSV file does not contain any content."
+    print(f"[INFO] Test completed in {end - start:.5f} seconds.")
 
 
 if __name__ == "__main__":
