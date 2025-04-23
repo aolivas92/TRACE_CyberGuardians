@@ -28,14 +28,17 @@ class MLConfig(BaseModel):
     """
     Configuration model for ML jobs
     """
-    # TODO: get rid of the target_urls field
-    target_urls: List[str]
-    wordlist_path: Optional[str] = None
     credential_count: Optional[int] = 10
-    # TODO: add the toggle fields
-    min_username_length: Optional[int] = 5
-    min_password_length: Optional[int] = 10
     wordlist: Optional[str] = None
+    min_username_length: Optional[int] = 12
+    username_caps: Optional[bool] = True
+    username_numbers: Optional[bool] = True
+    username_symbols: Optional[bool] = True
+    min_password_length: Optional[int] = 12
+    password_caps: Optional[bool] = True
+    password_numbers: Optional[bool] = True
+    password_symbols: Optional[bool] = True
+
     class Config:
         alias_generator = lambda field_name: field_name.replace('_', '-')
         populate_by_name = True
@@ -161,12 +164,12 @@ async def run_ml_task(job_id: str, config: MLConfig):
         step = tracker.next_step()
         tracker.add_log('Starting web scraping')
         
-        # Convert target_urls to a list if it's not already
-        if not isinstance(config.target_urls, list):
-            config.target_urls = [config.target_urls]
-        
-        scraper = WebScraper(config.target_urls)
-        csv_file = await scraper.scrape_pages()
+        # TODO: Update when webscraper is ready
+        # database_path = '/src/database/raw_html'
+        # scraper = WebScraper(database_path)
+        # csv_file = await scraper.scrape_pages()
+        tracker.add_log('Skipping web scraping for now')
+        csv_file = 'src/database/ai/scraped_output.csv'
         
         if not csv_file:
             raise ValueError("Web scraping failed to produce a CSV file")
@@ -193,7 +196,18 @@ async def run_ml_task(job_id: str, config: MLConfig):
         else:
             raise ValueError("No wordlist provided")
 
-        cred_gen = Credential_Generator(csv_path=csv_file, wordlist_path=wordlist_path)
+        cred_gen = Credential_Generator(
+            csv_path=csv_file,
+            wordlist_path=wordlist_path,
+            min_username_length=config.min_username_length,
+            username_caps=config.username_caps,
+            username_numbers=config.username_numbers,
+            username_special_chars=config.username_symbols,
+            min_password_length=config.min_password_length,
+            password_caps=config.password_caps,
+            password_numbers=config.password_numbers,
+            password_special_chars=config.password_symbols
+            )
         if config.min_username_length:
             cred_gen.min_username_length = config.min_username_length
         if config.min_password_length:
@@ -215,7 +229,7 @@ async def run_ml_task(job_id: str, config: MLConfig):
         # Convert credentials to a list of dictionaries
         credential_dicts = []
         for i, (username, password) in enumerate(credentials):
-            username_score = cred_gen.calcualte_username_strenth(username)
+            username_score = cred_gen.calculate_username_strength(username)
             password_response = cred_gen.calculate_password_strength(password)
             is_secure = "secure" in password_response.lower()
             

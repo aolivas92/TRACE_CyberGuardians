@@ -37,11 +37,13 @@ class Credential_Generator:
         self,
         csv_path: str | None = None,
         wordlist_path: str | None = None,
-        min_username_length: int = 8,
-        username_cap: bool = True,
+        min_username_length: int = 12,
+        username_caps: bool = True,
+        username_numbers: bool = True,
         username_special_chars: bool = True,
         min_password_length: int = 12,
-        password_cap: bool = True,
+        password_caps: bool = True,
+        password_numbers: bool = True,
         password_special_chars: bool = True,
     ):
         """
@@ -69,12 +71,14 @@ class Credential_Generator:
 
         self.username_mdp = CredentialMDP(order=2)
         self.password_mdp = CredentialMDP(order=3)
-        self.min_username_length = min_username_length
-        self.username_cap = username_cap
-        self.username_special_chars = username_special_chars
-        self.min_password_length = min_password_length
-        self.password_cap = password_cap
-        self.password_special_chars = password_special_chars
+        self.min_username_length = min_username_length if min_username_length is not None else 8
+        self.username_cap = username_caps if username_caps is not None else True
+        self.username_numbers = username_numbers if username_numbers is not None else True
+        self.username_special_chars = username_special_chars if username_special_chars is not None else True
+        self.min_password_length = min_password_length if min_password_length is not None else 12
+        self.password_cap = password_caps if password_caps is not None else True
+        self.password_special_chars = password_special_chars if password_special_chars is not None else True
+        self.password_numbers = password_numbers if password_numbers is not None else True
 
     def calculate_password_strength(self, password: str) -> str:
         """
