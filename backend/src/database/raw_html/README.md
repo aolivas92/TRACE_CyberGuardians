@@ -1,0 +1,1 @@
+Raw HTML files that are used for Web Scraping.
