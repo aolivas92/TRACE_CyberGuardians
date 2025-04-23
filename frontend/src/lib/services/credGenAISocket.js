@@ -105,13 +105,13 @@ export function connectToCredGenAIWebSocket(jobId, retry = 0) {
 		}
 	};
 
-	socket.onerror = (e) => {
-		console.error('[WebSocket Error]', e);
-		if (retry < maxRetries) {
-			console.log(`[WebSocket] Retrying connection (${retry + 1}/${maxRetries})...`);
-			setTimeout(() => connectToCredGenAIWebSocket(jobId, retry + 1), 1000);
-		}
-	};
+	// socket.onerror = (e) => {
+	// 	console.error('[WebSocket Error]', e);
+	// 	if (retry < maxRetries) {
+	// 		console.log(`[WebSocket] Retrying connection (${retry + 1}/${maxRetries})...`);
+	// 		setTimeout(() => connectToCredGenAIWebSocket(jobId, retry + 1), 1000);
+	// 	}
+	// };
 
 	socket.onclose = () => {
 		console.log('[WebSocket] Connection closed');
