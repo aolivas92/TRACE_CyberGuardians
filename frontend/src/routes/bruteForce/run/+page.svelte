@@ -274,7 +274,7 @@
 	</div>
 
 	<div class="button-section">
-		<div class="button-group">
+		<div class="left-buttons">
 			{#if $serviceStatus.status === 'completed'}
 				<Button
 					onclick={handleRestart}
@@ -292,7 +292,7 @@
 					size="default"
 					class="view-all-results"
 					aria-label="Export results"
-					title="Click to export brute force results"
+					title="Click to export crawler results"
 				>
 					Export Results
 				</Button>
@@ -318,11 +318,15 @@
 					size="default"
 					class="save-checkpoint"
 					aria-label="Save checkpoint"
-					title="Click to save checkpoint"
+					title="Checkpoint"
 				>
 					Save Checkpoint
 				</Button>
+			{/if}
+		</div>
 
+		<div class="right-buttons">
+			{#if $serviceStatus.status === 'running' || $serviceStatus.status === 'paused'}
 				<Button
 					onclick={() => (showStopDialog = true)}
 					variant="destructive"
@@ -345,17 +349,6 @@
 					Clear Job
 				</Button>
 			{/if}
-		</div>
-		<div class="single-button">
-			<Button
-				variant="secondary"
-				size="default"
-				class="terminal-button"
-				aria-label="Open terminal"
-				title="Click to open the terminal"
-			>
-				Terminal
-			</Button>
 		</div>
 	</div>
 
@@ -399,19 +392,17 @@
 	}
 	.button-section {
 		display: flex;
-		flex-direction: row;
 		justify-content: space-between;
+		align-items: center;
 		width: 100%;
 		padding: 0rem 8rem 3rem 8rem;
 	}
-	.button-group {
+
+	.left-buttons,
+	.right-buttons {
 		display: flex;
 		flex-direction: row;
 		gap: 1rem;
-	}
-	.single-button {
-		display: flex;
-		flex-direction: row;
 	}
 	.progress-bar-container {
 		display: flex;
