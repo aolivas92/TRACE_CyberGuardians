@@ -28,7 +28,7 @@ class WebScraper:
         async _scrape_pages_async(self) -> List
     """
     
-    def __init__(self, concurrency: int=5, folder_path: str="src/database/raw_html/"):
+    def __init__(self, concurrency: int=5, folder_path: str="src/database/ai/raw_html/"):
         """
         Initialize with list of URLs and optional concurrency limit.
         
@@ -188,7 +188,6 @@ async def test_scraper():
         rows =  list(reader)
         
         content = [row[1] for row in rows]
-        print(content)
         assert len(content) == 2, "CSV file does not contain the expected number of columns."
         assert any(c.strip() for c in content), "CSV file does not contain any content."
     print(f"[INFO] Test completed in {end - start:.5f} seconds.")
