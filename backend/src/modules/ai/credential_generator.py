@@ -71,14 +71,26 @@ class Credential_Generator:
 
         self.username_mdp = CredentialMDP(order=2)
         self.password_mdp = CredentialMDP(order=3)
-        self.min_username_length = min_username_length if min_username_length is not None else 8
+        self.min_username_length = (
+            min_username_length if min_username_length is not None else 8
+        )
         self.username_cap = username_caps if username_caps is not None else True
-        self.username_numbers = username_numbers if username_numbers is not None else True
-        self.username_special_chars = username_special_chars if username_special_chars is not None else True
-        self.min_password_length = min_password_length if min_password_length is not None else 12
+        self.username_numbers = (
+            username_numbers if username_numbers is not None else True
+        )
+        self.username_special_chars = (
+            username_special_chars if username_special_chars is not None else True
+        )
+        self.min_password_length = (
+            min_password_length if min_password_length is not None else 12
+        )
         self.password_cap = password_caps if password_caps is not None else True
-        self.password_special_chars = password_special_chars if password_special_chars is not None else True
-        self.password_numbers = password_numbers if password_numbers is not None else True
+        self.password_special_chars = (
+            password_special_chars if password_special_chars is not None else True
+        )
+        self.password_numbers = (
+            password_numbers if password_numbers is not None else True
+        )
 
     def calculate_password_strength(self, password: str) -> str:
         """
@@ -410,9 +422,10 @@ class Credential_Generator:
 
         This function checks if the password meets various strength criteria and
         represents the results as a binary flag where:
-        - 0b001 (1): Contains special characters
-        - 0b010 (2): Contains capital letters
-        - 0b100 (4): Meets minimum length requirement
+        - 0b0001 (1): Contains special characters
+        - 0b0010 (2): Contains capital letters
+        - 0b0100 (4): Meets minimum length requirement
+        - 0b1000 (8): Contains a numerical character
 
         The flags are combined using bitwise OR operations, so a fully compliant
         password would return 0b111 (7).
@@ -423,7 +436,7 @@ class Credential_Generator:
         Returns:
             int: Binary flag integer representing which criteria are met
                  - 0 if no criteria are met
-                 - 1-7 depending on which combination of criteria are met
+                 - 1-15 depending on which combination of criteria are met
 
         Example:
             >>> get_password_status("a")
@@ -431,18 +444,20 @@ class Credential_Generator:
             >>> get_password_status("Password1234")
             6  # Meets length and capitalization requirements (4+2)
             >>> get_password_status("Password!")
-            7  # Meets all requirements (4+2+1)
+            15  # Meets all requirements (8+4+2+1)
         """
-        status = 0b000 & 0b111  # Default to not having anything set
+        status = 0b0000  # Default to not having anything set
+        if re.search(r"[0-9]", password) or not self.password_numbers:
+            status |= 0b1000
         if len(password) >= self.min_password_length:
-            status |= 0b100
+            status |= 0b0100
         if re.search(r"[A-Z]", password) or not self.password_cap:
-            status |= 0b010
+            status |= 0b0010
         if (
             re.search(r'[!@#$%^&*()_+\-=\[\]{};\':"\\|,.<>/?]', password)
             or not self.password_special_chars
         ):
-            status |= 0b001
+            status |= 0b0001
         return status
 
     def _update_capitalization(self, password: str) -> str:
@@ -485,7 +500,7 @@ class Credential_Generator:
             password += "A"
         return password
 
-    def _add_length_to_password(self, password: str) -> str:
+    def _add_length(self, password: str) -> str:
         """
         Extends a password to meet the minimum required length.
 
@@ -506,7 +521,7 @@ class Credential_Generator:
 
         Example:
             If min_password_length is 8:
-            >>> _add_length_to_password("abc")
+            >>> _add_length("abc")
             "abc1x!p4"  # Random 5 characters added to reach length 8
         """
         # Additional 5 characters to increase complexity of password
@@ -515,6 +530,22 @@ class Credential_Generator:
         salt = "".join(random.choice(character_set) for _ in range(length_to_add))
         password += salt
         return password
+
+    def _add_digits(self, password: str) -> str:
+        """
+        Adds prefix or suffix to password
+
+        Args:
+            password (str): The original password missing digits
+
+        Returns:
+            str: The extended password that meets the requirement
+        """
+        numbers = "0123456789"
+        digits = ""
+        for _ in range(3):
+            digits += random.choice(numbers)
+        return password + digits
 
     def _improve_password(self, password: str) -> str:
         """
@@ -530,93 +561,95 @@ class Credential_Generator:
         Returns:
             str: Enhanced password.
         """
-        required_flags = 0b100  # Length is always required
+        required_flags = 0b0100  # Length is always required
         if self.password_cap:
-            required_flags |= 0b010
+            required_flags |= 0b0010
         if self.password_special_chars:
-            required_flags |= 0b001
+            required_flags |= 0b0001
+        if self.password_numbers:
+            required_flags |= 0b1000
         password_status = self._get_password_status(password)
         missing_flags = required_flags & ~password_status
 
         special_chars = "!@#$%^&*()_+-=[]{}|;:,./<>"
         enhanced = password
 
-        if (missing_flags & 0b100) == 0b100:  # Missing Length
-            enhanced = self._add_length_to_password(enhanced)
-        if (missing_flags & 0b010) == 0b010:  # Missing capitalization
+        if (missing_flags & 0b0100) == 0b0100:  # Missing Length
+            enhanced = self._add_length(enhanced)
+        if (missing_flags & 0b0010) == 0b0010:  # Missing capitalization
             for _ in range(3):
                 enhanced = self._update_capitalization(enhanced)
-        if (missing_flags & 0b001) == 0b001:
+        if (missing_flags & 0b0001) == 0b0001:
             for _ in range(3):  # Add 3 random special chars
                 enhanced += random.choice(special_chars)
+        if (missing_flags & 0b1000) == 0b1000:  # Missing numbers
+            enhanced = self._add_digits(password)
 
         return enhanced
 
     def _improve_username(self, username: str) -> str:
         """
-        Improve the username by adding uniqueness, random digits, and optionally
-        modifying characters to enhance security.
+        Enhance the generated username with additional complexity, depending on the
+        parameters set by:
+        - self.min_username_length
+        - self.username_cap
+        - self.username_special_chars
+        - self.username_numbers
 
         Args:
-            username (str): The original username to improve.
+            username (str): The username to enhance.
 
         Returns:
-            str: A more secure and unique version of the username.
+            str: Enhanced username.
         """
-        substitutions = {
-            "a": ["@", "4"],
-            "e": ["3"],
-            "i": ["1", "!"],
-            "o": ["0"],
-            "s": ["$", "5"],
-            "l": ["1"],
-            "t": ["7"],
-        }
-
-        improved_username = ""
-        for char in username:
-            if char.lower() in substitutions and random.random() < 0.3:
-                improved_username += random.choice(substitutions[char.lower()])
-            else:
-                improved_username += char
-
-        suffix = random.randint(100, 9999)  # Add a random suffix
-        improved_username += str(suffix)
-
-        # Ensure minimum length
-        if len(improved_username) < self.min_username_length:
-            pad_length = self.min_username_length - len(improved_username)
-            improved_username += "".join(
-                random.choices("abcdefghijklmnopqrstuvwxyz", k=pad_length)
-            )
-        return improved_username
+        required_flags = 0b0100  # Length is always required
+        if self.username_cap:
+            required_flags |= 0b0010
+        if self.username_special_chars:
+            required_flags |= 0b0001
+        if self.username_numbers:
+            required_flags |= 0b1000
+        username_status = self._get_username_status(username)
+        missing_flags = required_flags & ~username_status
+        special_chars = "!@#$%^&*()_+-=[]{}|;:,./<>"
+        enhanced = username
+        if (missing_flags & 0b0100) == 0b0100:
+            enhanced = self._add_length(enhanced)
+        if (missing_flags & 0b0010) == 0b0010:
+            enhanced = self._update_capitalization(enhanced)
+        if (missing_flags & 0b0001) == 0b0001:
+            for _ in range(3):  # Add 3 random special chars
+                enhanced += random.choice(special_chars)
+        if (missing_flags & 0b1000) == 0b1000:
+            enhanced = self._add_digits(enhanced)
+        return enhanced
 
     def _get_username_status(self, username: str) -> int:
         """
         Evaluates a username and returns a status code as a binary flag integer.
 
         Flags:
-        - 0b001 (1): Meets minimum length
-        - 0b010 (2): Does not contain common personal patterns (e.g., names, years, admin)
-        - 0b100 (4): Contains non-dictionary-like elements (e.g., numbers, symbols)
+        - 0b0001 (1): Meets minimum length
+        - 0b0010 (2): Has capitalization
+        - 0b0100 (4): Contains special character
+        - 0b1000 (8): Contains numerical character
 
         Returns:
          int: A combined status flag from 0 to 7
         """
-        status = 0b000
+        status = 0b0000
 
-        # Rule 1: Length
         if len(username) >= self.min_username_length:
-            status |= 0b001
-
-        # Rule 2: No common personal info or patterns
-        banned_patterns = ["admin", "user", "test", "root", "guest", "name"]
-        if not any(pattern in username.lower() for pattern in banned_patterns):
-            status |= 0b010
-
-        # Rule 3: Has symbols/numbers/randomness
-        if re.search(r"[0-9@._-]", username):
-            status |= 0b100
+            status |= 0b0001
+        if re.search(r"[A-Z]", username) or not self.username_cap:
+            status |= 0b0010
+        if (
+            re.search(r'[!@#$%^&*()_+\-=\[\]{};\':"\\|,.<>/?]', password)
+            or not self.username_special_chars
+        ):
+            status |= 0b0100
+        if re.search(r"[0-9", username) or not self.username_numbers:
+            status |= 0b1000
 
         return status
 
