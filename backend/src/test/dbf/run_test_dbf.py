@@ -24,8 +24,8 @@ async def run_directory_brute_force_test():
     manager.configure_scan(
         target_url='http://localhost:5002',
         wordlist=wordlist,
-        hide_status=[404],
-        show_only_status=[200],
+        hide_status=[],
+        show_only_status=[],
         length_filter=0,
         attempt_limit=-1
     )
