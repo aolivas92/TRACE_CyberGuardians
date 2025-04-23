@@ -644,7 +644,7 @@ class Credential_Generator:
         if re.search(r"[A-Z]", username) or not self.username_cap:
             status |= 0b0010
         if (
-            re.search(r'[!@#$%^&*()_+\-=\[\]{};\':"\\|,.<>/?]', password)
+            re.search(r'[!@#$%^&*()_+\-=\[\]{};\':"\\|,.<>/?]', username)
             or not self.username_special_chars
         ):
             status |= 0b0100
@@ -705,10 +705,3 @@ class Credential_Generator:
                 return words
         except Exception as e:
             raise ValueError(f"Error reading wordlist file: {e}")
-
-
-if __name__ == "__main__":
-    cdg = Credential_Generator()
-    password = "frick"
-    score = cdg.password_mdp.calculate_password_strength(password)
-    cdg._suggest_password(password, score)
