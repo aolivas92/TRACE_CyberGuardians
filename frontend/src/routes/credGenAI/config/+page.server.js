@@ -48,7 +48,7 @@ export const actions = {
 		const wordlistText = await wordlistFile.text();
 
 		const jsonPayload = {
-			target_urls: ['https://crawler-test.com/'],
+			// target_urls: ['https://crawler-test.com/'],
 			credential_count: formData['credential-count'] ? Number(formData['credential-count']) : 10,
 			wordlist: wordlistText,
 			min_username_length: formData['username-length'] ? Number(formData['username-length']) : undefined,
