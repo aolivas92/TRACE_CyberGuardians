@@ -29,11 +29,6 @@ class MLConfig(BaseModel):
     """
     Configuration model for ML jobs
     """
-
-    # TODO: get rid of the target_urls field
-    # target_urls: List[str]
-    folder_path: str = "src/database/raw_html/"
-    wordlist_path: Optional[str] = None
     credential_count: Optional[int] = 10
     wordlist: Optional[str] = None
     min_username_length: Optional[int] = 12
@@ -175,17 +170,15 @@ async def run_ml_task(job_id: str, config: MLConfig):
 
         # Step 1: Web Scraping
         step = tracker.next_step()
-        tracker.add_log("Starting web scraping")
-
-        # Convert target_urls to a list if it's not already
-        """
-        if not isinstance(config.target_urls, list):
-            config.target_urls = [config.target_urls]
-        """
-
-        scraper = WebScraper(folder_path=config.folder_path)
-        csv_file = await scraper.scrape_pages()
-
+        tracker.add_log('Starting web scraping')
+        
+        # TODO: Update when webscraper is ready
+        # database_path = '/src/database/raw_html'
+        # scraper = WebScraper(database_path)
+        # csv_file = await scraper.scrape_pages()
+        tracker.add_log('Skipping web scraping for now')
+        csv_file = 'src/database/ai/scraped_output.csv'
+        
         if not csv_file:
             raise ValueError("Web scraping failed to produce a CSV file")
 
