@@ -1,9 +1,10 @@
-export function saveCheckpoint(jobId, data, toast) {
+export function saveCrawlerCheckpoint(jobId, data, toast) {
 	if (!jobId) {
 		toast.error('No job ID found.');
 		return false;
 	}
-	if (!Array.isArray(data) || data.length === 0) {
+
+	if (!data || data.length === 0) {
 		toast.error('No results to checkpoint.');
 		return false;
 	}
@@ -19,19 +20,25 @@ export function saveCheckpoint(jobId, data, toast) {
 	return true;
 }
 
-export async function exportResults(jobId, fetchFn = fetch) {
-	if (!jobId) throw new Error('No job ID found');
-
-	const res = await fetchFn(`http://localhost:8000/api/crawler/${jobId}/results`);
-	if (!res.ok) throw new Error('Failed to fetch crawler results');
-
-	const { results = [] } = await res.json();
-
+export function buildCrawlerCsv(results) {
 	const exportFields = [
-		'url', 'parentUrl', 'title', 'wordCount', 'charCount', 'linksFound', 'error'
+		'url',
+		'parentUrl',
+		'title',
+		'wordCount',
+		'charCount',
+		'linksFound',
+		'error'
 	];
+
 	const headers = [
-		'URL', 'Parent URL', 'Title', 'Word Count', 'Character Count', 'Links Found', 'Error'
+		'URL',
+		'Parent URL',
+		'Title',
+		'Word Count',
+		'Character Count',
+		'Links Found',
+		'Error'
 	];
 
 	const csvRows = [

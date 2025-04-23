@@ -1,17 +1,17 @@
 import { validateField } from '$lib/validation/fieldValidatorFactory.js';
 
-export function handleInputChange(id, value, formData, fieldErrors, selectedFileRef) {
+export function handleInputChange(id, value, formData, fieldErrors, fileRef) {
 	if (id === 'wordlist') {
-		selectedFileRef.value = value;
-		fieldErrors.wordlist = validateField('wordlist', selectedFileRef.value);
+		fileRef.selectedFile = value;
+		fieldErrors.wordlist = validateField('wordlist', value);
 	} else {
 		formData[id] = value;
-		const fieldResult = validateField(id, value);
-		fieldErrors[id] = fieldResult;
+		const result = validateField(id, value);
+		fieldErrors[id] = result;
 	}
 }
 
-export function validateAllFields(formData, fieldErrors, inputFields, selectedFile) {
+export function validateAllFields(inputFields, formData, fieldErrors, selectedFile) {
 	let isValid = true;
 
 	inputFields.forEach((field) => {
