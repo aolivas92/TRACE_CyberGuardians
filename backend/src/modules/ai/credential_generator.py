@@ -648,7 +648,7 @@ class Credential_Generator:
             or not self.username_special_chars
         ):
             status |= 0b0100
-        if re.search(r"[0-9", username) or not self.username_numbers:
+        if re.search(r"[0-9]", username) or not self.username_numbers:
             status |= 0b1000
 
         return status
