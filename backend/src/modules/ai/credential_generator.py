@@ -3,7 +3,7 @@ import os
 import random
 import re
 import time
-from typing import List, Tuple
+from typing import List, Tuple, clear_overloads
 import warnings
 
 import ollama
@@ -118,6 +118,7 @@ class Credential_Generator:
 
     def _suggest_password(self, password: str, score: float) -> str:
         strengthened_password = ""
+        wordlist_text = " ".join(self.wordlists)
         good_practices_info = (
             "Good password practices include the following: "
             "1. Length: Passwords should be at least 12 characters long. "
@@ -128,9 +129,11 @@ class Credential_Generator:
             "6. Use of password managers: Consider using password managers for securely storing passwords."
         )
         query = (
-            f"This is the password to review: '{password}.'"
-            f"This password got the score of {score:.2f}.\n"
+            f"Review this password: '{password} (score: {score:.2f})'"
             f"Keep in mind the good best practice info:\n{good_practices_info}\n"
+            f"Consider this as the content to base the password off of:\n"
+            f"{wordlist_text}\n\nAnd:\n"
+            f"{self.web_text}"
             f"It is your task to improve this password so it follows the best practices\n"
             f"while keeping the passwords concept, so for example if the password you'd get is 'Hello123', then you should return something along the lines of 'H31l0w@rLd20341'.\n"
             f"You should also avoid using escape characters like '\\n' or '\\t', but add any other alphanumeric string of around 5 characters. Take into account that it meets all good practices\n"
@@ -184,6 +187,8 @@ class Credential_Generator:
             str: A new, AI-suggested secure username based on the original.
         """
         improved_username = ""
+
+        wordlist_text = " ".join(self.wordlists)
         username_practices = (
             "Good username practices include:\n"
             "1. Avoid using personal info (real name, birthday, etc.).\n"
@@ -196,6 +201,9 @@ class Credential_Generator:
         query = (
             f"Review this username: '{username}' (score: {score:.2f}).\n\n"
             f"{username_practices}\n\n"
+            f"Consider this as the content to base the username:\n"
+            f"{wordlist_text}\n\nAnd:\n"
+            f"{self.web_text}"
             f"Suggest a stronger version that follows the practices while keeping the concept of the original (e.g., 'johndoe' → 'j0hnd03_dev87').\n"
             f"Only return the new username, no explanation, and avoid escape characters like '\\n'."
         )
