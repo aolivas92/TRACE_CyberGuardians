@@ -172,12 +172,9 @@ async def run_ml_task(job_id: str, config: MLConfig):
         step = tracker.next_step()
         tracker.add_log('Starting web scraping')
         
-        # TODO: Update when webscraper is ready
-        # database_path = '/src/database/raw_html'
-        # scraper = WebScraper(database_path)
-        # csv_file = await scraper.scrape_pages()
-        tracker.add_log('Skipping web scraping for now')
-        csv_file = 'src/database/ai/scraped_output.csv'
+        database_path = '/src/database/raw_html'
+        scraper = WebScraper(folder_path=database_path)
+        csv_file = await scraper.scrape_pages()
         
         if not csv_file:
             raise ValueError("Web scraping failed to produce a CSV file")

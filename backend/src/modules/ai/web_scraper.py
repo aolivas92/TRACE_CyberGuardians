@@ -75,7 +75,6 @@ class WebScraper:
         Returns:
             str: The raw HTML text is successful, or an empty string if an error occurs.
         """
-        # TODO: Update function to work with raw_html database folder
         # instead of checking urls.
         try:
             with open(file_path, "r", encoding="utf-8") as f:
@@ -173,27 +172,3 @@ class WebScraper:
         # Sort the final results by ID
         results.sort(key=lambda x: x[0])
         return results
-    
-    
-        print(f"CSV file '{filename}' has been generated.")
-
-
-async def test_scraper():
-    start = time.time()
-    scraper = WebScraper()
-    output = await scraper.scrape_pages("scraped_output_test.csv")
-    end = time.time()
-    assert os.path.exists(scraper.filename), "CSV file was not created."
-    with open(scraper.filename, 'r', encoding='utf-8') as f:
-        reader = csv.reader(f)
-        header = next(reader)  
-        rows =  list(reader)
-        
-        content = [row[1] for row in rows]
-        assert len(content) == 2, "CSV file does not contain the expected number of columns."
-        assert any(c.strip() for c in content), "CSV file does not contain any content."
-    print(f"[INFO] Test completed in {end - start:.5f} seconds.")
-
-
-if __name__ == "__main__":
-    asyncio.run(test_scraper())
