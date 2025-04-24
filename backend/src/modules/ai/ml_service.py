@@ -29,6 +29,7 @@ class MLConfig(BaseModel):
     """
     Configuration model for ML jobs
     """
+
     credential_count: Optional[int] = 10
     wordlist: Optional[str] = None
     min_username_length: Optional[int] = 12
@@ -170,12 +171,17 @@ async def run_ml_task(job_id: str, config: MLConfig):
 
         # Step 1: Web Scraping
         step = tracker.next_step()
-        tracker.add_log('Starting web scraping')
-        
-        database_path = '/src/database/raw_html'
-        scraper = WebScraper(folder_path=database_path)
+        tracker.add_log("Starting web scraping")
+
+        # Convert target_urls to a list if it's not already
+        """
+        if not isinstance(config.target_urls, list):
+            config.target_urls = [config.target_urls]
+        """
+
+        scraper = WebScraper(folder_path=config.folder_path)
         csv_file = await scraper.scrape_pages()
-        
+
         if not csv_file:
             raise ValueError("Web scraping failed to produce a CSV file")
 
@@ -195,26 +201,15 @@ async def run_ml_task(job_id: str, config: MLConfig):
         tracker.add_log("Starting credential generation")
 
         if config.wordlist:
-            wordlist_path = f'src/database/ai/temp_wordlist_{job_id}.txt'
+            wordlist_path = f"src/database/ai/temp_wordlist_{job_id}.txt"
             wordlist_lines = config.wordlist.strip().splitlines()
-            with open(wordlist_path, 'w') as f:
+            with open(wordlist_path, "w") as f:
                 for word in wordlist_lines:
                     f.write(f"{word.strip()}\n")
         else:
             raise ValueError("No wordlist provided")
 
-        cred_gen = Credential_Generator(
-            csv_path=csv_file,
-            wordlist_path=wordlist_path,
-            min_username_length=config.min_username_length,
-            username_caps=config.username_caps,
-            username_numbers=config.username_numbers,
-            username_special_chars=config.username_symbols,
-            min_password_length=config.min_password_length,
-            password_caps=config.password_caps,
-            password_numbers=config.password_numbers,
-            password_special_chars=config.password_symbols,
-        )
+        cred_gen = Credential_Generator(csv_path=csv_file, wordlist_path=wordlist_path)
         if config.min_username_length:
             cred_gen.min_username_length = config.min_username_length
         if config.min_password_length:
@@ -224,6 +219,12 @@ async def run_ml_task(job_id: str, config: MLConfig):
         credential_count = config.credential_count
         if not isinstance(credential_count, int):
             credential_count = int(credential_count)
+
+        cred_gen = Credential_Generator(csv_path=csv_file, wordlist_path=wordlist_path)
+
+        cred_gen.min_username_length = int(config.min_username_length or 5)
+        cred_gen.min_password_length = int(config.min_password_length or 10)
+        credential_count = int(config.credential_count or 10)
 
         credentials = cred_gen.generate_credentials(count=credential_count)
 
@@ -368,4 +369,3 @@ def get_job_logs(job_id: str) -> List[str]:
         return job_results[job_id]["logs"]
     logger.warning(f"No logs found for ML job {job_id}")
     return []
-
