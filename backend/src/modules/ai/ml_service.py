@@ -114,7 +114,7 @@ class MLProgressTracker:
     def next_step(self):
         """Move to the next step in the ML pipeline"""
         self.step_index += 1
-        if self.step_index < len(self.steps):
+        if int(self.step_index) < int(len(self.steps)):
             self.current_step = self.steps[self.step_index]
             progress = (self.step_index + 1) / len(self.steps) * 100
 
@@ -183,7 +183,7 @@ async def run_ml_task(job_id: str, config: MLConfig):
             config.target_urls = [config.target_urls]
         """
 
-        scraper = WebScraper(config.folder_path)
+        scraper = WebScraper(folder_path=config.folder_path)
         csv_file = await scraper.scrape_pages()
 
         if not csv_file:
@@ -205,9 +205,11 @@ async def run_ml_task(job_id: str, config: MLConfig):
         tracker.add_log("Starting credential generation")
 
         if config.wordlist:
-            wordlist_path = f"src/database/ai/temp_wordlist_{job_id}.txt"
-            with open(wordlist_path, "w") as f:
-                f.write(config.wordlist)
+            wordlist_path = f'src/database/ai/temp_wordlist_{job_id}.txt'
+            wordlist_lines = config.wordlist.strip().splitlines()
+            with open(wordlist_path, 'w') as f:
+                for word in wordlist_lines:
+                    f.write(f"{word.strip()}\n")
         else:
             raise ValueError("No wordlist provided")
 
