@@ -1,0 +1,10 @@
+This is a sample text file for testing the web scraper.
+It contains multiple lines of text
+that should be processed and extracted.
+
+Some keywords:
+- Authentication
+- Security
+- Password Management
+- Access Control
+- User Permissions

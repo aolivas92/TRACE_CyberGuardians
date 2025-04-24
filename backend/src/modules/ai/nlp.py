@@ -201,7 +201,6 @@ class NLP:
         """
         frequencies = self.get_word_freqs(rows)
 
-        # TODO: Update when implementation is fixed.
         with open(csv_path, "w", newline="", encoding="utf-8") as outfile:
             writer = csv.writer(outfile)
             writer.writerow(["word", "frequency"])

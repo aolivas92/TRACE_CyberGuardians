@@ -205,7 +205,7 @@ class DirectoryBruteForceManager:
     def save_results_to_txt(self, filename: str = "dbf_results.txt") -> None:
         """Save the filtered results to a text file"""
         results = self.get_filtered_results()
-        with open(full_path, "w", encoding="utf-8") as f:
+        with open(filename, "w", encoding="utf-8") as f:
             for entry in results:
                 f.write(f"URL: {entry['url']}\n")
                 f.write(f"Status: {entry['status']}\n")
