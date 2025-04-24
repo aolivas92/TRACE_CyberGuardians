@@ -1,6 +1,7 @@
 import csv
 import os
 import re
+from collections import Counter
 from typing import Set, List, Dict, Any
 
 
@@ -182,9 +183,7 @@ class NLP:
             cleaned_rows.append(row)
         return cleaned_rows
 
-    def _write_csv(
-        self, csv_path: str, rows: List[Dict[str, Any]], fieldnames=None
-    ) -> None:
+    def _write_csv(self, csv_path: str, rows: List[Dict[str, Any]]) -> None:
         """
         Write processed rows back to a CSV file.
 
@@ -200,14 +199,14 @@ class NLP:
         Note:
             This method will overwrite the existing file at csv_path.
         """
-        if not fieldnames:
-            fieldnames = list(rows[0].keys()) if rows else ["id", "content", "url"]
+        frequencies = self.get_word_freqs(rows)
 
         # TODO: Update when implementation is fixed.
         with open(csv_path, "w", newline="", encoding="utf-8") as outfile:
-            writer = csv.DictWriter(outfile, fieldnames=fieldnames)
-            writer.writeheader()
-            writer.writerows(rows)
+            writer = csv.writer(outfile)
+            writer.writerow(["word", "frequency"])
+            for word, count in sorted(frequencies.items(), key=lambda x: (-x[1], x[0])):
+                writer.writerow([word, count])
 
     def _break_compuound_words(self, text: List[str]) -> None:
         """
@@ -246,3 +245,6 @@ class NLP:
                 uncompounded_text.append(word.replace("'", ""))
 
         text[:] = uncompounded_text
+
+    def get_word_freqs(self, cleaned_rows: List[Dict[str, Any]]) -> Dict[str, int]:
+        return dict()
