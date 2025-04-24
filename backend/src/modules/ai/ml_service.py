@@ -98,7 +98,7 @@ class MLProgressTracker:
     def next_step(self):
         """Move to the next step in the ML pipeline"""
         self.step_index += 1
-        if self.step_index < len(self.steps):
+        if int(self.step_index) < int(len(self.steps)):
             self.current_step = self.steps[self.step_index]
             progress = (self.step_index + 1) / len(self.steps) * 100
             
@@ -168,7 +168,7 @@ async def run_ml_task(job_id: str, config: MLConfig):
             config.target_urls = [config.target_urls]
         """
 
-        scraper = WebScraper(config.folder_path)
+        scraper = WebScraper(folder_path=config.folder_path)
         csv_file = await scraper.scrape_pages()
         
         if not csv_file:
@@ -191,24 +191,21 @@ async def run_ml_task(job_id: str, config: MLConfig):
 
         if config.wordlist:
             wordlist_path = f'src/database/ai/temp_wordlist_{job_id}.txt'
+            wordlist_lines = config.wordlist.strip().splitlines()
             with open(wordlist_path, 'w') as f:
-                f.write(config.wordlist)
+                for word in wordlist_lines:
+                    f.write(f"{word.strip()}\n")
         else:
             raise ValueError("No wordlist provided")
 
         cred_gen = Credential_Generator(csv_path=csv_file, wordlist_path=wordlist_path)
-        if config.min_username_length:
-            cred_gen.min_username_length = config.min_username_length
-        if config.min_password_length:
-            cred_gen.min_password_length = config.min_password_length
-            
-        # Ensure credential_count is an integer
-        credential_count = config.credential_count
-        if not isinstance(credential_count, int):
-            credential_count = int(credential_count)
-            
+
+        cred_gen.min_username_length = int(config.min_username_length or 5)
+        cred_gen.min_password_length = int(config.min_password_length or 10)
+        credential_count = int(config.credential_count or 10)
+
         credentials = cred_gen.generate_credentials(count=credential_count)
-        
+
         # Process the credentials
         cred_gen.process_ai_wordlist(credentials)
         

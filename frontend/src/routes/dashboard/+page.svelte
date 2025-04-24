@@ -259,7 +259,7 @@
 		font-size: 1.1rem;
 		font-style: normal;
 		font-weight: 600;
-		width: 60%;
+		width: 70%;
 	}
 
 	.percent {
@@ -279,14 +279,14 @@
 		display: flex;
 		align-items: center;
 		gap: 1rem;
-		width: 20%;
+		width: 16%;
 	}
 
 	.buttons-container {
 		display: flex;
 		align-items: center;
 		justify-content: flex-end;
-		width: 20%;
+		width: 14%;
 	}
 
 	.status-icon {
