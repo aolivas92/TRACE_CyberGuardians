@@ -173,13 +173,8 @@ async def run_ml_task(job_id: str, config: MLConfig):
         step = tracker.next_step()
         tracker.add_log("Starting web scraping")
 
-        # Convert target_urls to a list if it's not already
-        """
-        if not isinstance(config.target_urls, list):
-            config.target_urls = [config.target_urls]
-        """
-
-        scraper = WebScraper(folder_path=config.folder_path)
+        database_path = "/src/database/raw_html"
+        scraper = WebScraper(folder_path=database_path)
         csv_file = await scraper.scrape_pages()
 
         if not csv_file:
@@ -209,7 +204,18 @@ async def run_ml_task(job_id: str, config: MLConfig):
         else:
             raise ValueError("No wordlist provided")
 
-        cred_gen = Credential_Generator(csv_path=csv_file, wordlist_path=wordlist_path)
+        cred_gen = Credential_Generator(
+            csv_path=csv_file,
+            wordlist_path=wordlist_path,
+            min_username_length=config.min_username_length,
+            username_caps=config.username_caps,
+            username_numbers=config.username_numbers,
+            username_special_chars=config.username_symbols,
+            min_password_length=config.min_password_length,
+            password_caps=config.password_caps,
+            password_numbers=config.password_numbers,
+            password_special_chars=config.password_symbols,
+        )
         if config.min_username_length:
             cred_gen.min_username_length = config.min_username_length
         if config.min_password_length:
@@ -219,12 +225,6 @@ async def run_ml_task(job_id: str, config: MLConfig):
         credential_count = config.credential_count
         if not isinstance(credential_count, int):
             credential_count = int(credential_count)
-
-        cred_gen = Credential_Generator(csv_path=csv_file, wordlist_path=wordlist_path)
-
-        cred_gen.min_username_length = int(config.min_username_length or 5)
-        cred_gen.min_password_length = int(config.min_password_length or 10)
-        credential_count = int(config.credential_count or 10)
 
         credentials = cred_gen.generate_credentials(count=credential_count)
 
