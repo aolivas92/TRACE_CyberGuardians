@@ -30,7 +30,19 @@ class Credential_Generator:
         This class doesn't inherit from any superclass.
     """
 
-    def __init__(self, csv_path: str = None, wordlist_path: str = None):
+    def __init__(
+        self,
+        csv_path: str,
+        wordlist_path: str,
+        min_username_length: int,
+        username_caps: bool,
+        username_numbers: bool,
+        username_special_chars: bool,
+        min_password_length: int,
+        password_caps: bool,
+        password_numbers: bool,
+        password_special_chars: bool,
+    ):
         """
         Initialize the Credential Generator.
 
@@ -56,8 +68,26 @@ class Credential_Generator:
         
         self.username_mdp = CredentialMDP(order=2)
         self.password_mdp = CredentialMDP(order=3)
-        self.min_username_length = 5
-        self.min_password_length = 10
+        self.min_username_length = (
+            min_username_length if min_username_length is not None else 12
+        )
+        self.username_caps = username_caps if username_caps is not None else True
+        self.username_numbers = (
+            username_numbers if username_numbers is not None else True
+        )
+        self.username_special_chars = (
+            username_special_chars if username_special_chars is not None else True
+        )
+        self.min_password_length = (
+            min_password_length if min_password_length is not None else 12
+        )
+        self.password_caps = password_caps if password_caps is not None else True
+        self.password_special_chars = (
+            password_special_chars if password_special_chars is not None else True
+        )
+        self.password_numbers = (
+            password_numbers if password_numbers is not None else True
+        )
 
 
     def calculate_password_strength(self, password: str) -> str:
@@ -252,19 +282,32 @@ class Credential_Generator:
     
     def generate_credential(self) -> Tuple[str, str]:
         """
-        Generate a username and password pair.
+        Generate a username and password pair based on user preferences.
         
         Returns:
             tuple[str, str]: Generated username and password.
         """
-        # Generate username
+        # Generate username base
         if not self.username_mdp.initial_states:
             state = f"username_{random.choice(self.wordlists)[:2] if self.wordlists else 'user'}"
         else:
             state = random.choice(self.username_mdp.initial_states)
 
         username = state[9:]
-        while len(username) < self.min_username_length:
+        
+        # Reserve space for potential additions based on preferences
+        reserved_space = 0
+        if self.username_numbers:
+            reserved_space += 3  # Space for up to 3 digits
+        if self.username_special_chars:
+            reserved_space += 1  # Space for 1 special character
+        if self.username_caps:
+            reserved_space += 0  # No extra space needed for capitalization
+            
+        # Generate up to target length minus reserved space
+        target_base_length = max(self.min_username_length - reserved_space, 3)
+        
+        while len(username) < target_base_length:
             action, next_char = self.username_mdp.choose_action(state)
             if not action or not next_char:
                 break
@@ -273,18 +316,45 @@ class Credential_Generator:
             reward = self.username_mdp.get_reward(state, action, next_char)
             self.username_mdp.update_q_value(state, action, next_char, next_state, reward)
             state = next_state
-
-        username = f"{username}{random.randint(1, 999)}"
+            
+        # Apply username capitalization if enabled
+        if self.username_caps and username:
+            username = username[0].upper() + username[1:]
+            
+        # Add special char to username if enabled
+        if self.username_special_chars:
+            special_chars = "!@#$%^&*"
+            username = f"{username}{random.choice(special_chars)}"
+            
+        # Add numbers to username if enabled
+        if self.username_numbers:
+            # Use a smaller number to ensure we stay close to min length
+            num_to_add = random.randint(1, 999)
+            # Make sure we add at least one digit but not more than needed
+            username = f"{username}{num_to_add}"
+            
         self.username_mdp.used_usernames.add(username)
 
-        # Generate password
+        # Generate password base
         if not self.password_mdp.initial_states:
             state = f"password_{random.choice(self.wordlists)[:3] if self.wordlists else 'pwd'}"
         else:
             state = random.choice(self.password_mdp.initial_states)
 
+        # Calculate reserved space for password additions
+        reserved_space = 0
+        if self.password_numbers:
+            reserved_space += 1  # Space for 1 digit
+        if self.password_special_chars:
+            reserved_space += 1  # Space for 1 special character
+        if self.password_caps:
+            reserved_space += 0  # No extra space needed for capitalization
+            
+        # Generate up to target length minus reserved space
+        target_base_length = max(self.min_password_length - reserved_space, 3)
+        
         password = state[9:]
-        while len(password) < self.min_password_length:
+        while len(password) < target_base_length:
             action, next_char = self.password_mdp.choose_action(state)
             if not action or not next_char:
                 break
@@ -293,8 +363,10 @@ class Credential_Generator:
             reward = self.password_mdp.get_reward(state, action, next_char)
             self.password_mdp.update_q_value(state, action, next_char, next_state, reward)
             state = next_state
-
+        
+        # Apply enhancements based on preferences
         password = self._improve_password(password)
+            
         return username, password
     
     def generate_credentials(self, count: int = 10) -> List[Tuple[str, str]]:
@@ -316,17 +388,28 @@ class Credential_Generator:
     
     def _improve_password(self, password: str) -> str:
         """
-        Enhance the generated password with additional complexity.
+        Enhance the generated password with additional complexity based on user preferences.
 
         Args:
             password (str): The password to enhance.
 
         Returns:
-            str: Enhanced password.
+            str: Enhanced password with requested features.
         """
-        enhanced = password.capitalize()
-        enhanced = f'{enhanced}{random.choice("!@#$%^&*")}{random.randint(0, 9)}'
-        return enhanced
+        # Apply password capitalization if enabled
+        if self.password_caps and password:
+            password = password[0].upper() + password[1:]
+        
+        # Add special character if enabled
+        if self.password_special_chars:
+            special_chars = "!@#$%^&*"
+            password = f'{password}{random.choice(special_chars)}'
+        
+        # Add number if enabled
+        if self.password_numbers:
+            password = f'{password}{random.randint(0, 9)}'
+            
+        return password
 
     def _load_web_text(self, csv_path: str) -> str:
         """

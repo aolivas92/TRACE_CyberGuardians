@@ -28,15 +28,16 @@ class MLConfig(BaseModel):
     """
     Configuration model for ML jobs
     """
-    # TODO: get rid of the target_urls field
-    #target_urls: List[str]
-    folder_path: str = "src/database/raw_html/"
-    wordlist_path: Optional[str] = None
-    credential_count: Optional[int] = 10
-    # TODO: add the toggle fields
-    min_username_length: Optional[int] = 5
-    min_password_length: Optional[int] = 10
-    wordlist: Optional[str] = None
+    credential_count: Optional[int]
+    wordlist: str = None
+    min_username_length: Optional[int] = 12
+    username_caps: Optional[bool] = True
+    username_numbers: Optional[bool] = True
+    username_symbols: Optional[bool] = True
+    min_password_length: Optional[int] = 12
+    password_caps: Optional[bool] = True
+    password_numbers: Optional[bool] = True
+    password_symbols: Optional[bool] = True
     class Config:
         alias_generator = lambda field_name: field_name.replace('_', '-')
         populate_by_name = True
@@ -167,8 +168,9 @@ async def run_ml_task(job_id: str, config: MLConfig):
         if not isinstance(config.target_urls, list):
             config.target_urls = [config.target_urls]
         """
-
-        scraper = WebScraper(folder_path=config.folder_path)
+        
+        database_path = "/src/database/raw_html"
+        scraper = WebScraper(folder_path=database_path)
         csv_file = await scraper.scrape_pages()
         
         if not csv_file:
@@ -198,7 +200,18 @@ async def run_ml_task(job_id: str, config: MLConfig):
         else:
             raise ValueError("No wordlist provided")
 
-        cred_gen = Credential_Generator(csv_path=csv_file, wordlist_path=wordlist_path)
+        cred_gen = Credential_Generator(
+            csv_path=csv_file,
+            wordlist_path=wordlist_path,
+            min_username_length=config.min_username_length,
+            username_caps=config.username_caps,
+            username_numbers=config.username_numbers,
+            username_special_chars=config.username_symbols,
+            min_password_length=config.min_password_length,
+            password_caps=config.password_caps,
+            password_numbers=config.password_numbers,
+            password_special_chars=config.password_symbols,
+        )
 
         cred_gen.min_username_length = int(config.min_username_length or 5)
         cred_gen.min_password_length = int(config.min_password_length or 10)
