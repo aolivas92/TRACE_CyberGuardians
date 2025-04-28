@@ -189,26 +189,41 @@ class Credential_Generator:
         improved_username = ""
 
         wordlist_text = " ".join(self.wordlists)
-        username_practices = (
-            "Good username practices include:\n"
-            "1. Avoid using personal info (real name, birthday, etc.).\n"
-            "2. Avoid common words (e.g., admin, test).\n"
-            "3. Make it unique and unpredictable.\n"
-            "4. Keep it at least 8 characters long.\n"
-            "5. Use alphanumeric characters and (optionally) underscores or dots."
+
+        best_practices = (
+            "Good username practices:\n"
+            "1. Make it 8 to 20 characters long.\n"
+            "2. Keep it readable and friendly for humans.\n"
+            "3. Use letters, numbers, underscores, or dots only.\n"
+            "4. Avoid personal info like real names or birthdays.\n"
+            "5. Avoid gibberish or overly random character strings.\n"
+            "6. If input is gibberish, extract meaningful parts and rebuild som"
         )
 
         query = (
-            f"Review this username: '{username}' (score: {score:.2f}).\n\n"
-            f"{username_practices}\n\n"
-            f"Consider this as the content to base the username:\n"
-            f"{wordlist_text}\n\nAnd:\n"
-            f"{self.web_text}"
-            f"Suggest a stronger version that follows the practices while keeping the concept of the original (e.g., 'johndoe' → 'j0hnd03_dev87').\n"
-            f"Only return the new username, no explanation, and avoid escape characters like '\\n'."
+            f"Original username: '{username}' (score: {score:.2f})\n\n"
+            f"{best_practices}\n"
+            f"\nUse the following text and words for inspiration:\n{wordlist_text}\n"
+            f"\nContextual info:\n{self.web_text}\n"
+            f"\nInstructions:\n"
+            f"- Improve the username by modifying it slightly.\n"
+            f"- Preserve the concept (e.g., theme or part of original name).\n"
+            f"- Make it unique by tweaking letters, adding numbers, or using underscores.\n"
+            f"- Avoid special symbols like $, %, ^, *, etc.\n"
+            f"- Do NOT return passwords or gibberish — it must look like a handle someone would use online.\n"
+            f"\nExamples:\n"
+            f"- 'johndoe' → 'john_d03'\n"
+            f"- 'hello123' → 'h3llo_dev123'\n"
+            f"- 'c6elfhotbX6s107kr' → 'elfhotbath107'\n"
+            f"- '4yxsoae5qsaqe' → 'yx_spark507'\n"
+            f"\nOnly return the improved username. No extra text."
         )
 
-        system_message = "You are a security advisor for usernames. Suggest a better version of a given username to follow best practices for uniqueness and anonymity."
+        system_message = (
+            "You are a helpful assistant that improves usernames to follow good online practices.\n"
+            "You prioritize usernames that are memorable, unique, and based on the original idea.\n"
+            "You do NOT make them look like passwords."
+        )
 
         message = [
             {"role": "system", "content": system_message},
@@ -226,7 +241,8 @@ class Credential_Generator:
             warnings.warn(
                 f"Error calling Ollama for username improvement: {e}\nUsing fallback method."
             )
-        improved_username = f"user_{random.randint(1000, 9999)}"
+            improved_username = self._improve_username(username)
+
         return improved_username
 
     def _get_ai_hyperparameters(self) -> List[str]:  # Unused
