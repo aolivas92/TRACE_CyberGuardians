@@ -29,6 +29,9 @@ from src.modules.dbf.services.dbf_service_router import get_service_routers as g
 from src.modules.dbf.services.dbf_service_router import get_websocket_handlers as get_dbf_websocket_handlers
 from src.modules.dbf.services.dbf_service import job_results as dbf_job_results, running_jobs as dbf_running_jobs
 
+# Check scans router
+from src.modules.utility.check_scans_router import router as check_scans_router
+
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -300,3 +303,6 @@ async def debug_endpoint(request: Request):
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
+
+# Utility router
+app.include_router(check_scans_router)

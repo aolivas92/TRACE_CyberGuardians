@@ -25,41 +25,41 @@
 
 	let completedScans = [];
 
-function checkCompletedScans() {
-	const newScans = [];
+	function checkCompletedScans() {
+		const newScans = [];
 
-	if (localStorage.getItem('crawlerComplete') === 'true') {
-		newScans.push('crawler');
-	}
-	if (localStorage.getItem('fuzzerComplete') === 'true') {
-		newScans.push('fuzzer');
-	}
-	if (localStorage.getItem('bruteForceComplete') === 'true') {
-		newScans.push('bruteForce');
-	}
+		if (localStorage.getItem('crawlerComplete') === 'true') {
+			newScans.push('crawler');
+		}
+		if (localStorage.getItem('fuzzerComplete') === 'true') {
+			newScans.push('fuzzer');
+		}
+		if (localStorage.getItem('bruteForceComplete') === 'true') {
+			newScans.push('bruteForce');
+		}
 
-	if (newScans.length !== completedScans.length) {
-		completedScans = newScans;
-		console.log(`Completed scans updated: ${completedScans.length}/3`);
-	}
-}
-
-onMount(() => {
-	const savedIndex = localStorage.getItem('selectedIndex');
-	if (savedIndex !== null) {
-		selectedIndex = parseInt(savedIndex, 10);
+		if (newScans.length !== completedScans.length) {
+			completedScans = newScans;
+			console.log(`Completed scans updated: ${completedScans.length}/3`);
+		}
 	}
 
-	// Initial check
-	checkCompletedScans();
+	onMount(() => {
+		const savedIndex = localStorage.getItem('selectedIndex');
+		if (savedIndex !== null) {
+			selectedIndex = parseInt(savedIndex, 10);
+		}
 
-	// Check every 2 seconds
-	const interval = setInterval(checkCompletedScans, 2000);
+		// Initial check
+		checkCompletedScans();
 
-	return () => {
-		clearInterval(interval);
-	};
-});
+		// Check every 2 seconds
+		const interval = setInterval(checkCompletedScans, 2000);
+
+		return () => {
+			clearInterval(interval);
+		};
+	});
 
 	beforeUpdate(() => {
 		if (selectedIndex === undefined) {

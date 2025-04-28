@@ -52,7 +52,7 @@
 
 	async function checkForCompletedScans() {
 		try {
-			const res = await fetch('/api/check-scans'); // you will create this API route
+			const res = await fetch('http://localhost:8000/api/check-scans'); // you will create this API route
 			if (!res.ok) {
 				console.error('Failed to check scans');
 				return false;
