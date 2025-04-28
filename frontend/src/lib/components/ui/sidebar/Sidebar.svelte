@@ -5,6 +5,7 @@
 	import { toggleMode, mode } from 'mode-watcher';
 	import { goto } from '$app/navigation';
 	import Modal from '$lib/components/ui/modal/Modal.svelte';
+	import { page } from '$app/stores';
 
 	let selectedIndex;
 	let showSettingsModal = false;
@@ -70,6 +71,9 @@ onMount(() => {
 			}
 		}
 	});
+	
+$: currentPath = $page.url.pathname;
+
 </script>
 
 <div class="sidebar">
@@ -99,22 +103,23 @@ onMount(() => {
 	</div>
 	<div class="main-buttons">
 		{#each menuItems as item, index}
-			<Button
-				variant="circle"
-				size="circle"
-				type="button"
-				onclick={() => {
-					if (!item.requiresScan || completedScans.length > 0) {
-						isSelected(index, item.route);
-					}
-				}}
-				disabled={item.requiresScan && completedScans.length === 0}
-				title={item.requiresScan && completedScans.length === 0 
-					? "Run at least one scan to unlock" 
-					: item.tooltip}
-			>
-				<item.icon style="width: 20px; height: 20px;" />
-			</Button>
+		<Button
+			variant="circle"
+			size="circle"
+			type="button"
+			onclick={() => {
+				if (!item.requiresScan || completedScans.length > 0) {
+					isSelected(index, item.route);
+				}
+			}}
+			disabled={item.requiresScan && completedScans.length === 0}
+			title={item.requiresScan && completedScans.length === 0 
+				? "Run at least one scan to unlock" 
+				: item.tooltip}
+			data-active={item.route && currentPath.startsWith(item.route) ? true : undefined}   
+		>
+			<item.icon style="width: 20px; height: 20px;" />
+		</Button>
 		{/each}
 	</div>
 	<div class="settings-button">
@@ -163,4 +168,5 @@ onMount(() => {
 		align-items: center;
 		height: 1.5rem;
 	}
+
 </style>
