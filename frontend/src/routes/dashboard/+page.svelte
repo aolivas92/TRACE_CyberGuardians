@@ -14,6 +14,8 @@
 	export let data;
 	$: $serviceStatus;
 
+	let hasScanRun = false; 
+
 	onMount(() => {
 		const status = get(serviceStatus).status;
 		const type = get(serviceStatus).serviceType;
@@ -37,7 +39,31 @@
 				}
 			}
 		}
+
+		// Check for existing scans when page loads
+		async function init(){
+			const scanExists = await checkForCompletedScans();
+			hasScanRun = scanExists;
+		}
+
+		init(); 
+
 	});
+
+	async function checkForCompletedScans() {
+		try {
+			const res = await fetch('/api/check-scans'); // you will create this API route
+			if (!res.ok) {
+				console.error('Failed to check scans');
+				return false;
+			}
+			const data = await res.json();
+			return data.hasScans;
+		} catch (error) {
+			console.error('Error checking scans:', error);
+			return false;
+		}
+	}
 
 	function getServiceType(tool) {
 		const name = tool.name.toLowerCase();
