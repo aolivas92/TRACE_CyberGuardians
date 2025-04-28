@@ -178,56 +178,68 @@
 			return;
 		}
 
-		try {
-			const res = await fetch(`http://localhost:8000/api/crawler/${jobId}/results`);
-			if (!res.ok) throw new Error('Failed to fetch crawler results.');
+		let data = get(serviceResults).crawler;
 
-			const { results = [] } = await res.json();
+		// If not in memory, fetch from server
+		if (!data || data.length === 0) {
+			console.log('[Export] No results found in store. Fetching from API...');
+			try {
+				const res = await fetch(`http://localhost:8000/api/crawler/${jobId}/results`);
+				if (!res.ok) throw new Error('Failed to fetch crawler results.');
+				const { results = [] } = await res.json();
+				data = results;
 
-			// Fields you want to include in the export
-			const exportFields = [
-				'url',
-				'parentUrl',
-				'title',
-				'wordCount',
-				'charCount',
-				'linksFound',
-				'error'
-			];
-
-			// Optional: Human-readable column names
-			const headers = [
-				'URL',
-				'Parent URL',
-				'Title',
-				'Word Count',
-				'Character Count',
-				'Links Found',
-				'Error'
-			];
-
-			// Build CSV content
-			const csvRows = [
-				headers.join(','), // Header row
-				...results.map((row) => exportFields.map((key) => JSON.stringify(row[key] ?? '')).join(','))
-			];
-
-			// Create blob and trigger download
-			const csvContent = csvRows.join('\n');
-			const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-			const url = URL.createObjectURL(blob);
-
-			const a = document.createElement('a');
-			a.href = url;
-			a.download = `crawler_${jobId}_results.csv`;
-			document.body.appendChild(a);
-			a.click();
-			a.remove();
-
-			URL.revokeObjectURL(url);
-		} catch (error) {
-			console.error('[Crawler Export Error]', error);
+				// OPTIONAL: Update the store if you want the UI to react too
+				serviceResults.update((r) => ({ ...r, crawler: data }));
+			} catch (error) {
+				console.error('[Crawler Export Error]', error);
+				toast.error('Failed to fetch crawler results.');
+				return;
+			}
 		}
+
+		if (!data || data.length === 0) {
+			toast.error('No results available for export.');
+			return;
+		}
+
+		// Build CSV
+		const exportFields = [
+			'url',
+			'parentUrl',
+			'title',
+			'wordCount',
+			'charCount',
+			'linksFound',
+			'error'
+		];
+		const headers = [
+			'URL',
+			'Parent URL',
+			'Title',
+			'Word Count',
+			'Character Count',
+			'Links Found',
+			'Error'
+		];
+
+		const csvRows = [
+			headers.join(','), 
+			...data.map((row) => exportFields.map((key) => JSON.stringify(row[key] ?? '')).join(','))
+		];
+
+		const csvContent = csvRows.join('\n');
+		const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+		const url = URL.createObjectURL(blob);
+
+		const a = document.createElement('a');
+		a.href = url;
+		a.download = `crawler_${jobId}_results.csv`;
+		document.body.appendChild(a);
+		a.click();
+		a.remove();
+
+		URL.revokeObjectURL(url);
 	}
 
 	// Restore checkpoint on mount
