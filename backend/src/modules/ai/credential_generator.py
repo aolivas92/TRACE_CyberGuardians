@@ -117,44 +117,84 @@ class Credential_Generator:
             return "not secure - does not meet all best practices."
 
     def _suggest_password(self, password: str, score: float) -> str:
-        strengthened_password = ""
-        wordlist_text = " ".join(self.wordlists)
-        good_practices_info = (
-            "Good password practices include the following: "
-            "1. Length: Passwords should be at least 12 characters long. "
-            "2. Complexity: Passwords should include a mix of uppercase letters, lowercase letters, numbers, and special characters. "
-            "3. Unpredictability: Avoid common words, phrases, or predictable patterns like '1234' or 'qwerty'. "
-            "4. Uniqueness: Passwords should be unique for every account to prevent leaks. "
-            "5. Avoid personal information: Avoid using easily guessable information, such as names or birthdays. "
-            "6. Use of password managers: Consider using password managers for securely storing passwords."
+        """
+        Uses Ollama to suggest a more secure version of a given password,
+        while maintaining some resemblance to the original.
+
+        Args:
+            password (str): The password to evaluate and improve.
+            score (float): The security score of the original password.
+
+        Returns:
+            str: A new, AI-suggested secure password based on the original.
+        """
+        improved_password = ""
+        
+        # Get configuration options
+        include_numbers = self.password_numbers
+        include_special_chars = self.password_special_chars
+        include_capitalization = self.password_cap
+        password_length = self.min_password_length
+        
+        # Build configuration string
+        config_str = (
+            f"Length: {password_length}+ characters. "
+            f"Include numbers: {include_numbers}. "
+            f"Include special characters: {include_special_chars}. "
+            f"Include capitalization: {include_capitalization}."
         )
+        
+        system_message = (
+            "You are a password generator that creates secure but memorable passwords. "
+            "You follow the user's specific configuration requirements for length, numbers, "
+            "special characters, and capitalization. Your suggestions should balance security "
+            "and usability."
+        )
+
         query = (
-            f"Review this password: '{password} (score: {score:.2f})'"
-            f"Keep in mind the good best practice info:\n{good_practices_info}\n"
-            f"Consider this as the content to base the password off of:\n"
-            f"{wordlist_text}\n\nAnd:\n"
-            f"{self.web_text}"
-            f"It is your task to improve this password so it follows the best practices\n"
-            f"while keeping the passwords concept, so for example if the password you'd get is 'Hello123', then you should return something along the lines of 'H31l0w@rLd20341'.\n"
-            f"You should also avoid using escape characters like '\\n' or '\\t', but add any other alphanumeric string of around 5 characters. Take into account that it meets all good practices\n"
-            f"Please only answer with your suggestion of the password, with no other text"
+            f"Original password: '{password}'\n\n"
+            f"Configuration: {config_str}\n\n"
+            f"Please generate an improved, secure version of this password while:\n"
+            f"1. Making it more secure but still somewhat memorable\n"
+            f"2. Following the configuration requirements exactly\n"
+            f"3. Using a mix of character types as specified\n"
+            f"4. Avoiding common password patterns\n\n"
+            f"Special character options (if requested): !@#$%^&*()_-+=\n\n"
+            f"Return ONLY the new password with no explanation."
         )
-        system_message = "You are a password security expert. Evaluate passwords carefully and provide the best suggestion you can come up with."
+
         message = [
             {"role": "system", "content": system_message},
             {"role": "user", "content": query},
         ]
+
         try:
             response = ollama.chat(model="gemma3:latest", messages=message)
-            strengthened_password = response["message"]["content"]
-            if self._get_password_status(strengthened_password) != 0b111:
-                strengthened_password = self._improve_password(strengthened_password)
+            improved_password = response["message"]["content"].strip().replace("\n", "")
+            
+            # Basic validation to ensure requirements are met
+            if len(improved_password) < password_length:
+                improved_password += str(random.randint(100, 999))
+                
+            if include_numbers and not any(char.isdigit() for char in improved_password):
+                improved_password += str(random.randint(10, 99))
+                
+            if include_special_chars and not any(char in "!@#$%^&*()_-+=" for char in improved_password):
+                improved_password += random.choice("!@#$%^&*()_-+=")
+                
+            if include_capitalization and not any(char.isupper() for char in improved_password):
+                # Capitalize a random character
+                char_positions = [i for i, char in enumerate(improved_password) if char.isalpha()]
+                if char_positions:
+                    pos = random.choice(char_positions)
+                    improved_password = improved_password[:pos] + improved_password[pos].upper() + improved_password[pos+1:]
         except Exception as e:
             warnings.warn(
-                f"Error calling Ollama due to : {e}\nDefaulting to improving password with default method"
+                f"Error calling Ollama for password improvement: {e}\nUsing fallback method."
             )
-            strengthened_password = self._improve_password(password)
-        return strengthened_password
+            improved_password = self._improve_password(password)
+
+        return improved_password
 
     def calculate_username_strength(self, username: str) -> float:
         """
@@ -187,42 +227,37 @@ class Credential_Generator:
             str: A new, AI-suggested secure username based on the original.
         """
         improved_username = ""
-
-        wordlist_text = " ".join(self.wordlists)
-
-        best_practices = (
-            "Good username practices:\n"
-            "1. Make it 8 to 20 characters long.\n"
-            "2. Keep it readable and friendly for humans.\n"
-            "3. Use letters, numbers, underscores, or dots only.\n"
-            "4. Avoid personal info like real names or birthdays.\n"
-            "5. Avoid gibberish or overly random character strings.\n"
-            "6. If input is gibberish, extract meaningful parts and rebuild som"
+        
+        # Get configuration options
+        include_numbers = self.username_numbers
+        include_special_chars = self.username_special_chars
+        include_capitalization = self.username_cap
+        username_length = self.min_username_length
+        
+        # Build configuration string
+        config_str = (
+            f"Length: {username_length}+ characters. "
+            f"Include numbers: {include_numbers}. "
+            f"Include special characters: {include_special_chars}. "
+            f"Include capitalization: {include_capitalization}."
+        )
+        
+        system_message = (
+            "You are a username generator that creates simple, readable, and memorable usernames. "
+            "You follow the user's specific configuration requirements for length, numbers, and special characters. "
+            "Your suggestions should be practical for online platforms."
         )
 
         query = (
-            f"Original username: '{username}' (score: {score:.2f})\n\n"
-            f"{best_practices}\n"
-            f"\nUse the following text and words for inspiration:\n{wordlist_text}\n"
-            f"\nContextual info:\n{self.web_text}\n"
-            f"\nInstructions:\n"
-            f"- Improve the username by modifying it slightly.\n"
-            f"- Preserve the concept (e.g., theme or part of original name).\n"
-            f"- Make it unique by tweaking letters, adding numbers, or using underscores.\n"
-            f"- Avoid special symbols like $, %, ^, *, etc.\n"
-            f"- Do NOT return passwords or gibberish — it must look like a handle someone would use online.\n"
-            f"\nExamples:\n"
-            f"- 'johndoe' → 'john_d03'\n"
-            f"- 'hello123' → 'h3llo_dev123'\n"
-            f"- 'c6elfhotbX6s107kr' → 'elfhotbath107'\n"
-            f"- '4yxsoae5qsaqe' → 'yx_spark507'\n"
-            f"\nOnly return the improved username. No extra text."
-        )
-
-        system_message = (
-            "You are a helpful assistant that improves usernames to follow good online practices.\n"
-            "You prioritize usernames that are memorable, unique, and based on the original idea.\n"
-            "You do NOT make them look like passwords."
+            f"Original username: '{username}'\n\n"
+            f"Configuration: {config_str}\n\n"
+            f"Please generate an improved version of this username while:\n"
+            f"1. Keeping it readable and memorable\n"
+            f"2. Preserving some aspect of the original username\n"
+            f"3. Following the configuration requirements exactly\n"
+            f"4. Making it unique but not overly complex\n\n"
+            f"Special character options (only if requested): _ . -\n\n"
+            f"Return ONLY the new username with no explanation."
         )
 
         message = [
@@ -233,10 +268,21 @@ class Credential_Generator:
         try:
             response = ollama.chat(model="gemma3:latest", messages=message)
             improved_username = response["message"]["content"].strip().replace("\n", "")
-            if len(improved_username) < self.min_username_length:
-                improved_username += str(
-                    random.randint(10, 99)
-                )  # Ensure minimum length
+            
+            # Basic validation to ensure requirements are met
+            if len(improved_username) < username_length:
+                improved_username += str(random.randint(10, 99))
+                
+            if include_numbers and not any(char.isdigit() for char in improved_username):
+                improved_username += str(random.randint(1, 99))
+                
+            if include_special_chars and not any(char in "_.-" for char in improved_username):
+                improved_username += "_"
+                
+            if include_capitalization and improved_username.islower():
+                # Capitalize a random character
+                pos = random.randint(0, len(improved_username) - 1)
+                improved_username = improved_username[:pos] + improved_username[pos].upper() + improved_username[pos+1:]
         except Exception as e:
             warnings.warn(
                 f"Error calling Ollama for username improvement: {e}\nUsing fallback method."
